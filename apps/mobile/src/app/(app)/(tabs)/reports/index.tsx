@@ -24,6 +24,7 @@ import {
 import { ApprovalRow } from '@/components/approvals/ApprovalRow';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
 import { TrendsCard } from '@/components/reports/TrendsCard';
+import { TagBreakdown } from '@/components/reports/TagBreakdown';
 import { FreelancerBreakdown } from '@/components/reports/FreelancerBreakdown';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
@@ -232,6 +233,11 @@ export default function ReportsScreen() {
           ) : (
             <FreelancerBreakdown rows={freelancerRows} members={members ?? []} currency={currency} />
           )}
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader eyebrow="Categories" title="By tag" />
+          {breakdownLoading ? <ScreenLoader /> : <TagBreakdown entries={approvedEntries ?? []} />}
         </View>
 
         <View style={styles.section}>

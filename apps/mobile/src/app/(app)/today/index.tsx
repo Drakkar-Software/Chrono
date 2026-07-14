@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { EmptyState, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
-import { groupByDay, sumDurations, formatDuration, weekBounds } from '@chrono/sdk';
+import { Button, EmptyState, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
+import { buildCopiedEntries, groupByDay, shiftEntryDate, sumDurations, formatDuration, weekBounds } from '@chrono/sdk';
 import type { TablesInsert } from '@chrono/sdk';
 
 import { toISODate, todayISO } from '@/lib/date';
@@ -13,6 +13,7 @@ import { useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
 import { LogEntryForm, type LogEntryValues } from '@/components/time/LogEntryForm';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
+import { WeekGrid } from '@/components/time/WeekGrid';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
@@ -26,9 +27,12 @@ export default function TodayScreen() {
   const userId = user?.id;
 
   const weekStart = useMemo(() => weekBounds(todayISO()).start, []);
+  const lastWeekStart = useMemo(() => shiftEntryDate(weekStart, -7), [weekStart]);
   const { data: projects } = useMyProjects(userId, companyId ?? undefined);
   const { data: entries, isLoading, error, refetch } = useWeekEntries(userId, companyId ?? undefined, weekStart);
+  const { data: lastWeekEntries } = useWeekEntries(userId, companyId ?? undefined, lastWeekStart);
   const { create, isPending } = useTimeEntryMutations();
+  const [copying, setCopying] = useState(false);
 
   const projectOptions = useMemo(
     () => (projects ?? []).map((p) => ({ label: p.name, value: p.id })),
@@ -59,9 +63,26 @@ export default function TodayScreen() {
       duration_minutes: values.durationMinutes,
       description: values.description || null,
       billable: values.billable,
+      tags: values.tags,
     };
     create(input);
   };
+
+  const copyLastWeek = async () => {
+    if (!userId || !companyId || !lastWeekEntries?.length) return;
+    setCopying(true);
+    try {
+      const copies = buildCopiedEntries(lastWeekEntries, 7);
+      for (const c of copies) {
+        await create({ ...c, user_id: userId, company_id: companyId } as TablesInsert<'time_entries'>);
+      }
+      await refetch();
+    } finally {
+      setCopying(false);
+    }
+  };
+
+  const lastWeekCount = lastWeekEntries?.length ?? 0;
 
   const week = (
     <View style={styles.section}>
@@ -70,6 +91,7 @@ export default function TodayScreen() {
         <StatTile label="Today" value={formatDuration(todayMinutes)} />
         <StatTile label="This week" value={formatDuration(weekMinutes)} tone="accent" />
       </StatRow>
+      <WeekGrid entries={entries ?? []} weekStart={weekStart} />
       {isLoading && entries == null ? (
         <ScreenLoader />
       ) : error && entries == null ? (
@@ -115,6 +137,17 @@ export default function TodayScreen() {
       <View style={[styles.wrap, isWide && styles.wrapWide]}>
         <View style={isWide ? styles.formCol : undefined}>
           <LogEntryForm projectOptions={projectOptions} onSubmit={onSubmit} isSubmitting={isPending} />
+          {lastWeekCount > 0 ? (
+            <View style={styles.copyBtn}>
+              <Button
+                title={`Copy last week (${lastWeekCount})`}
+                variant="secondary"
+                onPress={copyLastWeek}
+                loading={copying}
+                fullWidth
+              />
+            </View>
+          ) : null}
         </View>
         <View style={isWide ? styles.weekCol : undefined}>{week}</View>
       </View>
@@ -125,8 +158,9 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xl },
   wrapWide: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
-  formCol: { flexBasis: 320, flexGrow: 0, flexShrink: 0, maxWidth: 340 },
+  formCol: { flexBasis: 320, flexGrow: 0, flexShrink: 0, maxWidth: 340, gap: spacing.sm },
   weekCol: { flex: 1 },
+  copyBtn: { marginTop: spacing.xs },
   section: { gap: spacing.md },
   day: { gap: spacing.xs },
   dayHeader: {

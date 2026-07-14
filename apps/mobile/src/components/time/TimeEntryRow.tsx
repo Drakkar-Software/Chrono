@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Badge, Txt, spacing, useTheme } from '@chrono/ui';
+import { Badge, Txt, radii, spacing, useTheme } from '@chrono/ui';
 import { formatDuration } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';
 import { timeEntryBadge } from '@/lib/status';
@@ -34,6 +34,17 @@ export function TimeEntryRow({ entry, onPress }: TimeEntryRowProps) {
             {entry.description}
           </Txt>
         ) : null}
+        {entry.tags && entry.tags.length > 0 ? (
+          <View style={styles.tags}>
+            {entry.tags.slice(0, 4).map((tag) => (
+              <View key={tag} style={[styles.tag, { backgroundColor: colors.fill }]}>
+                <Txt variant="micro" tone="textMuted">
+                  {tag}
+                </Txt>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
       <View style={styles.right}>
         <Txt variant="bodyMedium" mono tabularNums>
@@ -57,4 +68,6 @@ const styles = StyleSheet.create({
   },
   left: { flex: 1, gap: 2 },
   right: { alignItems: 'flex-end', gap: spacing.xs },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: 2 },
+  tag: { paddingHorizontal: spacing.xs, paddingVertical: 1, borderRadius: radii.sm },
 });

@@ -11,6 +11,7 @@ import {
   spacing,
 } from '@chrono/ui';
 import type { PickerOption } from '@chrono/ui';
+import { parseTags } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
 
 export interface LogEntryValues {
@@ -19,6 +20,7 @@ export interface LogEntryValues {
   durationMinutes: number;
   description: string;
   billable: boolean;
+  tags: string[];
 }
 
 export interface LogEntryFormProps {
@@ -44,6 +46,7 @@ export function LogEntryForm({
   const [entryDate, setEntryDate] = useState(new Date());
   const [hours, setHours] = useState('');
   const [description, setDescription] = useState('');
+  const [tags, setTags] = useState('');
   const [billable, setBillable] = useState(defaultBillable ? 'billable' : 'nonbillable');
   const [error, setError] = useState<string | undefined>();
 
@@ -68,9 +71,11 @@ export function LogEntryForm({
       durationMinutes,
       description: description.trim(),
       billable: billable === 'billable',
+      tags: parseTags(tags),
     });
     setHours('');
     setDescription('');
+    setTags('');
   };
 
   return (
@@ -99,6 +104,13 @@ export function LogEntryForm({
         onChangeText={setDescription}
         placeholder="What did you work on?"
         multiline
+      />
+      <TextField
+        label="Tags (optional)"
+        value={tags}
+        onChangeText={setTags}
+        placeholder="dev, meeting, support"
+        autoCapitalize="none"
       />
       <View style={styles.segment}>
         <Segmented options={BILLABLE_OPTIONS} value={billable} onValueChange={setBillable} />
