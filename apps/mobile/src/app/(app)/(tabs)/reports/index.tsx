@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Button, EmptyState, Segmented, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
 import { companyCurrency } from '@chrono/sdk';
 import type { InvoiceWithRelations, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useActiveCompany } from '@/lib/active-company-context';
 import { todayISO } from '@/lib/date';
+import { exportCsv, invoicesCsv, timeEntriesCsv } from '@/lib/csv-export';
 import { usePendingApprovals, useApproveEntry, useRejectEntry } from '@/lib/hooks/use-approvals';
 import { useProjects } from '@/lib/hooks/use-projects';
 import { useCompanyRevenueEntries } from '@/lib/hooks/use-revenue-entries';
@@ -42,6 +44,7 @@ function groupByProject<T extends { project_id: string }>(rows: T[]): Map<string
 }
 
 export default function ReportsScreen() {
+  const router = useRouter();
   const { isWide } = useResponsive();
   const { companyId, company } = useActiveCompany();
   const currency = companyCurrency(company);
@@ -152,6 +155,21 @@ export default function ReportsScreen() {
         <View style={styles.section}>
           <SectionHeader eyebrow="Scope" title="Date range" />
           <Segmented options={RANGE_OPTIONS} value={preset} onValueChange={(v) => setPreset(v as RangePreset)} />
+          <View style={styles.exportRow}>
+            <Button
+              title="Export time (CSV)"
+              size="sm"
+              variant="secondary"
+              onPress={() => void exportCsv(`chrono-time-${range.from ?? 'all'}.csv`, timeEntriesCsv(approvedEntries ?? []))}
+            />
+            <Button
+              title="Export invoices (CSV)"
+              size="sm"
+              variant="secondary"
+              onPress={() => void exportCsv('chrono-invoices.csv', invoicesCsv(invoices ?? []))}
+            />
+            <Button title="Audit log" size="sm" variant="ghost" onPress={() => router.push('/audit')} />
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -279,6 +297,7 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.xl },
   section: { gap: spacing.md },
   bulkActions: { flexDirection: 'row', gap: spacing.sm, flexShrink: 1, flexWrap: 'wrap', justifyContent: 'flex-end' },
+  exportRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   cell: { flexGrow: 1 },
   cellWide: { flexBasis: '48%', minWidth: 280 },

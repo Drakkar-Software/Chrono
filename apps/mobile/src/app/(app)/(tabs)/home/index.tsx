@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Card, EmptyState, Money, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
+import { Button, Card, EmptyState, IconButton, Money, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
 import {
   canManage,
   companyCurrency,
@@ -10,6 +10,7 @@ import {
   invoiceAmounts,
   monthBounds,
   sumDurations,
+  unreadCount,
   weekBounds,
 } from '@chrono/sdk';
 
@@ -21,7 +22,6 @@ import { useTimeEntries, useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { usePendingApprovals } from '@/lib/hooks/use-approvals';
 import { useNotifications } from '@/lib/hooks/use-notifications';
-import { unreadCount } from '@chrono/sdk';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -96,7 +96,15 @@ export default function HomeScreen() {
   }
 
   return (
-    <StackScreen title="Home" headerRight={<NotificationBell unread={unread} />}>
+    <StackScreen
+      title="Home"
+      headerRight={
+        <View style={styles.headerActions}>
+          <IconButton name="search-outline" onPress={() => router.push('/search')} accessibilityLabel="Search" />
+          <NotificationBell unread={unread} />
+        </View>
+      }
+    >
       <View style={styles.wrap}>
         <View style={styles.section}>
           <SectionHeader eyebrow="Overview" title="Your activity" />
@@ -187,6 +195,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xl },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   section: { gap: spacing.md },
   actions: { gap: spacing.sm },
   actionsWide: { flexDirection: 'row' },

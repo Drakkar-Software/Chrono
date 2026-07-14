@@ -151,10 +151,11 @@ export function buildInvoiceHtml({
     <header>
       <div class="brand-wrap">
         ${logo}
-        <div class="brand">Chrono<small>Invoice</small></div>
+        <div class="brand">Chrono<small>${invoice.invoice_number ? esc('Invoice ' + invoice.invoice_number) : 'Invoice'}</small></div>
       </div>
       <div class="period">
         <div>Period ${esc(period)}</div>
+        ${invoice.issued_on ? `<div>Issued ${esc(invoice.issued_on)}</div>` : ''}
         <span class="status">${esc(invoiceStatusLabel(invoice.status))}</span>
       </div>
     </header>

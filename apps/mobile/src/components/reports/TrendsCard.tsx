@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Card, Segmented, Txt, formatMoney, spacing, useTheme } from '@chrono/ui';
 import { DEFAULT_LOCALE } from '@chrono/sdk';
 

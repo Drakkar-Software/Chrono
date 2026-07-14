@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Card, Row, Txt, spacing } from '@chrono/ui';
 import { formatDuration, summarizeByTag } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';

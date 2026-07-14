@@ -1,10 +1,8 @@
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
-import { formatDuration } from '@chrono/sdk';
+import { formatDuration, shiftEntryDate } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';
-
-import { shiftEntryDate } from '@chrono/sdk';
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 

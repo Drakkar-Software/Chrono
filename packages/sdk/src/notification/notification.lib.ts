@@ -26,6 +26,8 @@ export function notificationIcon(type: NotificationType): string {
       return 'wallet-outline';
     case 'referral_earned':
       return 'gift-outline';
+    case 'reminder':
+      return 'alarm-outline';
     default:
       return 'notifications-outline';
   }
@@ -44,6 +46,7 @@ export function notificationTone(
       return 'danger';
     case 'time_submitted':
     case 'invoice_partially_paid':
+    case 'reminder':
       return 'accent';
     default:
       return 'text';

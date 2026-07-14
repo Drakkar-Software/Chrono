@@ -30,7 +30,7 @@ export function InvoiceCard({ invoice, currency, onPress }: InvoiceCardProps) {
       ]}
     >
       <View style={styles.left}>
-        <Txt variant="bodyMedium">{period}</Txt>
+        <Txt variant="bodyMedium">{invoice.invoice_number ? `${invoice.invoice_number} · ${period}` : period}</Txt>
         {invoice.project?.name ? (
           <Txt variant="caption" tone="textMuted" numberOfLines={1}>
             {invoice.project.name}

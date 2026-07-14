@@ -1,6 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 

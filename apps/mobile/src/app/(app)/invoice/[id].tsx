@@ -8,6 +8,7 @@ import {
   companyLegal,
   freelancerLegal,
   invoiceAmounts,
+  invoiceLabel,
   invoiceStatusLabel,
 } from '@chrono/sdk';
 
@@ -19,6 +20,7 @@ import { useSettleProjectMonth, useSubmitInvoice } from '@/lib/hooks/use-invoice
 import { buildInvoiceHtml, exportInvoice } from '@/lib/invoice-document';
 import { invoiceBadge } from '@/lib/status';
 import { AmountBreakdown } from '@/components/invoices/AmountBreakdown';
+import { PaymentsSection } from '@/components/invoices/PaymentsSection';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState, InlineError } from '@/components/common/ErrorState';
@@ -131,7 +133,7 @@ export default function InvoiceDetail() {
   const a = invoiceAmounts(invoice);
 
   return (
-    <StackScreen title={invoice.period_month.slice(0, 7)} onBack={() => router.back()}>
+    <StackScreen title={invoiceLabel(invoice)} onBack={() => router.back()}>
       <View style={styles.wrap}>
         <Card padding="lg" style={styles.card}>
           <View style={styles.header}>
@@ -151,7 +153,9 @@ export default function InvoiceDetail() {
               <Money cents={a.creditCarriedForwardCents} currency={currency} variant="heading" tone="textMuted" />
             </StatTile>
           </StatRow>
+          {invoice.invoice_number ? <Row label="Invoice #" value={invoice.invoice_number} /> : null}
           <Row label="Period" value={invoice.period_month.slice(0, 7)} />
+          {invoice.issued_on ? <Row label="Issued" value={invoice.issued_on} /> : null}
           <AmountBreakdown invoice={invoice} currency={currency} />
         </Card>
 
@@ -189,6 +193,14 @@ export default function InvoiceDetail() {
         {submit.error ? <InlineError error={submit.error} /> : null}
         {settle.error ? <InlineError error={settle.error} /> : null}
         {exportError ? <InlineError error={exportError} /> : null}
+
+        <PaymentsSection
+          invoiceId={invoice.id}
+          companyId={invoice.company_id}
+          currency={currency}
+          canManage={manager}
+          userId={user?.id}
+        />
       </View>
     </StackScreen>
   );

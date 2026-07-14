@@ -49,7 +49,7 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
   const [role, setRole] = useState<AppRole>('freelancer');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const now = useMemo(() => new Date().toISOString(), [invites]);
+  const now = useMemo(() => new Date().toISOString(), []);
   const roleOptions = canGrantElevated
     ? [
         { label: 'Freelancer', value: 'freelancer' },

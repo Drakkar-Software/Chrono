@@ -53,8 +53,7 @@ export async function registerForPush(userId: string): Promise<void> {
 
   const projectId =
     Constants.expoConfig?.extra?.eas?.projectId ??
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- easConfig is loosely typed across SDKs
-    (Constants as any).easConfig?.projectId;
+    (Constants as { easConfig?: { projectId?: string } }).easConfig?.projectId;
 
   const { data: token } = await Notifications.getExpoPushTokenAsync(
     projectId ? { projectId } : undefined,
