@@ -1,6 +1,8 @@
 <div align="center">
 
-# ⏱️ Chrono
+<img src="logo.png" alt="Chrono" width="200" />
+
+# Chrono
 
 ### From a logged hour to a settled invoice — the freelance time-&-money workspace.
 
