@@ -7,6 +7,11 @@
 --   CREATE TABLE -> ENABLE RLS -> POLICIES -> INDEXES -> TRIGGERS.
 -- ============================================================================
 
+-- Allow the helper functions below to forward-reference tables created later
+-- in this migration (they are `language sql`, whose bodies are otherwise
+-- validated at creation time). This is what `pg_dump` emits for the same reason.
+set check_function_bodies = off;
+
 -- ----------------------------------------------------------------------------
 -- Extensions
 -- ----------------------------------------------------------------------------
@@ -287,15 +292,8 @@ create table public.projects (
 
 alter table public.projects enable row level security;
 
-create policy "managers and assigned members read projects"
-  on public.projects for select to authenticated
-  using (
-    public.is_company_manager(company_id)
-    or exists (
-      select 1 from public.project_members pm
-      where pm.project_id = projects.id and pm.user_id = (select auth.uid())
-    )
-  );
+-- NOTE: the "read projects" SELECT policy references public.project_members and is
+-- created in the Project Members section below, once that table exists.
 
 create policy "managers create projects"
   on public.projects for insert to authenticated
@@ -346,16 +344,36 @@ as $$
   select company_id from public.projects where id = pid;
 $$;
 
+-- helper: is the caller a member of the given project? SECURITY DEFINER so it
+-- bypasses project_members RLS — a plain EXISTS(... from project_members ...)
+-- inside project_members' own SELECT policy would recurse infinitely.
+create or replace function public.is_project_member(pid uuid)
+returns boolean
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select exists (
+    select 1 from public.project_members pm
+    where pm.project_id = pid and pm.user_id = (select auth.uid())
+  );
+$$;
+
+-- The projects SELECT policy lives here because it depends on is_project_member.
+create policy "managers and assigned members read projects"
+  on public.projects for select to authenticated
+  using (
+    public.is_company_manager(company_id)
+    or public.is_project_member(id)
+  );
+
 create policy "members read assignments they can see"
   on public.project_members for select to authenticated
   using (
     user_id = (select auth.uid())
     or public.is_company_manager(public.project_company_id(project_id))
-    or exists (
-      select 1 from public.project_members pm2
-      where pm2.project_id = project_members.project_id
-        and pm2.user_id = (select auth.uid())
-    )
+    or public.is_project_member(project_id)
   );
 
 create policy "managers assign members"
@@ -416,11 +434,7 @@ create policy "assigned freelancers log time"
   with check (
     user_id = (select auth.uid())
     and status = 'pending'
-    and exists (
-      select 1 from public.project_members pm
-      where pm.project_id = time_entries.project_id
-        and pm.user_id = (select auth.uid())
-    )
+    and public.is_project_member(project_id)
   );
 
 -- Owner edits only while pending and not yet invoiced.
@@ -613,7 +627,7 @@ begin
     and deleted = false
     and id is distinct from new.id;
   if total + new.percent > 100 then
-    raise exception 'Referral percentages for a project cannot exceed 100%% (would be %%)', total + new.percent;
+    raise exception 'Referral percentages for a project cannot exceed 100%% (would be %)', total + new.percent;
   end if;
   return new;
 end;
