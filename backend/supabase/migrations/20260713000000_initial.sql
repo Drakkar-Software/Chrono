@@ -55,6 +55,7 @@ as $$
   select exists (
     select 1 from public.company_members cm
     where cm.company_id = cid and cm.user_id = (select auth.uid())
+      and cm.deleted = false
   );
 $$;
 
@@ -69,6 +70,7 @@ as $$
     select 1 from public.company_members cm
     where cm.company_id = cid
       and cm.user_id = (select auth.uid())
+      and cm.deleted = false
       and cm.role in ('manager', 'admin')
   );
 $$;
@@ -84,6 +86,7 @@ as $$
     select 1 from public.company_members cm
     where cm.company_id = cid
       and cm.user_id = (select auth.uid())
+      and cm.deleted = false
       and cm.role = 'admin'
   );
 $$;
@@ -102,7 +105,9 @@ as $$
     from public.company_members me
     join public.company_members them on them.company_id = me.company_id
     where me.user_id = (select auth.uid())
+      and me.deleted = false
       and them.user_id = target
+      and them.deleted = false
   );
 $$;
 
@@ -406,9 +411,19 @@ security definer
 set search_path = ''
 stable
 as $$
+  -- Project access requires BOTH an active project assignment AND active company
+  -- membership, so removing someone from the company revokes their project access
+  -- even if the project_members row lingers.
   select exists (
-    select 1 from public.project_members pm
-    where pm.project_id = pid and pm.user_id = (select auth.uid())
+    select 1
+    from public.project_members pm
+    join public.projects p on p.id = pm.project_id
+    join public.company_members cm
+      on cm.company_id = p.company_id and cm.user_id = pm.user_id
+    where pm.project_id = pid
+      and pm.user_id = (select auth.uid())
+      and pm.deleted = false
+      and cm.deleted = false
   );
 $$;
 
@@ -497,7 +512,11 @@ create policy "owners edit their pending uninvoiced entries"
     user_id = (select auth.uid()) and status = 'pending' and invoice_id is null
   )
   with check (
-    user_id = (select auth.uid()) and status = 'pending' and invoice_id is null
+    user_id = (select auth.uid())
+    and status = 'pending'
+    and invoice_id is null
+    and public.is_project_member(project_id)
+    and company_id = public.project_company_id(project_id)
   );
 
 -- Managers approve / reject.
@@ -576,9 +595,10 @@ create table public.revenue_sources (
 
 alter table public.revenue_sources enable row level security;
 
-create policy "members read revenue sources"
+-- Revenue config exposes pricing/margins — managers only, not every member.
+create policy "managers read revenue sources"
   on public.revenue_sources for select to authenticated
-  using (public.is_company_member(company_id));
+  using (public.is_company_manager(company_id));
 
 create policy "managers write revenue sources"
   on public.revenue_sources for all to authenticated
@@ -616,9 +636,10 @@ create table public.revenue_entries (
 
 alter table public.revenue_entries enable row level security;
 
-create policy "members read revenue entries"
+-- Recognized-revenue ledger = the company's income. Managers only.
+create policy "managers read revenue entries"
   on public.revenue_entries for select to authenticated
-  using (public.is_company_member(company_id));
+  using (public.is_company_manager(company_id));
 
 create policy "managers write revenue entries"
   on public.revenue_entries for all to authenticated
@@ -654,15 +675,18 @@ create table public.project_referrals (
 
 alter table public.project_referrals enable row level security;
 
-create policy "members read referrals"
+create policy "managers read referrals"
   on public.project_referrals for select to authenticated
-  using (public.is_company_member(company_id));
+  using (public.is_company_manager(company_id));
 
-create policy "managers write referrals"
+-- Referrers route project revenue to a person, so a manager could otherwise
+-- self-refer 100% and drain the funding pool ahead of freelancer invoices.
+-- Writing referral configuration is therefore admin-only.
+create policy "admins write referrals"
   on public.project_referrals for all to authenticated
-  using (public.is_company_manager(company_id))
+  using (public.is_company_admin(company_id))
   with check (
-    public.is_company_manager(company_id)
+    public.is_company_admin(company_id)
     and company_id = public.project_company_id(project_id)
   );
 
@@ -841,6 +865,13 @@ declare
   v_minutes integer;
   v_credit bigint;
 begin
+  -- Tenant integrity for EVERYONE (managers included): an invoice's company_id
+  -- must match its project's company — blocks re-tagging an invoice into another
+  -- tenant via a company the writer happens to manage elsewhere.
+  if public.project_company_id(new.project_id) is distinct from new.company_id then
+    raise exception 'invoice company_id must match its project';
+  end if;
+
   if public.is_company_manager(new.company_id) then
     return new;
   end if;
@@ -868,6 +899,7 @@ begin
   where project_id = new.project_id
     and user_id = new.freelancer_id
     and status = 'approved' and billable = true and deleted = false
+    and (invoice_id is null or invoice_id = new.id)
     and date_trunc('month', entry_date)::date = date_trunc('month', new.period_month)::date;
 
   select coalesce(credit_carried_forward_cents, 0) into v_credit
@@ -875,6 +907,7 @@ begin
   where project_id = new.project_id
     and freelancer_id = new.freelancer_id
     and settled_at is not null
+    and deleted = false
     and id is distinct from new.id
   order by period_month desc
   limit 1;
@@ -1062,6 +1095,10 @@ begin
   where project_id = p_project_id and company_id = v_company_id
     and period_month <= v_period and deleted = false;
 
+  -- Payments already made for OTHER months are fixed. This month's invoices are
+  -- fully recomputed by the loop below (which reprocesses submitted / partially_paid
+  -- / paid), so their prior payments must NOT be counted here — otherwise a
+  -- re-settlement would both exclude and re-pay them, double-spending revenue.
   select coalesce(sum(amount_paid_cents), 0) into v_prior_paid
   from public.invoices
   where project_id = p_project_id and company_id = v_company_id
@@ -1072,13 +1109,15 @@ begin
     v_available := 0;
   end if;
 
-  -- settle this month's submitted invoices FIFO
+  -- Settle this month's invoices FIFO. Reprocess submitted AND already
+  -- (partially/fully) paid invoices so re-runs are idempotent and partially-paid
+  -- invoices resume once more revenue lands; drafts and cancelled are excluded.
   for v_inv in
     select * from public.invoices
     where project_id = p_project_id
       and company_id = v_company_id
       and period_month = v_period
-      and status = 'submitted'
+      and status in ('submitted', 'partially_paid', 'paid')
       and deleted = false
     order by submission_seq asc
   loop

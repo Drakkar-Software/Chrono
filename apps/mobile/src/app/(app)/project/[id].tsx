@@ -35,6 +35,7 @@ export default function ProjectDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { company, role } = useActiveCompany();
   const manager = canManage(role);
+  const admin = role === 'admin';
   const currency = companyCurrency(company);
 
   const { data: project, isLoading } = useProject(id);
@@ -154,49 +155,54 @@ export default function ProjectDetail() {
           ) : null}
         </Section>
 
-        <Section
-          title="Revenue sources"
-          action={manager && panel !== 'source' ? () => setPanel('source') : undefined}
-        >
-          {panel === 'source' ? (
-            <AddRevenueSourceForm
-              onAdd={addSource}
-              onCancel={() => setPanel('none')}
-              isSubmitting={sourceMut.isPending}
-            />
-          ) : null}
-          {(sources ?? []).map((source) => (
-            <RevenueSourceRow key={source.id} source={source} currency={currency} />
-          ))}
-          {(sources ?? []).length === 0 && panel !== 'source' ? (
-            <Txt variant="body" tone="textMuted">
-              None yet
-            </Txt>
-          ) : null}
-        </Section>
+        {/* Revenue config is manager-only (pricing/margins); referrer setup is admin-only. */}
+        {manager ? (
+          <Section
+            title="Revenue sources"
+            action={panel !== 'source' ? () => setPanel('source') : undefined}
+          >
+            {panel === 'source' ? (
+              <AddRevenueSourceForm
+                onAdd={addSource}
+                onCancel={() => setPanel('none')}
+                isSubmitting={sourceMut.isPending}
+              />
+            ) : null}
+            {(sources ?? []).map((source) => (
+              <RevenueSourceRow key={source.id} source={source} currency={currency} />
+            ))}
+            {(sources ?? []).length === 0 && panel !== 'source' ? (
+              <Txt variant="body" tone="textMuted">
+                None yet
+              </Txt>
+            ) : null}
+          </Section>
+        ) : null}
 
-        <Section
-          title="Referrers"
-          action={manager && panel !== 'referrer' ? () => setPanel('referrer') : undefined}
-        >
-          {panel === 'referrer' ? (
-            <AddReferrerForm
-              candidates={referrerCandidates}
-              remainingPct={remainingPct}
-              onAdd={addReferrer}
-              onCancel={() => setPanel('none')}
-              isSubmitting={referralMut.isPending}
-            />
-          ) : null}
-          {(referrals ?? []).map((referral) => (
-            <ReferrerRow key={referral.id} referral={referral} />
-          ))}
-          {(referrals ?? []).length === 0 && panel !== 'referrer' ? (
-            <Txt variant="body" tone="textMuted">
-              None yet
-            </Txt>
-          ) : null}
-        </Section>
+        {manager ? (
+          <Section
+            title="Referrers"
+            action={admin && panel !== 'referrer' ? () => setPanel('referrer') : undefined}
+          >
+            {panel === 'referrer' ? (
+              <AddReferrerForm
+                candidates={referrerCandidates}
+                remainingPct={remainingPct}
+                onAdd={addReferrer}
+                onCancel={() => setPanel('none')}
+                isSubmitting={referralMut.isPending}
+              />
+            ) : null}
+            {(referrals ?? []).map((referral) => (
+              <ReferrerRow key={referral.id} referral={referral} />
+            ))}
+            {(referrals ?? []).length === 0 && panel !== 'referrer' ? (
+              <Txt variant="body" tone="textMuted">
+                {admin ? 'None yet' : 'No referrers'}
+              </Txt>
+            ) : null}
+          </Section>
+        ) : null}
 
         {manager && companyId ? (
           <ProjectPnLCard project={project} companyId={companyId} currency={currency} />

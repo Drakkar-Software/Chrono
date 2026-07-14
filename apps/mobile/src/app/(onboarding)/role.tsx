@@ -51,10 +51,17 @@ export default function RoleSetup() {
       if (mode === 'join') {
         try {
           await joinCompany({ companyId: code.trim(), userId: user.id });
-        } catch {
-          setError("Couldn't join — check the code and try again.");
-          setBusy(false);
-          return;
+        } catch (joinErr) {
+          // A duplicate-membership error means the user is already in this
+          // company (e.g. a prior attempt joined but onboarding then failed, or a
+          // manager pre-added them) — treat that as success and finish onboarding.
+          const msg = joinErr instanceof Error ? joinErr.message : String(joinErr);
+          const alreadyMember = /duplicate|23505|already exists/i.test(msg);
+          if (!alreadyMember) {
+            setError("Couldn't join — check the code and try again.");
+            setBusy(false);
+            return;
+          }
         }
         await completeOnboarding(user.id, fullName.trim());
       } else {
