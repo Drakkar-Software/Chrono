@@ -24,9 +24,18 @@ export default function AuthCallback() {
           ? window.location.href
           : null
         : nativeUrl,
-    routes: {},
+    // Recovery links land on the set-new-password screen (declarative route,
+    // applied after onSuccess). All other types route by onboarding state below.
+    routes: { recovery: '/settings/security' },
     redirect: (path: string) => router.replace(path as never),
-    onSuccess: async ({ session }: { session: { user: { id: string } } }) => {
+    onSuccess: async ({
+      session,
+      type,
+    }: {
+      session: { user: { id: string } };
+      type: string;
+    }) => {
+      if (type === 'recovery') return; // handled by routes.recovery
       const profile = await fetchProfile(globalSupabaseClient, session.user.id).catch(
         () => null,
       );

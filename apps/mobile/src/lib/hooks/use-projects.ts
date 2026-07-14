@@ -16,7 +16,7 @@ export function useProjects(companyId: string | undefined, filters?: ProjectFilt
       staleTime: 60_000,
       queryKey: `projects:${companyId}:${JSON.stringify(filters)}`,
     },
-  ) as { data: Project[] | undefined; isLoading: boolean; error: unknown };
+  ) as { data: Project[] | undefined; isLoading: boolean; error: unknown; refetch: () => Promise<void> };
 }
 
 /** Projects the user is assigned to (freelancer view). */
@@ -31,7 +31,7 @@ export function useMyProjects(userId: string | undefined, companyId: string | un
       staleTime: 60_000,
       queryKey: `my-projects:${userId}:${companyId}`,
     },
-  ) as { data: Project[] | undefined; isLoading: boolean; error: unknown };
+  ) as { data: Project[] | undefined; isLoading: boolean; error: unknown; refetch: () => Promise<void> };
 }
 
 export function useProject(id: string | undefined) {
@@ -44,5 +44,5 @@ export function useProject(id: string | undefined) {
       staleTime: 60_000,
       queryKey: `project:${id}`,
     },
-  ) as { data: Project | undefined; isLoading: boolean; error: unknown };
+  ) as { data: Project | undefined; isLoading: boolean; error: unknown; refetch: () => Promise<void> };
 }

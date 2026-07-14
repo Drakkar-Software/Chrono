@@ -39,22 +39,36 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
       setError('Enter a project name');
       return;
     }
-    setError(undefined);
+    const tjmCents = toCents(tjm);
+    if (tjmCents !== null && tjmCents < 0) {
+      setError('Day rate (TJM) cannot be negative');
+      return;
+    }
+    const budgetCents = toCents(budget);
+    if (budgetCents !== null && budgetCents < 0) {
+      setError('Budget cannot be negative');
+      return;
+    }
     const hpd = parseFloat(hoursPerDay.replace(',', '.'));
+    if (!Number.isFinite(hpd) || hpd <= 0) {
+      setError('Hours per day must be greater than 0');
+      return;
+    }
+    setError(undefined);
     onCreate({
       name: name.trim(),
       clientName: clientName.trim(),
       description: description.trim(),
-      defaultTjmCents: toCents(tjm),
-      budgetCents: toCents(budget),
-      hoursPerDay: Number.isFinite(hpd) && hpd > 0 ? hpd : DEFAULT_HOURS_PER_DAY,
+      defaultTjmCents: tjmCents,
+      budgetCents,
+      hoursPerDay: hpd,
     });
   };
 
   return (
     <Card padding="lg" style={styles.card}>
       <Txt variant="heading">New project</Txt>
-      <TextField label="Name" value={name} onChangeText={setName} placeholder="Website redesign" error={error} />
+      <TextField label="Name" value={name} onChangeText={setName} placeholder="Website redesign" />
       <TextField label="Client" value={clientName} onChangeText={setClientName} placeholder="Acme Inc." />
       <TextField
         label="Description"
@@ -85,6 +99,11 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
         onChangeText={setHoursPerDay}
         keyboardType="decimal-pad"
       />
+      {error ? (
+        <Txt variant="caption" tone="danger">
+          {error}
+        </Txt>
+      ) : null}
       <Button title="Create project" onPress={submit} loading={isSubmitting} fullWidth />
       <Button title="Cancel" variant="ghost" onPress={onCancel} />
     </Card>

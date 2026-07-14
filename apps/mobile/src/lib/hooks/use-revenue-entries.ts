@@ -5,6 +5,8 @@ import { fetchRevenueEntries, recognizeRevenue } from '@chrono/sdk';
 import type { RevenueEntry, RevenueEntryFilters } from '@chrono/sdk';
 import { useAsyncAction } from './use-async-action';
 
+type Refetch = () => Promise<void>;
+
 export function useRevenueEntries(projectId: string | undefined, filters?: RevenueEntryFilters) {
   return useLinkedQuery(
     () => fetchRevenueEntries(globalSupabaseClient, projectId!, filters),
@@ -16,7 +18,35 @@ export function useRevenueEntries(projectId: string | undefined, filters?: Reven
       staleTime: 60_000,
       queryKey: `revenue-entries:${projectId}:${JSON.stringify(filters)}`,
     },
-  ) as { data: RevenueEntry[] | undefined; isLoading: boolean; error: unknown };
+  ) as { data: RevenueEntry[] | undefined; isLoading: boolean; error: unknown; refetch: Refetch };
+}
+
+/**
+ * All (non-deleted) revenue entries for a company in ONE round-trip, for the
+ * reports P&L which groups by project client-side. Avoids a per-project fan-out
+ * (the SDK's `fetchRevenueEntries` is project-scoped and would N+1 here).
+ */
+export function useCompanyRevenueEntries(companyId: string | undefined) {
+  return useLinkedQuery(
+    async () => {
+      const { data, error } = await globalSupabaseClient
+        .from('revenue_entries')
+        .select('*')
+        .eq('company_id', companyId!)
+        .eq('deleted', false)
+        .order('period_month', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as RevenueEntry[];
+    },
+    {
+      stores: [stores.revenue_entries],
+      enabled: !!companyId,
+      deps: [companyId],
+      mergeToStore: stores.revenue_entries,
+      staleTime: 60_000,
+      queryKey: `company-revenue-entries:${companyId}`,
+    },
+  ) as { data: RevenueEntry[] | undefined; isLoading: boolean; error: unknown; refetch: Refetch };
 }
 
 /** Recognize a project's revenue for a month (RPC). */

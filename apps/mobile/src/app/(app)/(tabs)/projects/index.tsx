@@ -12,6 +12,7 @@ import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { NewProjectForm, type NewProjectValues } from '@/components/projects/NewProjectForm';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { ErrorState } from '@/components/common/ErrorState';
 
 export default function ProjectsScreen() {
   const router = useRouter();
@@ -25,6 +26,8 @@ export default function ProjectsScreen() {
   const mine = useMyProjects(!manager ? user?.id : undefined, !manager ? companyId ?? undefined : undefined);
   const projects = manager ? managed.data : mine.data;
   const loading = manager ? managed.isLoading : mine.isLoading;
+  const error = manager ? managed.error : mine.error;
+  const refetch = manager ? managed.refetch : mine.refetch;
 
   const { create, isPending } = useProjectMutations();
   const [creating, setCreating] = useState(false);
@@ -64,6 +67,14 @@ export default function ProjectsScreen() {
 
         {loading && projects == null ? (
           <ScreenLoader />
+        ) : error && projects == null ? (
+          <ErrorState
+            error={error}
+            title="Couldn't load projects"
+            onRetry={() => {
+              void refetch();
+            }}
+          />
         ) : list.length === 0 && !creating ? (
           <EmptyState
             icon="folder-outline"

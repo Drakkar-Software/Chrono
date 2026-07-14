@@ -5,7 +5,12 @@ import { todayISO } from '@/lib/date';
 import { fetchTimeEntries, fetchWeekEntries } from '@chrono/sdk';
 import type { TimeEntryFilters, TimeEntryWithProject } from '@chrono/sdk';
 
-type Result = { data: TimeEntryWithProject[] | undefined; isLoading: boolean; error: unknown };
+type Result = {
+  data: TimeEntryWithProject[] | undefined;
+  isLoading: boolean;
+  error: unknown;
+  refetch: () => Promise<void>;
+};
 
 export function useTimeEntries(filters: TimeEntryFilters) {
   return useLinkedQuery(

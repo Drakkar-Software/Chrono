@@ -16,7 +16,12 @@ export function usePendingApprovals(companyId: string | undefined) {
       staleTime: 30_000,
       queryKey: `pending-approvals:${companyId}`,
     },
-  ) as { data: TimeEntryWithProject[] | undefined; isLoading: boolean; error: unknown };
+  ) as {
+    data: TimeEntryWithProject[] | undefined;
+    isLoading: boolean;
+    error: unknown;
+    refetch: () => Promise<void>;
+  };
 }
 
 export function useApproveEntry() {

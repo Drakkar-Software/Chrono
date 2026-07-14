@@ -19,6 +19,18 @@ function toCents(input: string): number | null {
 export function AddProjectMemberForm({ candidates, onAdd, onCancel, isSubmitting = false }: AddProjectMemberFormProps) {
   const [userId, setUserId] = useState(candidates[0]?.value ?? '');
   const [tjm, setTjm] = useState('');
+  const [error, setError] = useState<string | undefined>();
+
+  const submit = () => {
+    if (!userId) return;
+    const tjmCents = toCents(tjm);
+    if (tjmCents !== null && tjmCents < 0) {
+      setError('Day rate cannot be negative');
+      return;
+    }
+    setError(undefined);
+    onAdd(userId, tjmCents);
+  };
 
   return (
     <Card padding="lg" style={styles.card}>
@@ -37,9 +49,14 @@ export function AddProjectMemberForm({ candidates, onAdd, onCancel, isSubmitting
         placeholder="Defaults to project TJM"
         keyboardType="decimal-pad"
       />
+      {error ? (
+        <Txt variant="caption" tone="danger">
+          {error}
+        </Txt>
+      ) : null}
       <Button
         title="Add"
-        onPress={() => userId && onAdd(userId, toCents(tjm))}
+        onPress={submit}
         loading={isSubmitting}
         disabled={candidates.length === 0}
         fullWidth

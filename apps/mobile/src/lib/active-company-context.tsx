@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -27,6 +28,8 @@ export interface ActiveCompanyValue {
   role: AppRole | null;
   /** True while the company list is being loaded. */
   isLoading: boolean;
+  /** True when the last load failed — distinguishes "no companies" from an error. */
+  loadFailed: boolean;
   /** Switch the active company (persisted to AsyncStorage). */
   setCompanyId: (id: string) => void;
   /** Re-fetch the user's companies (e.g. right after creating one). */
@@ -39,6 +42,7 @@ const ActiveCompanyContext = createContext<ActiveCompanyValue>({
   companies: [],
   role: null,
   isLoading: true,
+  loadFailed: false,
   setCompanyId: () => {},
   refresh: async () => {},
 });
@@ -55,32 +59,58 @@ export function ActiveCompanyProvider({ children }: { children: ReactNode }) {
   const [companies, setCompanies] = useState<CompanyMembership[]>([]);
   const [companyId, setCompanyIdState] = useState<string | null>(null);
   const [isLoading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  // The persisted selection is restored only once (first successful load) and
+  // never over a company the user just explicitly picked — otherwise a refresh
+  // (e.g. right after creating a company) would snap back to the stored id.
+  const hasRestoredRef = useRef(false);
+  const explicitSelectionRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!userId) {
       setCompanies([]);
       setCompanyIdState(null);
+      setLoadFailed(false);
       setLoading(false);
       return;
     }
     setLoading(true);
-    const list = await fetchMyCompanies(globalSupabaseClient, userId).catch(
-      () => [] as CompanyMembership[],
-    );
+    setLoadFailed(false);
+    let list: CompanyMembership[];
+    try {
+      list = await fetchMyCompanies(globalSupabaseClient, userId);
+    } catch {
+      // Surface the failure instead of masquerading as an empty account;
+      // keep any previously loaded companies/selection intact.
+      setLoadFailed(true);
+      setLoading(false);
+      return;
+    }
     setCompanies(list);
+
+    // Resolve the persisted selection at most once, before clearing loading.
+    let restored: string | null = null;
+    if (!hasRestoredRef.current && !explicitSelectionRef.current) {
+      const stored = await AsyncStorage.getItem(STORAGE_KEY).catch(() => null);
+      if (stored && list.some((c) => c.id === stored)) restored = stored;
+    }
+    hasRestoredRef.current = true;
+
     setCompanyIdState((current) => {
+      // Keep a still-valid selection (covers a just-created/just-picked company).
       if (current && list.some((c) => c.id === current)) return current;
-      return list[0]?.id ?? null;
+      // First load: prefer the persisted selection, then fall back to the first.
+      return restored ?? list[0]?.id ?? null;
     });
     setLoading(false);
-    // Prefer a persisted selection when there's no current pick yet.
-    const stored = await AsyncStorage.getItem(STORAGE_KEY).catch(() => null);
-    if (stored && list.some((c) => c.id === stored)) {
-      setCompanyIdState(stored);
-    }
   }, [userId]);
 
   useEffect(() => {
+    // Load the user's companies on mount / when the user changes. `load` sets
+    // loading state synchronously as it kicks off the async fetch — a legitimate
+    // data-loading effect, not a render-driven cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async company load on mount
     void load();
   }, [load]);
 
@@ -90,6 +120,7 @@ export function ActiveCompanyProvider({ children }: { children: ReactNode }) {
   );
 
   const setCompanyId = useCallback((id: string) => {
+    explicitSelectionRef.current = true;
     setCompanyIdState(id);
     AsyncStorage.setItem(STORAGE_KEY, id).catch(() => {});
   }, []);
@@ -101,10 +132,11 @@ export function ActiveCompanyProvider({ children }: { children: ReactNode }) {
       companies,
       role: company?.role ?? null,
       isLoading,
+      loadFailed,
       setCompanyId,
       refresh: load,
     }),
-    [companyId, company, companies, isLoading, setCompanyId, load],
+    [companyId, company, companies, isLoading, loadFailed, setCompanyId, load],
   );
 
   return (

@@ -10,6 +10,7 @@ import { invoiceBadge } from '@/lib/status';
 import { AmountBreakdown } from '@/components/invoices/AmountBreakdown';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 export default function InvoiceDetail() {
@@ -20,14 +21,47 @@ export default function InvoiceDetail() {
   const manager = canManage(role);
   const currency = companyCurrency(company);
 
-  const { data: invoice, isLoading } = useInvoice(id);
+  const { data: invoice, isLoading, error, refetch } = useInvoice(id);
   const submit = useSubmitInvoice();
   const settle = useSettleProjectMonth();
+
+  const onSubmit = async () => {
+    if (!invoice) return;
+    try {
+      await submit.mutateAsync(invoice.id);
+      await refetch();
+    } catch {
+      // Surfaced via `submit.error` below.
+    }
+  };
+
+  const onSettle = async () => {
+    if (!invoice) return;
+    try {
+      await settle.mutateAsync(invoice.project_id, invoice.period_month);
+      await refetch();
+    } catch {
+      // Surfaced via `settle.error` below.
+    }
+  };
 
   if (isLoading && !invoice) {
     return (
       <StackScreen title="Invoice" onBack={() => router.back()}>
         <ScreenLoader />
+      </StackScreen>
+    );
+  }
+  if (error && !invoice) {
+    return (
+      <StackScreen title="Invoice" onBack={() => router.back()}>
+        <ErrorState
+          error={error}
+          title="Couldn't load invoice"
+          onRetry={() => {
+            void refetch();
+          }}
+        />
       </StackScreen>
     );
   }
@@ -70,7 +104,7 @@ export default function InvoiceDetail() {
           {invoice.status === 'draft' ? (
             <Button
               title="Submit invoice"
-              onPress={() => submit.mutate(invoice.id)}
+              onPress={onSubmit}
               loading={submit.isPending}
               fullWidth={!isWide}
             />
@@ -80,12 +114,15 @@ export default function InvoiceDetail() {
             <Button
               title="Settle project month"
               variant="secondary"
-              onPress={() => settle.mutate(invoice.project_id, invoice.period_month)}
+              onPress={onSettle}
               loading={settle.isPending}
               fullWidth={!isWide}
             />
           ) : null}
         </View>
+
+        {submit.error ? <InlineError error={submit.error} /> : null}
+        {settle.error ? <InlineError error={settle.error} /> : null}
       </View>
     </StackScreen>
   );

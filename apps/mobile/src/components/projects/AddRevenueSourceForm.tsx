@@ -41,27 +41,37 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
       setError('Enter a name');
       return;
     }
-    setError(undefined);
     const cents = toCents(amount);
+    if (cents < 0) {
+      setError(`${amountLabel} cannot be negative`);
+      return;
+    }
     let content: Json;
     if (type === 'recurring') {
       content = { monthly_amount_cents: cents };
     } else if (type === 'self_billing') {
-      const markupPct = parseFloat(markup.replace(',', '.'));
+      const markupPct = Number.isFinite(parseFloat(markup.replace(',', '.')))
+        ? parseFloat(markup.replace(',', '.'))
+        : 0;
+      if (markupPct < -100) {
+        setError('Markup % cannot be below -100');
+        return;
+      }
       content = {
         client_tjm_cents: cents,
-        markup_pct: Number.isFinite(markupPct) ? markupPct : 0,
+        markup_pct: markupPct,
       };
     } else {
       content = { client_tjm_cents: cents };
     }
+    setError(undefined);
     onAdd({ name: name.trim(), type, content });
   };
 
   return (
     <Card padding="lg" style={styles.card}>
       <Txt variant="heading">Add revenue source</Txt>
-      <TextField label="Name" value={name} onChangeText={setName} placeholder="Monthly retainer" error={error} />
+      <TextField label="Name" value={name} onChangeText={setName} placeholder="Monthly retainer" />
       <Picker
         label="Type"
         value={type}
@@ -83,6 +93,11 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
           placeholder="0"
           keyboardType="decimal-pad"
         />
+      ) : null}
+      {error ? (
+        <Txt variant="caption" tone="danger">
+          {error}
+        </Txt>
       ) : null}
       <Button title="Add source" onPress={submit} loading={isSubmitting} fullWidth />
       <Button title="Cancel" variant="ghost" onPress={onCancel} />

@@ -61,6 +61,12 @@ export const stores = new Proxy({} as ReturnType<typeof createSupabaseStores<Dat
 
 // SSR-safe auth hook.
 export function useAppAuth() {
+  // `isSSR` is a module-level constant derived from the runtime environment, so
+  // this branch is taken identically on every render of a given process — the
+  // hook order never actually changes. We cannot call `useAuth(stores.auth)`
+  // during SSR because accessing `stores.auth` would eagerly create the Supabase
+  // stores, which can't run without a browser/native runtime. Hence the guarded
+  // early return with a scoped disable rather than an unconditional hook call.
   if (isSSR) {
     return {
       session: null,
@@ -74,5 +80,6 @@ export function useAppAuth() {
       refreshSession: async () => {},
     } as ReturnType<typeof useAuth>;
   }
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- see comment above: `isSSR` is a stable module constant, so hook order is invariant per process.
   return useAuth(stores.auth);
 }

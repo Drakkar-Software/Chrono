@@ -2,50 +2,59 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Money, Row, Txt, spacing, useTheme } from '@chrono/ui';
 import { availableFunding, projectMargin, sumReferralEarnings } from '@chrono/sdk';
-import type { Project } from '@chrono/sdk';
+import type { Invoice, Project, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
-import { useRevenueEntries } from '@/lib/hooks/use-revenue-entries';
-import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
-import { useInvoices } from '@/lib/hooks/use-invoices';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 export interface ProjectPnLCardProps {
   project: Project;
-  companyId: string;
   currency: string;
+  /** This project's revenue entries (pre-filtered by the reports screen). */
+  revenueEntries: RevenueEntry[];
+  /** This project's referral earnings (pre-filtered by the reports screen). */
+  referralEarnings: ReferralEarning[];
+  /** This project's invoices (pre-filtered by the reports screen). */
+  invoices: Invoice[];
 }
 
-/** Per-project profit & loss: revenue − referrals − freelancer cost, + funding. */
-export function ProjectPnLCard({ project, companyId, currency }: ProjectPnLCardProps) {
+/**
+ * Presentational per-project profit & loss: revenue − referrals − freelancer
+ * cost, + funding. Data is fetched once at the screen and sliced per project —
+ * this component holds no hooks so it never fans out into an N+1.
+ */
+export function ProjectPnLCard({
+  project,
+  currency,
+  revenueEntries,
+  referralEarnings,
+  invoices,
+}: ProjectPnLCardProps) {
   const { colors } = useTheme();
-  const { data: revenueEntries } = useRevenueEntries(project.id);
-  const { data: referralEarnings } = useReferralEarnings({ projectId: project.id, companyId });
-  const { data: invoices } = useInvoices({ companyId, projectId: project.id });
 
   const revenueCents = useMemo(
-    () => (revenueEntries ?? []).reduce((acc, r) => acc + (r.amount_cents ?? 0), 0),
+    () => revenueEntries.reduce((acc, r) => acc + (r.amount_cents ?? 0), 0),
     [revenueEntries],
   );
   const referralCents = useMemo(
-    () => sumReferralEarnings(referralEarnings ?? []),
+    () => sumReferralEarnings(referralEarnings),
     [referralEarnings],
   );
   // Cost = earned on real (submitted/settled) invoices only; drafts aren't
   // committed cost and cancelled invoices don't count.
   const costCents = useMemo(
     () =>
-      (invoices ?? [])
+      invoices
         .filter((i) => i.status === 'submitted' || i.status === 'partially_paid' || i.status === 'paid')
         .reduce((acc, i) => acc + (i.earned_cents ?? 0), 0),
     [invoices],
   );
   const paidInvoices = useMemo(
-    () => (invoices ?? []).map((i) => ({ amount_paid_cents: i.amount_paid_cents ?? 0 })),
+    () => invoices.map((i) => ({ amount_paid_cents: i.amount_paid_cents ?? 0 })),
     [invoices],
   );
 
   const margin = projectMargin(revenueCents, referralCents, costCents);
-  const funding = availableFunding(revenueEntries ?? [], referralEarnings ?? [], paidInvoices);
+  const funding = availableFunding(revenueEntries, referralEarnings, paidInvoices);
 
   return (
     <Card padding="lg" style={styles.card}>

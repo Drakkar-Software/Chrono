@@ -15,6 +15,7 @@ import { LogEntryForm, type LogEntryValues } from '@/components/time/LogEntryFor
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { ErrorState } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 export default function TodayScreen() {
@@ -26,7 +27,7 @@ export default function TodayScreen() {
 
   const weekStart = useMemo(() => weekBounds(todayISO()).start, []);
   const { data: projects } = useMyProjects(userId, companyId ?? undefined);
-  const { data: entries, isLoading } = useWeekEntries(userId, companyId ?? undefined, weekStart);
+  const { data: entries, isLoading, error, refetch } = useWeekEntries(userId, companyId ?? undefined, weekStart);
   const { create, isPending } = useTimeEntryMutations();
 
   const projectOptions = useMemo(
@@ -71,6 +72,14 @@ export default function TodayScreen() {
       </StatRow>
       {isLoading && entries == null ? (
         <ScreenLoader />
+      ) : error && entries == null ? (
+        <ErrorState
+          error={error}
+          title="Couldn't load your week"
+          onRetry={() => {
+            void refetch();
+          }}
+        />
       ) : days.length === 0 ? (
         <EmptyState icon="time-outline" title="No entries yet" subtitle="Log your first hours above." />
       ) : (

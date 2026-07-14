@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Tiny mutation-shaped wrapper for one-off async actions (RPCs, composite SDK
@@ -9,7 +9,9 @@ export function useAsyncAction<TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>,
 ) {
   const ref = useRef(fn);
-  ref.current = fn;
+  useEffect(() => {
+    ref.current = fn;
+  }, [fn]);
   const [isPending, setPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
 

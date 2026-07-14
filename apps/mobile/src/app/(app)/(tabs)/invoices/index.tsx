@@ -16,6 +16,9 @@ import { GenerateInvoiceForm, type GenerateInvoiceParams } from '@/components/in
 import { SettleMonthForm } from '@/components/invoices/SettleMonthForm';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { ErrorState, InlineError } from '@/components/common/ErrorState';
+
+const DUPLICATE_INVOICE_MESSAGE = 'An invoice already exists for this month.';
 
 function groupByMonth(invoices: InvoiceWithRelations[]) {
   const out: Record<string, InvoiceWithRelations[]> = {};
@@ -37,7 +40,12 @@ export default function InvoicesScreen() {
   const currency = companyCurrency(company);
   const userId = user?.id;
 
-  const { data: invoices, isLoading } = useInvoices({
+  const {
+    data: invoices,
+    isLoading,
+    error: invoicesError,
+    refetch: refetchInvoices,
+  } = useInvoices({
     companyId: companyId ?? '',
     freelancerId: manager ? undefined : userId,
   });
@@ -45,7 +53,10 @@ export default function InvoicesScreen() {
 
   const mine = useMyProjects(!manager ? userId : undefined, !manager ? companyId ?? undefined : undefined);
   const managed = useProjects(manager ? companyId ?? undefined : undefined);
-  const { data: referralEarnings } = useMyReferralEarnings(!manager ? userId : undefined, companyId ?? undefined);
+  const { data: referralEarnings, refetch: refetchReferrals } = useMyReferralEarnings(
+    !manager ? userId : undefined,
+    companyId ?? undefined,
+  );
 
   const generate = useGenerateInvoice();
   const submit = useSubmitInvoice();
@@ -54,21 +65,31 @@ export default function InvoicesScreen() {
 
   const onGenerate = async (params: GenerateInvoiceParams) => {
     if (!companyId || !userId) return;
-    const invoice = await generate.mutateAsync({
-      projectId: params.projectId,
-      freelancerId: userId,
-      companyId,
-      month: params.month,
-      tjmCents: params.tjmCents,
-      hoursPerDay: params.hoursPerDay,
-    });
-    await submit.mutateAsync(invoice.id);
-    setPanel('none');
+    try {
+      const invoice = await generate.mutateAsync({
+        projectId: params.projectId,
+        freelancerId: userId,
+        companyId,
+        month: params.month,
+        tjmCents: params.tjmCents,
+        hoursPerDay: params.hoursPerDay,
+      });
+      await submit.mutateAsync(invoice.id);
+      await refetchInvoices();
+      setPanel('none');
+    } catch {
+      // Keep the panel open and surface the error below the form.
+    }
   };
 
   const onSettle = async (projectId: string, month: string) => {
-    await settle.mutateAsync(projectId, month);
-    setPanel('none');
+    try {
+      await settle.mutateAsync(projectId, month);
+      await Promise.all([refetchInvoices(), refetchReferrals()]);
+      setPanel('none');
+    } catch {
+      // Keep the panel open and surface the error below the form.
+    }
   };
 
   const headerRight =
@@ -84,26 +105,45 @@ export default function InvoicesScreen() {
     <StackScreen title="Invoices" headerRight={headerRight}>
       <View style={styles.wrap}>
         {panel === 'generate' && userId ? (
-          <GenerateInvoiceForm
-            projects={mine.data ?? []}
-            freelancerId={userId}
-            onGenerate={onGenerate}
-            onCancel={() => setPanel('none')}
-            isSubmitting={generate.isPending || submit.isPending}
-          />
+          <>
+            <GenerateInvoiceForm
+              projects={mine.data ?? []}
+              freelancerId={userId}
+              onGenerate={onGenerate}
+              onCancel={() => setPanel('none')}
+              isSubmitting={generate.isPending || submit.isPending}
+            />
+            {generate.error || submit.error ? (
+              <InlineError
+                error={generate.error ?? submit.error}
+                describe={{ duplicateMessage: DUPLICATE_INVOICE_MESSAGE }}
+              />
+            ) : null}
+          </>
         ) : null}
 
         {panel === 'settle' ? (
-          <SettleMonthForm
-            projects={managed.data ?? []}
-            onSettle={onSettle}
-            onCancel={() => setPanel('none')}
-            isSubmitting={settle.isPending}
-          />
+          <>
+            <SettleMonthForm
+              projects={managed.data ?? []}
+              onSettle={onSettle}
+              onCancel={() => setPanel('none')}
+              isSubmitting={settle.isPending}
+            />
+            {settle.error ? <InlineError error={settle.error} /> : null}
+          </>
         ) : null}
 
         {isLoading && invoices == null && panel === 'none' ? (
           <ScreenLoader />
+        ) : invoicesError && invoices == null && panel === 'none' ? (
+          <ErrorState
+            error={invoicesError}
+            title="Couldn't load invoices"
+            onRetry={() => {
+              void refetchInvoices();
+            }}
+          />
         ) : groups.length === 0 && panel === 'none' ? (
           <EmptyState
             icon="receipt-outline"

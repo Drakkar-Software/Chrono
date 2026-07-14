@@ -16,6 +16,9 @@ import { useProjectMembers, useProjectMemberMutations } from '@/lib/hooks/use-pr
 import { useCompanyMembers } from '@/lib/hooks/use-company-members';
 import { useRevenueSources, useRevenueSourceMutations } from '@/lib/hooks/use-revenue-sources';
 import { useProjectReferrals, useProjectReferralMutations } from '@/lib/hooks/use-project-referrals';
+import { useRevenueEntries } from '@/lib/hooks/use-revenue-entries';
+import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
+import { useInvoices } from '@/lib/hooks/use-invoices';
 import { projectBadge } from '@/lib/status';
 import { ProjectMemberRow } from '@/components/projects/ProjectMemberRow';
 import { RevenueSourceRow } from '@/components/projects/RevenueSourceRow';
@@ -26,6 +29,7 @@ import { AddReferrerForm } from '@/components/projects/AddReferrerForm';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { ErrorState } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 type Panel = 'none' | 'member' | 'source' | 'referrer';
@@ -38,13 +42,23 @@ export default function ProjectDetail() {
   const admin = role === 'admin';
   const currency = companyCurrency(company);
 
-  const { data: project, isLoading } = useProject(id);
+  const { data: project, isLoading, error: projectError, refetch: refetchProject } = useProject(id);
   const companyId = project?.company_id;
 
   const { data: members } = useProjectMembers(id);
   const { data: companyMembers } = useCompanyMembers(companyId);
   const { data: sources } = useRevenueSources(id);
   const { data: referrals } = useProjectReferrals(id);
+
+  // P&L data for this one project (single-project reads, not a fan-out).
+  const { data: pnlRevenue } = useRevenueEntries(manager ? id : undefined);
+  const { data: pnlReferrals } = useReferralEarnings(
+    manager ? { projectId: id, companyId: companyId ?? undefined } : {},
+  );
+  const { data: pnlInvoices } = useInvoices({
+    companyId: manager ? companyId ?? '' : '',
+    projectId: id,
+  });
 
   const memberMut = useProjectMemberMutations();
   const sourceMut = useRevenueSourceMutations();
@@ -72,6 +86,19 @@ export default function ProjectDetail() {
     return (
       <StackScreen title="Project" onBack={() => router.back()}>
         <ScreenLoader />
+      </StackScreen>
+    );
+  }
+  if (projectError && !project) {
+    return (
+      <StackScreen title="Project" onBack={() => router.back()}>
+        <ErrorState
+          error={projectError}
+          title="Couldn't load project"
+          onRetry={() => {
+            void refetchProject();
+          }}
+        />
       </StackScreen>
     );
   }
@@ -205,7 +232,13 @@ export default function ProjectDetail() {
         ) : null}
 
         {manager && companyId ? (
-          <ProjectPnLCard project={project} companyId={companyId} currency={currency} />
+          <ProjectPnLCard
+            project={project}
+            currency={currency}
+            revenueEntries={pnlRevenue ?? []}
+            referralEarnings={pnlReferrals ?? []}
+            invoices={pnlInvoices ?? []}
+          />
         ) : null}
       </View>
     </StackScreen>

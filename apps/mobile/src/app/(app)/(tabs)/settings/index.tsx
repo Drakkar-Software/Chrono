@@ -22,8 +22,12 @@ export default function SettingsScreen() {
   const { data: members, isLoading: loadingMembers } = useCompanyMembers(companyId ?? undefined);
   const { updateRole } = useCompanyMemberMutations();
 
+  // Seed the editable name field once the profile loads asynchronously, while
+  // still letting the user type over it. This intentional prop->state sync is a
+  // legitimate effect (the value arrives after first render).
   const [name, setName] = useState('');
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prop->state sync of an async-loaded value
     setName(profile?.full_name ?? '');
   }, [profile?.full_name]);
 
