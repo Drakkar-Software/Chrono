@@ -26,5 +26,3 @@ export type TimeEntryFilters = {
   status?: TimeEntryStatus;
   billable?: boolean;
 };
-
-export type { TimeEntryStatus };

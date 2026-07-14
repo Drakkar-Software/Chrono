@@ -1,9 +1,9 @@
 import type { RevenueSource } from '../revenue-source/revenue-source.entity';
 import { monthlyRecurringAmount } from '../revenue-source/revenue-source.lib';
-import { minutesToDays } from '../time-entry/time-entry.lib';
 import type { RevenueEntry } from './revenue-entry.entity';
 
-export { minutesToDays };
+// `minutesToDays` lives in ../time-entry/time-entry.lib (single source of the
+// hours->days->cents math); import it from there when you need it here.
 
 /** Recognized amount (cents) for a recurring source in one month. */
 export function recurringRevenue(

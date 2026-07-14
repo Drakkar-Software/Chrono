@@ -1,0 +1,117 @@
+import { describe, expect, it } from 'vitest';
+import {
+  computeEarnedCents,
+  formatDuration,
+  minutesToDays,
+  sumDurations,
+  weekBounds,
+  monthBounds,
+  monthKey,
+  groupByDay,
+  summarizeByProject,
+} from './time-entry.lib';
+
+describe('minutesToDays', () => {
+  it('converts minutes to fractional days at a 7h day', () => {
+    expect(minutesToDays(420, 7)).toBe(1); // 7h = 1 day
+    expect(minutesToDays(210, 7)).toBe(0.5);
+  });
+
+  it('returns 0 for a non-positive working day', () => {
+    expect(minutesToDays(420, 0)).toBe(0);
+  });
+});
+
+describe('computeEarnedCents', () => {
+  it('matches the DB RPC: round(minutes/(hpd*60) * tjm)', () => {
+    // 1 full day at a 50000-cent day rate.
+    expect(computeEarnedCents(420, 7, 50000)).toBe(50000);
+    // Half a day.
+    expect(computeEarnedCents(210, 7, 50000)).toBe(25000);
+  });
+
+  it('rounds to whole cents', () => {
+    // 100 minutes / (7*60) = 0.238095... * 50000 = 11904.76 -> 11905
+    expect(computeEarnedCents(100, 7, 50000)).toBe(11905);
+  });
+
+  it('is zero for zero minutes', () => {
+    expect(computeEarnedCents(0, 7, 50000)).toBe(0);
+  });
+});
+
+describe('formatDuration', () => {
+  it('formats hours and minutes', () => {
+    expect(formatDuration(450)).toBe('7h 30m');
+    expect(formatDuration(45)).toBe('45m');
+    expect(formatDuration(120)).toBe('2h');
+    expect(formatDuration(0)).toBe('0m');
+  });
+});
+
+describe('sumDurations', () => {
+  it('sums duration_minutes', () => {
+    expect(
+      sumDurations([
+        { duration_minutes: 60 },
+        { duration_minutes: 90 },
+        { duration_minutes: 30 },
+      ]),
+    ).toBe(180);
+    expect(sumDurations([])).toBe(0);
+  });
+});
+
+describe('weekBounds', () => {
+  it('is Monday-based', () => {
+    // 2026-07-14 is a Tuesday -> week Mon 2026-07-13 .. Sun 2026-07-19
+    expect(weekBounds('2026-07-14')).toEqual({
+      start: '2026-07-13',
+      end: '2026-07-19',
+    });
+  });
+
+  it('keeps a Monday as its own week start', () => {
+    expect(weekBounds('2026-07-13').start).toBe('2026-07-13');
+  });
+
+  it('treats Sunday as the end of the prior Monday week', () => {
+    expect(weekBounds('2026-07-19')).toEqual({
+      start: '2026-07-13',
+      end: '2026-07-19',
+    });
+  });
+});
+
+describe('monthBounds / monthKey', () => {
+  it('bounds a calendar month', () => {
+    expect(monthBounds('2026-07-14')).toEqual({
+      start: '2026-07-01',
+      end: '2026-07-31',
+    });
+    // February in a non-leap year
+    expect(monthBounds('2026-02-10').end).toBe('2026-02-28');
+  });
+
+  it('normalizes to the first of the month', () => {
+    expect(monthKey('2026-07-14')).toBe('2026-07-01');
+  });
+});
+
+describe('grouping', () => {
+  it('groups by day and summarizes by project', () => {
+    const entries = [
+      { entry_date: '2026-07-13', project_id: 'a', duration_minutes: 60 },
+      { entry_date: '2026-07-13', project_id: 'b', duration_minutes: 30 },
+      { entry_date: '2026-07-14', project_id: 'a', duration_minutes: 90 },
+    ];
+    expect(Object.keys(groupByDay(entries))).toEqual([
+      '2026-07-13',
+      '2026-07-14',
+    ]);
+    expect(summarizeByProject(entries)).toEqual({
+      a: { minutes: 150, count: 2 },
+      b: { minutes: 30, count: 1 },
+    });
+  });
+});

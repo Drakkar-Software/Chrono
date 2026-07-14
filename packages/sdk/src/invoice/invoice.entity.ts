@@ -21,5 +21,3 @@ export type InvoiceFilters = {
   month?: string;
   status?: InvoiceStatus;
 };
-
-export type { InvoiceStatus };

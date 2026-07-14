@@ -1,9 +1,4 @@
-import type {
-  RevenueSourceType,
-  Tables,
-  TablesInsert,
-  TablesUpdate,
-} from '../schema';
+import type { Tables, TablesInsert, TablesUpdate } from '../schema';
 
 export type RevenueSource = Tables<'revenue_sources'>;
 export type RevenueSourceInsert = TablesInsert<'revenue_sources'>;
@@ -31,5 +26,3 @@ export type RevenueSourceContent =
   | TimeBasedContent
   | RecurringContent
   | SelfBillingContent;
-
-export type { RevenueSourceType };
