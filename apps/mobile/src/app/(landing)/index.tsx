@@ -111,7 +111,7 @@ export default function Landing() {
 
         <View style={styles.trustRow}>
           <Ionicons name="lock-closed-outline" size={13} color={colors.textFaint} />
-          <Txt variant="caption" tone="textFaint">
+          <Txt variant="caption" tone="textFaint" center style={styles.trustText}>
             {t('landing.hero.trust')}
           </Txt>
         </View>
@@ -266,7 +266,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaRowStacked: { flexDirection: 'column', maxWidth: 320 },
-  trustRow: { marginTop: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  trustRow: {
+    marginTop: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    maxWidth: '100%',
+  },
+  trustText: { flexShrink: 1 },
 
   section: { paddingVertical: 72, alignItems: 'center' },
   eyebrow: { letterSpacing: 2, marginBottom: spacing.md },

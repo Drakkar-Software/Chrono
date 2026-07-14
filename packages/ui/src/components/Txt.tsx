@@ -1,8 +1,16 @@
 import type { TextProps } from 'react-native';
-import { StyleSheet, Text } from 'react-native';
+import { Platform, StyleSheet, Text } from 'react-native';
 
 import { fonts, type as typeScale, weights, type TypeVariant, type WeightName } from '../theme';
 import { useTheme, type Palette } from '../use-theme';
+
+// react-native-web renders <Text> with `white-space: pre-wrap`, which wraps at
+// spaces but lets a long unbreakable token (URLs, emails, VAT ids, long words)
+// spill past its container. Break those so text always stays inside its box.
+const webWordBreak =
+  Platform.OS === 'web'
+    ? ({ overflowWrap: 'break-word', wordBreak: 'break-word' } as object)
+    : null;
 
 export interface TxtProps extends TextProps {
   /** Type-scale step (font size + line height + default weight). */
@@ -45,6 +53,7 @@ export function Txt({
       {...rest}
       style={[
         styles.base,
+        webWordBreak,
         {
           fontFamily: mono ? fonts.mono : fonts.body,
           fontSize,
