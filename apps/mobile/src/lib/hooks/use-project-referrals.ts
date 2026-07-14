@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchProjectReferrals } from '@chrono/sdk';
 import type { ProjectReferralWithProfile, TablesInsert } from '@chrono/sdk';
 
 export function useProjectReferrals(projectId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<ProjectReferralWithProfile[]>(
     () => fetchProjectReferrals(globalSupabaseClient, projectId!),
     {
       stores: [stores.project_referrals],
@@ -15,7 +16,7 @@ export function useProjectReferrals(projectId: string | undefined) {
       staleTime: 60_000,
       queryKey: `project-referrals:${projectId}`,
     },
-  ) as { data: ProjectReferralWithProfile[] | undefined; isLoading: boolean; error: unknown };
+  );
 }
 
 export function useProjectReferralMutations() {

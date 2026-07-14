@@ -1,16 +1,14 @@
-import { useLinkedQuery } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchMyReferralEarnings, fetchReferralEarnings } from '@chrono/sdk';
 import type { ReferralEarning, ReferralEarningFilters } from '@chrono/sdk';
 
-type Refetch = () => Promise<void>;
-
 export function useReferralEarnings(filters: ReferralEarningFilters) {
   // Guard against an unscoped fetch: require at least one concrete scope so an
   // empty filter can't pull every RLS-visible row.
   const scoped = !!(filters.companyId || filters.projectId || filters.referrerId);
-  return useLinkedQuery(
+  return linkedQuery<ReferralEarning[]>(
     () => fetchReferralEarnings(globalSupabaseClient, filters),
     {
       stores: [stores.referral_earnings],
@@ -19,11 +17,11 @@ export function useReferralEarnings(filters: ReferralEarningFilters) {
       staleTime: 60_000,
       queryKey: `referral-earnings:${JSON.stringify(filters)}`,
     },
-  ) as { data: ReferralEarning[] | undefined; isLoading: boolean; error: unknown; refetch: Refetch };
+  );
 }
 
 export function useMyReferralEarnings(userId: string | undefined, companyId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<ReferralEarning[]>(
     () => fetchMyReferralEarnings(globalSupabaseClient, userId!, companyId!),
     {
       stores: [stores.referral_earnings],
@@ -32,5 +30,5 @@ export function useMyReferralEarnings(userId: string | undefined, companyId: str
       staleTime: 60_000,
       queryKey: `my-referral-earnings:${userId}:${companyId}`,
     },
-  ) as { data: ReferralEarning[] | undefined; isLoading: boolean; error: unknown; refetch: Refetch };
+  );
 }

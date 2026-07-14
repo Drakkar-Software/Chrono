@@ -27,6 +27,7 @@ import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { DayGroupHeader } from '@/components/time/DayGroupHeader';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { ErrorState } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 const RECENT_LIMIT = 5;
@@ -92,6 +93,22 @@ export default function HomeScreen() {
     return (
       <StackScreen title={t('tabs.nav.home')}>
         <ScreenLoader />
+      </StackScreen>
+    );
+  }
+
+  // A failed primary load must read as an error, not a zeroed-out dashboard
+  // (0h / €0 / no projects) indistinguishable from a genuinely empty account.
+  if ((monthEntries.error && monthEntries.data == null) || (week.error && week.data == null)) {
+    return (
+      <StackScreen title={t('tabs.nav.home')}>
+        <ErrorState
+          error={monthEntries.error ?? week.error}
+          onRetry={() => {
+            void monthEntries.refetch();
+            void week.refetch();
+          }}
+        />
       </StackScreen>
     );
   }

@@ -123,7 +123,8 @@ export default function HistoryScreen() {
                 key={entry.id}
                 entry={entry}
                 onPress={
-                  entry.status === 'pending' && entry.invoice_id == null
+                  (entry.status === 'pending' && entry.invoice_id == null) ||
+                  entry.status === 'rejected'
                     ? () => router.push(`/time-entry/${entry.id}`)
                     : undefined
                 }

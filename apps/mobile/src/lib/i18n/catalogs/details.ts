@@ -35,6 +35,7 @@ export const detailsCatalog: CatalogSlice = {
     'details.entryNotFound': 'Entry not found',
     'details.locked': 'Locked',
     'details.lockedSubtitle': 'Only pending, uninvoiced entries can be edited.',
+    'details.rejectionReason': 'Reason for rejection',
     // Notifications
     'details.notifications': 'Notifications',
     'details.markAllRead': 'Mark all read',
@@ -45,6 +46,7 @@ export const detailsCatalog: CatalogSlice = {
     'details.searchPlaceholder': 'Projects, time entries, invoice #…',
     'details.noMatches': 'No matches',
     'details.noMatchesSubtitle': 'Try a different term.',
+    'details.searchFailed': "Couldn't run the search",
     'details.projects': 'Projects',
     'details.invoices': 'Invoices',
     'details.timeEntries': 'Time entries',
@@ -95,6 +97,7 @@ export const detailsCatalog: CatalogSlice = {
     'details.entryNotFound': 'Saisie introuvable',
     'details.locked': 'Verrouillée',
     'details.lockedSubtitle': 'Seules les saisies en attente et non facturées peuvent être modifiées.',
+    'details.rejectionReason': 'Motif du refus',
     // Notifications
     'details.notifications': 'Notifications',
     'details.markAllRead': 'Tout marquer comme lu',
@@ -105,6 +108,7 @@ export const detailsCatalog: CatalogSlice = {
     'details.searchPlaceholder': 'Projets, saisies de temps, n° de facture…',
     'details.noMatches': 'Aucun résultat',
     'details.noMatchesSubtitle': 'Essayez un autre terme.',
+    'details.searchFailed': 'Recherche impossible',
     'details.projects': 'Projets',
     'details.invoices': 'Factures',
     'details.timeEntries': 'Saisies de temps',

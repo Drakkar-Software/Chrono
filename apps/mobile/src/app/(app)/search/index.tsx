@@ -13,6 +13,7 @@ import { InvoiceCard } from '@/components/invoices/InvoiceCard';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { ErrorState } from '@/components/common/ErrorState';
 
 const EMPTY: SearchResults = { projects: [], entries: [], invoices: [] };
 
@@ -25,6 +26,8 @@ export default function SearchScreen() {
   const [term, setTerm] = useState('');
   const [results, setResults] = useState<SearchResults>(EMPTY);
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   const seq = useRef(0);
 
   useEffect(() => {
@@ -36,25 +39,34 @@ export default function SearchScreen() {
       if (!companyId || q.length < 2) {
         if (mine === seq.current) {
           setResults(EMPTY);
+          setFailed(false);
           setLoading(false);
         }
         return;
       }
-      if (mine === seq.current) setLoading(true);
+      if (mine === seq.current) {
+        setLoading(true);
+        setFailed(false);
+      }
       try {
         const res = await searchAll(globalSupabaseClient, companyId, q);
         if (mine === seq.current) setResults(res);
       } catch {
-        if (mine === seq.current) setResults(EMPTY);
+        // Distinguish a real failure from "no matches" so we don't show the
+        // empty state on a network/permission error.
+        if (mine === seq.current) {
+          setResults(EMPTY);
+          setFailed(true);
+        }
       } finally {
         if (mine === seq.current) setLoading(false);
       }
     }, q.length < 2 ? 0 : 300);
     return () => clearTimeout(handle);
-  }, [term, companyId]);
+  }, [term, companyId, retry]);
 
   const total = results.projects.length + results.entries.length + results.invoices.length;
-  const showEmpty = term.trim().length >= 2 && !loading && total === 0;
+  const showEmpty = term.trim().length >= 2 && !loading && !failed && total === 0;
 
   return (
     <StackScreen title={t('common.search')} onBack={() => router.back()}>
@@ -68,6 +80,10 @@ export default function SearchScreen() {
         />
 
         {loading ? <ScreenLoader fill={false} /> : null}
+
+        {failed && !loading ? (
+          <ErrorState title={t('details.searchFailed')} onRetry={() => setRetry((n) => n + 1)} />
+        ) : null}
 
         {showEmpty ? (
           <EmptyState icon="search-outline" title={t('details.noMatches')} subtitle={t('details.noMatchesSubtitle')} />

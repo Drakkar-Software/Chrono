@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { acceptCompanyInvite, fetchCompanyInvites } from '@chrono/sdk';
@@ -7,18 +8,13 @@ import type { AppRole, CompanyInvite } from '@chrono/sdk';
 
 /** A company's invites (managers only), offline-first. */
 export function useCompanyInvites(companyId: string | undefined) {
-  return useLinkedQuery(() => fetchCompanyInvites(globalSupabaseClient, companyId!), {
+  return linkedQuery<CompanyInvite[]>(() => fetchCompanyInvites(globalSupabaseClient, companyId!), {
     stores: [stores.company_invites],
     enabled: !!companyId,
     deps: [companyId],
     staleTime: 30_000,
     queryKey: `company-invites:${companyId}`,
-  }) as {
-    data: CompanyInvite[] | undefined;
-    isLoading: boolean;
-    error: unknown;
-    refetch: () => Promise<void>;
-  };
+  });
 }
 
 export function useInviteMutations() {

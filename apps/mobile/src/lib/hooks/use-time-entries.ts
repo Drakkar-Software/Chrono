@@ -1,16 +1,9 @@
-import { useLinkedQuery } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { todayISO } from '@/lib/date';
 import { fetchTimeEntries, fetchWeekEntries } from '@chrono/sdk';
 import type { TimeEntryFilters, TimeEntryWithProject } from '@chrono/sdk';
-
-type Result = {
-  data: TimeEntryWithProject[] | undefined;
-  isLoading: boolean;
-  error: unknown;
-  refetch: () => Promise<void>;
-};
 
 // NOTE: these read queries subscribe to the time_entries store (so a mutation —
 // log / edit / approve — auto-refreshes the list) but do NOT `mergeToStore`.
@@ -20,7 +13,7 @@ type Result = {
 // real mutations ever change the store, so the refresh-loop can't form.
 
 export function useTimeEntries(filters: TimeEntryFilters) {
-  return useLinkedQuery(
+  return linkedQuery<TimeEntryWithProject[]>(
     () => fetchTimeEntries(globalSupabaseClient, filters),
     {
       stores: [stores.time_entries],
@@ -29,7 +22,7 @@ export function useTimeEntries(filters: TimeEntryFilters) {
       staleTime: 30_000,
       queryKey: `time-entries:${JSON.stringify(filters)}`,
     },
-  ) as Result;
+  );
 }
 
 /** Monday-based week of entries for one user. */
@@ -38,7 +31,7 @@ export function useWeekEntries(
   companyId: string | undefined,
   weekStart: string,
 ) {
-  return useLinkedQuery(
+  return linkedQuery<TimeEntryWithProject[]>(
     () => fetchWeekEntries(globalSupabaseClient, userId!, companyId!, weekStart),
     {
       stores: [stores.time_entries],
@@ -47,13 +40,13 @@ export function useWeekEntries(
       staleTime: 30_000,
       queryKey: `week-entries:${userId}:${companyId}:${weekStart}`,
     },
-  ) as Result;
+  );
 }
 
 /** Today's entries for one user (single-day window). */
 export function useTodayEntries(userId: string | undefined, companyId: string | undefined) {
   const today = todayISO();
-  return useLinkedQuery(
+  return linkedQuery<TimeEntryWithProject[]>(
     () =>
       fetchTimeEntries(globalSupabaseClient, {
         companyId: companyId!,
@@ -68,5 +61,5 @@ export function useTodayEntries(userId: string | undefined, companyId: string | 
       staleTime: 30_000,
       queryKey: `today-entries:${userId}:${companyId}:${today}`,
     },
-  ) as Result;
+  );
 }

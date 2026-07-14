@@ -1,14 +1,12 @@
-import { useLinkedQuery } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchRevenueEntries, recognizeRevenue } from '@chrono/sdk';
 import type { RevenueEntry, RevenueEntryFilters } from '@chrono/sdk';
 import { useAsyncAction } from './use-async-action';
 
-type Refetch = () => Promise<void>;
-
 export function useRevenueEntries(projectId: string | undefined, filters?: RevenueEntryFilters) {
-  return useLinkedQuery(
+  return linkedQuery<RevenueEntry[]>(
     () => fetchRevenueEntries(globalSupabaseClient, projectId!, filters),
     {
       stores: [stores.revenue_entries],
@@ -17,7 +15,7 @@ export function useRevenueEntries(projectId: string | undefined, filters?: Reven
       staleTime: 60_000,
       queryKey: `revenue-entries:${projectId}:${JSON.stringify(filters)}`,
     },
-  ) as { data: RevenueEntry[] | undefined; isLoading: boolean; error: unknown; refetch: Refetch };
+  );
 }
 
 /**
@@ -26,7 +24,7 @@ export function useRevenueEntries(projectId: string | undefined, filters?: Reven
  * (the SDK's `fetchRevenueEntries` is project-scoped and would N+1 here).
  */
 export function useCompanyRevenueEntries(companyId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<RevenueEntry[]>(
     async () => {
       const { data, error } = await globalSupabaseClient
         .from('revenue_entries')
@@ -44,7 +42,7 @@ export function useCompanyRevenueEntries(companyId: string | undefined) {
       staleTime: 60_000,
       queryKey: `company-revenue-entries:${companyId}`,
     },
-  ) as { data: RevenueEntry[] | undefined; isLoading: boolean; error: unknown; refetch: Refetch };
+  );
 }
 
 /** Recognize a project's revenue for a month (RPC). */

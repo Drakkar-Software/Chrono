@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchProjectMembers } from '@chrono/sdk';
 import type { ProjectMemberWithProfile, TablesInsert } from '@chrono/sdk';
 
 export function useProjectMembers(projectId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<ProjectMemberWithProfile[]>(
     () => fetchProjectMembers(globalSupabaseClient, projectId!),
     {
       stores: [stores.project_members],
@@ -15,7 +16,7 @@ export function useProjectMembers(projectId: string | undefined) {
       staleTime: 60_000,
       queryKey: `project-members:${projectId}`,
     },
-  ) as { data: ProjectMemberWithProfile[] | undefined; isLoading: boolean; error: unknown };
+  );
 }
 
 export function useProjectMemberMutations() {

@@ -47,6 +47,11 @@ export function TimeEntryRow({ entry, onPress }: TimeEntryRowProps) {
             ))}
           </View>
         ) : null}
+        {entry.status === 'rejected' && entry.rejection_reason ? (
+          <Txt variant="caption" tone="danger" numberOfLines={2}>
+            {t('details.rejectionReason')}: {entry.rejection_reason}
+          </Txt>
+        ) : null}
       </View>
       <View style={styles.right}>
         <Txt variant="bodyMedium" mono tabularNums>

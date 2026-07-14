@@ -1,4 +1,4 @@
-import { useLinkedQuery } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchMyProjects, fetchProject, fetchProjects } from '@chrono/sdk';
@@ -6,7 +6,7 @@ import type { Project, ProjectFilters } from '@chrono/sdk';
 
 /** All company projects (manager view). */
 export function useProjects(companyId: string | undefined, filters?: ProjectFilters) {
-  return useLinkedQuery(
+  return linkedQuery<Project[]>(
     () => fetchProjects(globalSupabaseClient, companyId!, filters),
     {
       stores: [stores.projects],
@@ -15,12 +15,12 @@ export function useProjects(companyId: string | undefined, filters?: ProjectFilt
       staleTime: 60_000,
       queryKey: `projects:${companyId}:${JSON.stringify(filters)}`,
     },
-  ) as { data: Project[] | undefined; isLoading: boolean; error: unknown; refetch: () => Promise<void> };
+  );
 }
 
 /** Projects the user is assigned to (freelancer view). */
 export function useMyProjects(userId: string | undefined, companyId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<Project[]>(
     () => fetchMyProjects(globalSupabaseClient, userId!, companyId!),
     {
       stores: [stores.projects, stores.project_members],
@@ -29,11 +29,11 @@ export function useMyProjects(userId: string | undefined, companyId: string | un
       staleTime: 60_000,
       queryKey: `my-projects:${userId}:${companyId}`,
     },
-  ) as { data: Project[] | undefined; isLoading: boolean; error: unknown; refetch: () => Promise<void> };
+  );
 }
 
 export function useProject(id: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<Project>(
     () => fetchProject(globalSupabaseClient, id!),
     {
       stores: [stores.projects],
@@ -42,5 +42,5 @@ export function useProject(id: string | undefined) {
       staleTime: 60_000,
       queryKey: `project:${id}`,
     },
-  ) as { data: Project | undefined; isLoading: boolean; error: unknown; refetch: () => Promise<void> };
+  );
 }

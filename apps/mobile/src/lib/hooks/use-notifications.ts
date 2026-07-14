@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchNotifications } from '@chrono/sdk';
@@ -7,18 +8,13 @@ import type { Notification } from '@chrono/sdk';
 
 /** A user's notification feed (newest first), offline-first. */
 export function useNotifications(userId: string | undefined) {
-  return useLinkedQuery(() => fetchNotifications(globalSupabaseClient, userId!), {
+  return linkedQuery<Notification[]>(() => fetchNotifications(globalSupabaseClient, userId!), {
     stores: [stores.notifications],
     enabled: !!userId,
     deps: [userId],
     staleTime: 30_000,
     queryKey: `notifications:${userId}`,
-  }) as {
-    data: Notification[] | undefined;
-    isLoading: boolean;
-    error: unknown;
-    refetch: () => Promise<void>;
-  };
+  });
 }
 
 export function useNotificationMutations(userId: string | undefined) {

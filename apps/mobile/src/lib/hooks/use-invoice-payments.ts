@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchInvoicePayments } from '@chrono/sdk';
@@ -7,18 +8,13 @@ import type { InvoicePayment } from '@chrono/sdk';
 
 /** Manual payments recorded against an invoice, offline-first. */
 export function useInvoicePayments(invoiceId: string | undefined) {
-  return useLinkedQuery(() => fetchInvoicePayments(globalSupabaseClient, invoiceId!), {
+  return linkedQuery<InvoicePayment[]>(() => fetchInvoicePayments(globalSupabaseClient, invoiceId!), {
     stores: [stores.invoice_payments],
     enabled: !!invoiceId,
     deps: [invoiceId],
     staleTime: 30_000,
     queryKey: `invoice-payments:${invoiceId}`,
-  }) as {
-    data: InvoicePayment[] | undefined;
-    isLoading: boolean;
-    error: unknown;
-    refetch: () => Promise<void>;
-  };
+  });
 }
 
 export function useInvoicePaymentMutations() {

@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchPendingApprovals } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';
 
 export function usePendingApprovals(companyId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<TimeEntryWithProject[]>(
     () => fetchPendingApprovals(globalSupabaseClient, companyId!),
     {
       // Watches the store for mutation-driven refresh but doesn't mergeToStore —
@@ -17,12 +18,7 @@ export function usePendingApprovals(companyId: string | undefined) {
       staleTime: 30_000,
       queryKey: `pending-approvals:${companyId}`,
     },
-  ) as {
-    data: TimeEntryWithProject[] | undefined;
-    isLoading: boolean;
-    error: unknown;
-    refetch: () => Promise<void>;
-  };
+  );
 }
 
 export function useApproveEntry() {

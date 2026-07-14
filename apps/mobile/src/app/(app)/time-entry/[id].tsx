@@ -7,6 +7,7 @@ import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useTimeEntry, useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { ErrorState } from '@/components/common/ErrorState';
 import { EditEntryForm } from '@/components/time/EditEntryForm';
 
 export default function TimeEntryDetail() {
@@ -15,13 +16,20 @@ export default function TimeEntryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { companyId } = useActiveCompany();
 
-  const { data: entry, isLoading } = useTimeEntry(id, companyId ?? undefined);
+  const { data: entry, isLoading, error } = useTimeEntry(id, companyId ?? undefined);
   const { update, remove, isPending } = useTimeEntryMutations();
 
   if (isLoading && !entry) {
     return (
       <StackScreen title={t('details.timeEntry')} onBack={() => router.back()}>
         <ScreenLoader />
+      </StackScreen>
+    );
+  }
+  if (error && !entry) {
+    return (
+      <StackScreen title={t('details.timeEntry')} onBack={() => router.back()}>
+        <ErrorState error={error} />
       </StackScreen>
     );
   }
@@ -53,6 +61,14 @@ export default function TimeEntryDetail() {
       <View style={styles.wrap}>
         {editable ? (
           <EditEntryForm entry={entry} onSave={save} onDelete={del} isSaving={isPending} />
+        ) : entry.status === 'rejected' && entry.rejection_reason ? (
+          <Card padding="lg">
+            <EmptyState
+              icon="close-circle-outline"
+              title={t('details.rejectionReason')}
+              subtitle={entry.rejection_reason}
+            />
+          </Card>
         ) : (
           <Card padding="lg">
             <EmptyState

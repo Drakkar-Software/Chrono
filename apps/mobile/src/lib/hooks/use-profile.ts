@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores, useAppAuth } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { completeOnboarding as sdkCompleteOnboarding, fetchProfile, fetchProfileBilling } from '@chrono/sdk';
@@ -10,7 +11,7 @@ import { useAsyncAction } from './use-async-action';
 export function useProfile(userId?: string) {
   const { user } = useAppAuth();
   const id = userId ?? user?.id;
-  return useLinkedQuery(
+  return linkedQuery<Profile | null>(
     () => fetchProfile(globalSupabaseClient, id!),
     {
       stores: [stores.profiles],
@@ -19,7 +20,7 @@ export function useProfile(userId?: string) {
       staleTime: 60_000,
       queryKey: `profile:${id}`,
     },
-  ) as { data: Profile | null | undefined; isLoading: boolean; error: unknown };
+  );
 }
 
 /**
@@ -30,7 +31,7 @@ export function useProfile(userId?: string) {
 export function useProfileBilling(userId?: string) {
   const { user } = useAppAuth();
   const id = userId ?? user?.id;
-  return useLinkedQuery(
+  return linkedQuery<ProfileBilling | null>(
     () => fetchProfileBilling(globalSupabaseClient, id!),
     {
       stores: [stores.profile_billing],
@@ -39,7 +40,7 @@ export function useProfileBilling(userId?: string) {
       staleTime: 60_000,
       queryKey: `profile-billing:${id}`,
     },
-  ) as { data: ProfileBilling | null | undefined; isLoading: boolean; error: unknown };
+  );
 }
 
 export function useProfileBillingMutations() {

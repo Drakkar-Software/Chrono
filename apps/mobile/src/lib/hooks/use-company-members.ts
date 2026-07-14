@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchCompanyMembers, fetchMyRole } from '@chrono/sdk';
 import type { AppRole, CompanyMemberWithProfile, TablesInsert } from '@chrono/sdk';
 
 export function useCompanyMembers(companyId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<CompanyMemberWithProfile[]>(
     () => fetchCompanyMembers(globalSupabaseClient, companyId!),
     {
       stores: [stores.company_members],
@@ -15,12 +16,12 @@ export function useCompanyMembers(companyId: string | undefined) {
       staleTime: 60_000,
       queryKey: `company-members:${companyId}`,
     },
-  ) as { data: CompanyMemberWithProfile[] | undefined; isLoading: boolean; error: unknown };
+  );
 }
 
 /** The caller's role in a company. */
 export function useMyRole(companyId: string | undefined, userId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<AppRole | null>(
     () => fetchMyRole(globalSupabaseClient, companyId!, userId!),
     {
       stores: [stores.company_members],
@@ -29,7 +30,7 @@ export function useMyRole(companyId: string | undefined, userId: string | undefi
       staleTime: 60_000,
       queryKey: `my-role:${companyId}:${userId}`,
     },
-  ) as { data: AppRole | null | undefined; isLoading: boolean; error: unknown };
+  );
 }
 
 // NOTE: joining a company is done ONLY by redeeming an invite token via

@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchRevenueSources } from '@chrono/sdk';
 import type { RevenueSource, TablesInsert, TablesUpdate } from '@chrono/sdk';
 
 export function useRevenueSources(projectId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<RevenueSource[]>(
     () => fetchRevenueSources(globalSupabaseClient, projectId!),
     {
       stores: [stores.revenue_sources],
@@ -15,7 +16,7 @@ export function useRevenueSources(projectId: string | undefined) {
       staleTime: 60_000,
       queryKey: `revenue-sources:${projectId}`,
     },
-  ) as { data: RevenueSource[] | undefined; isLoading: boolean; error: unknown };
+  );
 }
 
 export function useRevenueSourceMutations() {

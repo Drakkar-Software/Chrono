@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchTimeEntries } from '@chrono/sdk';
@@ -7,7 +8,7 @@ import type { TablesInsert, TablesUpdate, TimeEntryWithProject } from '@chrono/s
 
 /** A single time entry by id (read from the loaded company set). */
 export function useTimeEntry(id: string | undefined, companyId: string | undefined) {
-  const res = useLinkedQuery(
+  const res = linkedQuery<TimeEntryWithProject[]>(
     () => fetchTimeEntries(globalSupabaseClient, { companyId: companyId! }),
     {
       stores: [stores.time_entries],
@@ -16,7 +17,7 @@ export function useTimeEntry(id: string | undefined, companyId: string | undefin
       staleTime: 30_000,
       queryKey: `time-entries:${companyId}`,
     },
-  ) as { data: TimeEntryWithProject[] | undefined; isLoading: boolean; error: unknown };
+  );
   return {
     data: res.data?.find((e) => e.id === id),
     isLoading: res.isLoading,

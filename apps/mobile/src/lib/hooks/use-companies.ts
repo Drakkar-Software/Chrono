@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
+import { useMutation } from '@drakkar.software/anchor/hooks';
+import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { fetchCompany, fetchMyCompanies } from '@chrono/sdk';
@@ -7,7 +8,7 @@ import type { Company, CompanyMembership, TablesInsert, TablesUpdate } from '@ch
 
 /** Companies the user belongs to, tagged with their role. */
 export function useMyCompanies(userId: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<CompanyMembership[]>(
     () => fetchMyCompanies(globalSupabaseClient, userId!),
     {
       stores: [stores.companies, stores.company_members],
@@ -16,11 +17,11 @@ export function useMyCompanies(userId: string | undefined) {
       staleTime: 60_000,
       queryKey: `my-companies:${userId}`,
     },
-  ) as { data: CompanyMembership[] | undefined; isLoading: boolean; error: unknown };
+  );
 }
 
 export function useCompany(id: string | undefined) {
-  return useLinkedQuery(
+  return linkedQuery<Company>(
     () => fetchCompany(globalSupabaseClient, id!),
     {
       stores: [stores.companies],
@@ -29,7 +30,7 @@ export function useCompany(id: string | undefined) {
       staleTime: 60_000,
       queryKey: `company:${id}`,
     },
-  ) as { data: Company | undefined; isLoading: boolean; error: unknown };
+  );
 }
 
 export function useCompanyMutations() {
