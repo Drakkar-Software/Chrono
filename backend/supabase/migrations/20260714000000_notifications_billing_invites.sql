@@ -231,6 +231,37 @@ end;
 $$;
 
 grant execute on function public.accept_company_invite(text) to authenticated;
+
+-- Guard invite UPDATEs (the RLS update policy only checks manager membership):
+-- identity fields are immutable, and only admins may (re)assign an elevated role.
+-- This is precise — it blocks role escalation without blocking a manager from
+-- revoking any invite.
+create or replace function public.enforce_invite_update_rules()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.company_id is distinct from old.company_id
+     or new.token is distinct from old.token
+     or new.invited_by is distinct from old.invited_by then
+    raise exception 'Invite identity fields cannot be changed';
+  end if;
+
+  if new.role is distinct from old.role
+     and new.role <> 'freelancer'
+     and not public.is_company_admin(new.company_id) then
+    raise exception 'Only an admin can set a manager or admin invite role';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger enforce_invite_update_rules_trigger
+  before update on public.company_invites
+  for each row execute function public.enforce_invite_update_rules();
 -- End Company Invites
 
 -- ============================================================================
@@ -500,3 +531,71 @@ begin
   return new;
 end;
 $$;
+
+-- ============================================================================
+-- Push dispatch — Postgres-native, via pg_net
+--
+-- Every notification row (regardless of which emitter created it) is pushed to
+-- the recipient's registered devices through the Expo push service, issued
+-- directly from Postgres with pg_net's async net.http_post. No edge function
+-- and no database webhook to configure. The Expo endpoint is fixed and needs no
+-- credentials, so nothing secret lives here.
+--
+-- Where pg_net is unavailable (e.g. a plain Postgres used for tests/CI), the
+-- extension create is tolerated and the dispatch no-ops — in-app notifications
+-- keep working. On Supabase, enable pg_net (Dashboard › Database › Extensions)
+-- or rely on this create.
+-- ============================================================================
+do $$
+begin
+  create extension if not exists pg_net;
+exception when others then
+  raise notice 'pg_net unavailable — push dispatch skipped (in-app notifications unaffected)';
+end $$;
+
+create or replace function public.dispatch_notification_push()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_messages jsonb;
+begin
+  -- No pg_net on this database (e.g. local/test) -> in-app notifications only.
+  if to_regproc('net.http_post') is null then
+    return new;
+  end if;
+
+  -- One Expo push message per registered device of the recipient.
+  select jsonb_agg(jsonb_build_object(
+           'to', dt.token,
+           'title', new.title,
+           'body', new.body,
+           'data', new.data,
+           'sound', 'default'
+         ))
+    into v_messages
+  from public.device_tokens dt
+  where dt.user_id = new.user_id;
+
+  if v_messages is null then
+    return new;  -- recipient has no registered devices
+  end if;
+
+  -- Fire-and-forget: pg_net queues the request and sends it after commit (so a
+  -- rolled-back transaction never emits a phantom push). URL is a fixed, public
+  -- Expo endpoint — not user-controlled — so there is no SSRF surface.
+  perform net.http_post(
+    url := 'https://exp.host/--/api/v2/push/send',
+    headers := jsonb_build_object('Content-Type', 'application/json'),
+    body := v_messages
+  );
+
+  return new;
+end;
+$$;
+
+create trigger dispatch_notification_push_trigger
+  after insert on public.notifications
+  for each row execute function public.dispatch_notification_push();
