@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, EmptyState, Picker, StackScreen, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
+import { Button, Card, EmptyState, Picker, Row, StackScreen, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
 import { canManage, companyName } from '@chrono/sdk';
 import type { AppRole } from '@chrono/sdk';
 
@@ -9,6 +9,7 @@ import { useActiveCompany } from '@/lib/active-company-context';
 import { useProfile, useProfileMutations } from '@/lib/hooks/use-profile';
 import { useCompanyMembers, useCompanyMemberMutations } from '@/lib/hooks/use-company-members';
 import { MemberRow } from '@/components/settings/MemberRow';
+import { ScreenLoader } from '@/components/common/ScreenLoader';
 
 export default function SettingsScreen() {
   const { isWide } = useResponsive();
@@ -18,7 +19,7 @@ export default function SettingsScreen() {
 
   const { data: profile } = useProfile();
   const { updateProfile, isPending: savingProfile } = useProfileMutations();
-  const { data: members } = useCompanyMembers(companyId ?? undefined);
+  const { data: members, isLoading: loadingMembers } = useCompanyMembers(companyId ?? undefined);
   const { updateRole } = useCompanyMemberMutations();
 
   const [name, setName] = useState('');
@@ -67,9 +68,26 @@ export default function SettingsScreen() {
           ) : null}
         </View>
 
+        {manager && company ? (
+          <Card padding="lg" style={styles.card}>
+            <Txt variant="heading">Invite teammates</Txt>
+            <Row label="Join code">
+              <Txt variant="bodyMedium" mono>
+                {company.id}
+              </Txt>
+            </Row>
+            <Txt variant="caption" tone="textMuted">
+              Share this code — teammates enter it at sign-up to join as freelancers, then you can
+              promote them here.
+            </Txt>
+          </Card>
+        ) : null}
+
         <Card padding="lg" style={styles.card}>
           <Txt variant="heading">Members</Txt>
-          {(members ?? []).length === 0 ? (
+          {loadingMembers && members == null ? (
+            <ScreenLoader fill={false} />
+          ) : (members ?? []).length === 0 ? (
             <EmptyState icon="people-outline" title="No members yet" subtitle="Invite teammates to this company to see them here." />
           ) : (
             (members ?? []).map((member) => (

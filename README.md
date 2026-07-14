@@ -6,8 +6,8 @@ backend. Companies track the time their freelancers log against projects, recogn
 revenue from multiple sources, and pay freelancers by invoice with funding-limited,
 carry-forward settlement.
 
-Built on the same Expo/monorepo shell as **OctoChat** and the same offline Supabase data
-layer as **Aesthemedstaff** (`@drakkar.software/anchor`).
+Universal Expo + expo-router shell with an offline-first Supabase data layer
+(`@drakkar.software/anchor`).
 
 ## Money flow (per project, per month)
 

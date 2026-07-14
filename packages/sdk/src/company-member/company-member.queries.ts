@@ -56,6 +56,30 @@ export async function addCompanyMember(
   return data as CompanyMember;
 }
 
+/**
+ * Self-join a company as a freelancer using its id (shared as a "join code" by a
+ * manager). Backed by the `"users self-join as freelancer"` RLS policy, which
+ * permits a user to INSERT only their OWN row with `role='freelancer'`. Throws
+ * if the company id is invalid or the policy rejects the insert.
+ */
+export async function joinCompany(
+  client: Client,
+  params: { companyId: string; userId: string },
+): Promise<CompanyMember> {
+  const input: TablesInsert<'company_members'> = {
+    company_id: params.companyId,
+    user_id: params.userId,
+    role: 'freelancer',
+  };
+  const { data, error } = await client
+    .from('company_members')
+    .insert(input)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as CompanyMember;
+}
+
 export async function updateMemberRole(
   client: Client,
   id: string,

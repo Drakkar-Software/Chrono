@@ -147,6 +147,11 @@ export default function ProjectDetail() {
           {(members ?? []).map((member) => (
             <ProjectMemberRow key={member.id} member={member} project={project} currency={currency} />
           ))}
+          {(members ?? []).length === 0 && panel !== 'member' ? (
+            <Txt variant="body" tone="textMuted">
+              None yet
+            </Txt>
+          ) : null}
         </Section>
 
         <Section
@@ -163,6 +168,11 @@ export default function ProjectDetail() {
           {(sources ?? []).map((source) => (
             <RevenueSourceRow key={source.id} source={source} currency={currency} />
           ))}
+          {(sources ?? []).length === 0 && panel !== 'source' ? (
+            <Txt variant="body" tone="textMuted">
+              None yet
+            </Txt>
+          ) : null}
         </Section>
 
         <Section
@@ -181,6 +191,11 @@ export default function ProjectDetail() {
           {(referrals ?? []).map((referral) => (
             <ReferrerRow key={referral.id} referral={referral} />
           ))}
+          {(referrals ?? []).length === 0 && panel !== 'referrer' ? (
+            <Txt variant="body" tone="textMuted">
+              None yet
+            </Txt>
+          ) : null}
         </Section>
 
         {manager && companyId ? (

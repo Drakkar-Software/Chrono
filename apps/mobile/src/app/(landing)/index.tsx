@@ -83,11 +83,7 @@ export default function Landing() {
           <Ionicons name="stopwatch-outline" size={isWide ? 46 : 38} color={colors.accentText} />
         </View>
 
-        <Txt
-          variant="displayLg"
-          center
-          style={{ fontSize: isWide ? 60 : 42, lineHeight: isWide ? 64 : 46 }}
-        >
+        <Txt variant={isWide ? 'displayXl' : 'displayLg'} center>
           Chrono
         </Txt>
         <Txt

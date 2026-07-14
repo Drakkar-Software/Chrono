@@ -188,6 +188,7 @@ type Weight = TextStyle['fontWeight'];
 
 /** Type scale: each step carries `{fontSize, lineHeight, fontWeight}`. */
 export const type = {
+  displayXl: { fontSize: 60, lineHeight: 64, fontWeight: '700' as Weight },
   displayLg: { fontSize: 40, lineHeight: 46, fontWeight: '700' as Weight },
   display: { fontSize: 30, lineHeight: 36, fontWeight: '700' as Weight },
   title: { fontSize: 22, lineHeight: 28, fontWeight: '700' as Weight },
