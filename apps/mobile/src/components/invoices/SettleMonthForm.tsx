@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Button, Card, Picker, Txt, spacing } from '@chrono/ui';
 import type { Project } from '@chrono/sdk';
+import { FieldRow } from '@/components/common/FieldRow';
 
 export interface SettleMonthFormProps {
   projects: Project[];
@@ -28,14 +29,16 @@ export function SettleMonthForm({ projects, onSettle, onCancel, isSubmitting = f
   return (
     <Card padding="lg" style={styles.card}>
       <Txt variant="heading">Settle a month</Txt>
-      <Picker
-        label="Project"
-        value={projectId}
-        onValueChange={setProjectId}
-        options={projects.map((p) => ({ label: p.name, value: p.id }))}
-        placeholder="Select a project"
-      />
-      <Picker label="Month" value={month} onValueChange={setMonth} options={months} />
+      <FieldRow>
+        <Picker
+          label="Project"
+          value={projectId}
+          onValueChange={setProjectId}
+          options={projects.map((p) => ({ label: p.name, value: p.id }))}
+          placeholder="Select a project"
+        />
+        <Picker label="Month" value={month} onValueChange={setMonth} options={months} />
+      </FieldRow>
       <Button
         title="Settle month"
         onPress={() => projectId && month && onSettle(projectId, month)}

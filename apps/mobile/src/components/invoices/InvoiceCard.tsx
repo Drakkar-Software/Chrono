@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Badge, Money, Txt, spacing, useTheme } from '@chrono/ui';
+import { Badge, Money, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 import { invoiceAmounts, invoiceStatusLabel } from '@chrono/sdk';
 import type { InvoiceWithRelations } from '@chrono/sdk';
 import { invoiceBadge } from '@/lib/status';
@@ -50,8 +50,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: radii.lg,
+    borderWidth: borders.thin,
     padding: spacing.lg,
   },
   left: { flex: 1, gap: 2 },

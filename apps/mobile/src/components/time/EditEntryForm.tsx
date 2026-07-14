@@ -41,8 +41,10 @@ export function EditEntryForm({ entry, onSave, onDelete, isSaving = false }: Edi
   return (
     <Card padding="lg" style={styles.card}>
       <Txt variant="heading">Edit entry</Txt>
-      <DatePicker label="Date" value={date} onChange={setDate} maximumDate={new Date()} />
-      <TextField label="Hours" value={hours} onChangeText={setHours} keyboardType="decimal-pad" />
+      <FieldRow>
+        <DatePicker label="Date" value={date} onChange={setDate} maximumDate={new Date()} />
+        <TextField label="Hours" value={hours} onChangeText={setHours} keyboardType="decimal-pad" />
+      </FieldRow>
       <TextField label="Description" value={description} onChangeText={setDescription} multiline />
       <View style={styles.segment}>
         <Segmented options={BILLABLE_OPTIONS} value={billable} onValueChange={setBillable} />

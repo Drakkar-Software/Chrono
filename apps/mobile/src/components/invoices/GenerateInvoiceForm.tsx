@@ -4,6 +4,7 @@ import { Button, Card, Picker, Txt, spacing } from '@chrono/ui';
 import { effectiveTjm } from '@chrono/sdk';
 import type { Project } from '@chrono/sdk';
 import { useProjectMembers } from '@/lib/hooks/use-project-members';
+import { FieldRow } from '@/components/common/FieldRow';
 
 export interface GenerateInvoiceParams {
   projectId: string;
@@ -62,14 +63,16 @@ export function GenerateInvoiceForm({
   return (
     <Card padding="lg" style={styles.card}>
       <Txt variant="heading">Generate invoice</Txt>
-      <Picker
-        label="Project"
-        value={projectId}
-        onValueChange={setProjectId}
-        options={projects.map((p) => ({ label: p.name, value: p.id }))}
-        placeholder="Select a project"
-      />
-      <Picker label="Month" value={month} onValueChange={setMonth} options={months} />
+      <FieldRow>
+        <Picker
+          label="Project"
+          value={projectId}
+          onValueChange={setProjectId}
+          options={projects.map((p) => ({ label: p.name, value: p.id }))}
+          placeholder="Select a project"
+        />
+        <Picker label="Month" value={month} onValueChange={setMonth} options={months} />
+      </FieldRow>
       <Button
         title="Generate & submit"
         onPress={submit}
