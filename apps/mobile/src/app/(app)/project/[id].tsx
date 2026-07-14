@@ -10,6 +10,7 @@ import {
 } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
+import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useProject } from '@/lib/hooks/use-projects';
 import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
@@ -40,6 +41,7 @@ export default function ProjectDetail() {
   const t = useT();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAppAuth();
   const { company, role } = useActiveCompany();
   const manager = canManage(role);
   const admin = role === 'admin';
@@ -223,7 +225,13 @@ export default function ProjectDetail() {
             />
           ) : null}
           {(members ?? []).map((member) => (
-            <ProjectMemberRow key={member.id} member={member} project={project} currency={currency} />
+            <ProjectMemberRow
+              key={member.id}
+              member={member}
+              project={project}
+              currency={currency}
+              showRate={manager || member.user_id === user?.id}
+            />
           ))}
           {(members ?? []).length === 0 && panel !== 'member' ? (
             <Txt variant="body" tone="textMuted">

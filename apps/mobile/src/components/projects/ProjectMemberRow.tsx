@@ -7,18 +7,21 @@ export interface ProjectMemberRowProps {
   member: ProjectMemberWithProfile;
   project: Pick<Project, 'default_tjm_cents'>;
   currency: string;
+  /** Show the day rate. Rates are confidential — only managers, or the member
+   *  viewing their own row, should see them. Default false. */
+  showRate?: boolean;
   onPress?: () => void;
 }
 
-/** A project member: name + their effective day rate. */
-export function ProjectMemberRow({ member, project, currency, onPress }: ProjectMemberRowProps) {
+/** A project member: name + (for permitted viewers) their effective day rate. */
+export function ProjectMemberRow({ member, project, currency, showRate = false, onPress }: ProjectMemberRowProps) {
   const t = useT();
   return (
     <ListItem
       title={displayName(member.profile)}
-      subtitle={t('comp.project.dayRate')}
+      subtitle={showRate ? t('comp.project.dayRate') : undefined}
       onPress={onPress}
-      trailing={<Money cents={effectiveTjm(member, project)} currency={currency} />}
+      trailing={showRate ? <Money cents={effectiveTjm(member, project)} currency={currency} /> : undefined}
     />
   );
 }
