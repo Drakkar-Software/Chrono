@@ -1,0 +1,14 @@
+{
+  // Static-assets-only Worker: serves the Expo web export (apps/mobile/dist).
+  // Its presence also tells `wrangler deploy` what to target, so it no longer
+  // aborts with "application detection ... run in the root of a workspace".
+  "name": "chrono",
+  "compatibility_date": "2024-11-01",
+  "assets": {
+    // Path is relative to this config (repo root), where the deploy command runs.
+    "directory": "./apps/mobile/dist",
+    // Serve index.html for any unmatched route so the expo-router SPA can
+    // client-route deep links (equivalent to the dist/_redirects fallback).
+    "not_found_handling": "single-page-application"
+  }
+}
