@@ -39,7 +39,7 @@ It works **offline** (log time on the train, it syncs when you're back), it's **
 | 🧾 **Invoices & carry-forward** | Approved time → monthly invoices, settled **FIFO**; shortfalls credited to next month. |
 | 📈 **Revenue sources** | Fund projects via **time & materials**, **recurring retainers**, or **self-billing** — recognized monthly. |
 | 🤝 **Referral earnings** | Bring a client, earn a % of project revenue **every month** — a first claim, paid off the top. |
-| 🏢 **Multi-company** | Belong to many companies; switch between them; invite teammates with a join code. |
+| 🏢 **Multi-company** | Belong to many companies; switch between them; invite teammates with secure, expiring invite links. |
 | 🔐 **Secure by construction** | Row-Level Security on every table; server-computed money; no client-trusted amounts. |
 | 📴 **Offline-first** | Backed by `@drakkar.software/anchor` — SQLite on native, localStorage on web, syncs on reconnect. |
 | 🎨 **Native feel, everywhere** | Native SwiftUI / Jetpack Compose controls via `@expo/ui`, with web fallbacks. |
@@ -114,7 +114,9 @@ and `@chrono/ui` from **source** via Metro aliases, so there's no build step in 
 | Table | Purpose |
 |---|---|
 | `companies`, `company_members` | Multi-tenancy & roles (`freelancer` / `manager` / `admin`). |
-| `profiles` | Per-user profile + onboarding state. |
+| `company_invites` | Single-use, expiring invite tokens — the only way to join a company. |
+| `profiles` | Per-user public profile (name, avatar) + onboarding state. |
+| `profile_billing` | Private legal identity (address, VAT, business id) — readable only by self + managers. |
 | `projects`, `project_members` | Project config (budget, default TJM, hours/day) + per-freelancer day rate. |
 | `time_entries` | Manual entries (`entry_date`, `duration_minutes`, billable, approval status). |
 | `revenue_sources` → `revenue_entries` | Typed funding definitions → the recognized-revenue ledger. |
@@ -129,9 +131,12 @@ carry the shortfall forward).
 
 ## 🔒 Security
 
-Security was reviewed adversarially and hardened; highlights:
+Security was reviewed adversarially — every control below was exercised with exploit-attempt
+tests against a live Postgres, and the two findings that surfaced were fixed:
 
 - **RLS on every table**, all access scoped through `company_members` (`is_company_member/manager/admin`, `is_project_member`) — verified no cross-tenant read or write.
+- **Joining a company requires an invite.** Membership is created only by redeeming a single-use, expiring, 244-bit invite token through a `SECURITY DEFINER` RPC — there is no self-join path, so knowing a company's id grants nothing.
+- **Private legal details are compartmentalized.** A freelancer's billing address, VAT and business id live in `profile_billing`, readable only by the freelancer and their managers — peers see names and avatars, never PII.
 - **Money is never client-trusted.** A DB trigger recomputes invoice amounts server-side from approved time entries; freelancers cannot set their own `earned_cents` or self-settle.
 - **Tenant integrity** — every child row's `company_id` must match its project's company.
 - **Admin tier protected** — only admins can grant/alter the `admin` role (with a creator bootstrap).
@@ -174,12 +179,15 @@ pnpm web        # or: pnpm ios · pnpm android
 
 The correctness-critical paths are proven, not assumed:
 
-- **26 SDK unit tests** cover the earned / revenue / referral / settlement math (`pnpm test`).
+- **50 unit tests** cover the earned / revenue / referral / settlement / VAT / budget / invite math (`pnpm test`).
 - **Full typecheck** passes across all packages against the real installed dependencies.
 - The **web app bundles** end to end (`expo export -p web`).
 - The **migration, seed, revenue recognition, referral first-claim, FIFO settlement,
   carry-forward, the ≤100% referral guard, and cross-tenant RLS isolation** were all verified
   against a live Postgres — including exploit-attempt tests for each security control.
+- An **adversarial RLS audit** (a two-tenant fixture, every role played against every table)
+  drove out and fixed an uninvited company self-join and a peer-visible PII leak; the fixes
+  were re-verified live (self-join blocked, invites still redeemable, peer PII returns nothing).
 
 ---
 
