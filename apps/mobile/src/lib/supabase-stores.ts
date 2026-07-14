@@ -14,6 +14,7 @@ const INVOICE_SELECT = '*, project:projects(name)';
 
 const TABLES = [
   'profiles',
+  'profile_billing',
   'companies',
   'company_members',
   'projects',
@@ -46,6 +47,7 @@ function getStores() {
       authGate: { refetchOnSignIn: false }, // fetch on-demand via the use-* hooks
       tableOptions: {
         profiles: { primaryKey: 'user_id' },
+        profile_billing: { primaryKey: 'user_id' },
         projects: { defaultSelect: PROJECT_SELECT },
         time_entries: { defaultSelect: TIME_ENTRY_SELECT },
         invoices: { defaultSelect: INVOICE_SELECT },

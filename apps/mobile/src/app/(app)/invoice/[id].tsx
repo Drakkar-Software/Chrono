@@ -15,7 +15,7 @@ import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useInvoice } from '@/lib/hooks/use-invoices';
-import { useProfile } from '@/lib/hooks/use-profile';
+import { useProfile, useProfileBilling } from '@/lib/hooks/use-profile';
 import { useSettleProjectMonth, useSubmitInvoice } from '@/lib/hooks/use-invoice-mutations';
 import { buildInvoiceHtml, exportInvoice } from '@/lib/invoice-document';
 import { invoiceBadge } from '@/lib/status';
@@ -37,9 +37,11 @@ export default function InvoiceDetail() {
   const currency = companyCurrency(company);
 
   const { data: invoice, isLoading, error, refetch } = useInvoice(id);
-  // The issuing freelancer's profile carries the legal details for the document.
-  // RLS lets the freelancer read their own and managers read company peers.
+  // The issuing freelancer's name comes from their public profile; the private
+  // legal details (address / VAT / business id) come from profile_billing, which
+  // RLS returns only to the freelancer themselves and to their managers.
   const { data: freelancerProfile } = useProfile(invoice?.freelancer_id);
+  const { data: freelancerBilling } = useProfileBilling(invoice?.freelancer_id);
   const submit = useSubmitInvoice();
   const settle = useSettleProjectMonth();
 
@@ -55,7 +57,7 @@ export default function InvoiceDetail() {
     setExporting(true);
     try {
       const legal = companyLegal(company);
-      const freelancer = freelancerLegal(freelancerProfile);
+      const freelancer = freelancerLegal(freelancerProfile, freelancerBilling);
       const logoUrl = (company?.content as { logo_url?: string } | null)?.logo_url ?? null;
       const html = buildInvoiceHtml({
         invoice,

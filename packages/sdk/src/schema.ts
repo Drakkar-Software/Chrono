@@ -50,9 +50,6 @@ export type Database = {
           avatar_url: string | null;
           content: Json;
           onboarded: boolean;
-          address: string | null;
-          vat_id: string | null;
-          business_id: string | null;
         } & Timestamps;
         Insert: {
           user_id: string;
@@ -60,6 +57,22 @@ export type Database = {
           avatar_url?: string | null;
           content?: Json;
           onboarded?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          deleted?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+        Relationships: [];
+      };
+      profile_billing: {
+        Row: {
+          user_id: string;
+          address: string | null;
+          vat_id: string | null;
+          business_id: string | null;
+        } & Timestamps;
+        Insert: {
+          user_id: string;
           address?: string | null;
           vat_id?: string | null;
           business_id?: string | null;
@@ -67,7 +80,7 @@ export type Database = {
           updated_at?: string;
           deleted?: boolean;
         };
-        Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+        Update: Partial<Database['public']['Tables']['profile_billing']['Insert']>;
         Relationships: [];
       };
       companies: {

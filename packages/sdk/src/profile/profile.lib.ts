@@ -1,4 +1,4 @@
-import type { Profile } from './profile.entity';
+import type { Profile, ProfileBilling } from './profile.entity';
 
 /** Human-facing name for a profile, falling back to a placeholder. */
 export function displayName(
@@ -16,14 +16,19 @@ export type FreelancerLegal = {
   businessId: string | null;
 };
 
-/** Legal identity for a freelancer (invoice "from" block). */
+/**
+ * Legal identity for a freelancer (invoice "from" block). The name comes from
+ * the public profile; the address/tax ids come from the private billing row
+ * (readable only by the freelancer themselves and by their managers).
+ */
 export function freelancerLegal(
-  profile: Pick<Profile, 'full_name' | 'address' | 'vat_id' | 'business_id'> | null | undefined,
+  profile: Pick<Profile, 'full_name'> | null | undefined,
+  billing: Pick<ProfileBilling, 'address' | 'vat_id' | 'business_id'> | null | undefined,
 ): FreelancerLegal {
   return {
     name: displayName(profile),
-    address: profile?.address ?? null,
-    vatId: profile?.vat_id ?? null,
-    businessId: profile?.business_id ?? null,
+    address: billing?.address ?? null,
+    vatId: billing?.vat_id ?? null,
+    businessId: billing?.business_id ?? null,
   };
 }

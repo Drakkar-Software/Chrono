@@ -33,26 +33,9 @@ export function useMyRole(companyId: string | undefined, userId: string | undefi
   ) as { data: AppRole | null | undefined; isLoading: boolean; error: unknown };
 }
 
-/**
- * Self-join a company as a freelancer via its id ("join code"). Inserts through
- * the anchor store so the membership persists + syncs. The insert is gated by
- * the `"users self-join as freelancer"` RLS policy and throws on an invalid code.
- */
-export function useJoinCompany() {
-  const { insert, isLoading, error } = useMutation(stores.company_members);
-
-  const mutateAsync = useCallback(
-    (params: { companyId: string; userId: string }) =>
-      insert({
-        company_id: params.companyId,
-        user_id: params.userId,
-        role: 'freelancer',
-      } satisfies TablesInsert<'company_members'>),
-    [insert],
-  );
-
-  return { mutateAsync, isPending: isLoading, error };
-}
+// NOTE: joining a company is done ONLY by redeeming an invite token via
+// `useInviteMutations().accept` (the accept_company_invite RPC). There is no
+// self-join-by-company-id path — that would let anyone join any company.
 
 export function useCompanyMemberMutations() {
   const { insert, update, isLoading, error } = useMutation(stores.company_members);

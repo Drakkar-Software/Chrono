@@ -331,3 +331,19 @@ create policy "members read assignments they can see"
     user_id = (select auth.uid())
     or public.is_company_manager(public.project_company_id(project_id))
   );
+
+
+-- ----------------------------------------------------------------------------
+-- SECURITY: remove the self-service company self-join. The original
+-- "users self-join as freelancer" INSERT policy let ANY authenticated user add
+-- themselves to ANY company merely by knowing (or guessing) its UUID, then read
+-- that company's full roster, legal details and every member's PII through the
+-- member-scoped SELECT policies. Company ids are not secrets (they travel in
+-- URLs, invite payloads, exports), so this is a cross-tenant data breach.
+--
+-- Joining a company now happens ONLY through accept_company_invite (a
+-- SECURITY DEFINER RPC that validates a single-use, expiring invite token and
+-- inserts the membership on the caller's behalf). Removing the policy closes the
+-- uninvited-join path without affecting invite redemption.
+-- ----------------------------------------------------------------------------
+drop policy if exists "users self-join as freelancer" on public.company_members;

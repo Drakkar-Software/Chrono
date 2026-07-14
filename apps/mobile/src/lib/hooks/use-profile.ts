@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
 import { stores, useAppAuth } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
-import { completeOnboarding as sdkCompleteOnboarding, fetchProfile } from '@chrono/sdk';
-import type { Profile, TablesUpdate } from '@chrono/sdk';
+import { completeOnboarding as sdkCompleteOnboarding, fetchProfile, fetchProfileBilling } from '@chrono/sdk';
+import type { Profile, ProfileBilling, TablesUpdate } from '@chrono/sdk';
 import { useAsyncAction } from './use-async-action';
 
 /** The signed-in user's profile, or another user's when `userId` is passed. */
@@ -20,6 +20,38 @@ export function useProfile(userId?: string) {
       queryKey: `profile:${id}`,
     },
   ) as { data: Profile | null | undefined; isLoading: boolean; error: unknown };
+}
+
+/**
+ * A user's private billing details (address, VAT, business id). RLS returns
+ * these only to the user themselves and to their managers; a peer read resolves
+ * to null. Defaults to the signed-in user when `userId` is omitted.
+ */
+export function useProfileBilling(userId?: string) {
+  const { user } = useAppAuth();
+  const id = userId ?? user?.id;
+  return useLinkedQuery(
+    () => fetchProfileBilling(globalSupabaseClient, id!),
+    {
+      stores: [stores.profile_billing],
+      enabled: !!id,
+      deps: [id],
+      staleTime: 60_000,
+      queryKey: `profile-billing:${id}`,
+    },
+  ) as { data: ProfileBilling | null | undefined; isLoading: boolean; error: unknown };
+}
+
+export function useProfileBillingMutations() {
+  const { upsert, isLoading, error } = useMutation(stores.profile_billing);
+
+  const saveBilling = useCallback(
+    (userId: string, patch: Omit<TablesUpdate<'profile_billing'>, 'user_id'>) =>
+      upsert({ user_id: userId, ...patch }),
+    [upsert],
+  );
+
+  return { saveBilling, isPending: isLoading, error };
 }
 
 export function useProfileMutations() {

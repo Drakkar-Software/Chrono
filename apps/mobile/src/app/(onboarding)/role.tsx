@@ -5,7 +5,8 @@ import { Button, Segmented, TextField, Txt } from '@chrono/ui';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useProfileMutations } from '@/lib/hooks/use-profile';
 import { useCompanyMutations } from '@/lib/hooks/use-companies';
-import { useJoinCompany } from '@/lib/hooks/use-company-members';
+import { useInviteMutations } from '@/lib/hooks/use-invites';
+import { tokenFromInput } from '@/components/settings/JoinCompanyForm';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { AuthCard } from '@/components/common/AuthCard';
 import { useT } from '@/lib/i18n';
@@ -23,7 +24,7 @@ export default function RoleSetup() {
   const { user } = useAppAuth();
   const { completeOnboarding } = useProfileMutations();
   const { create } = useCompanyMutations();
-  const { mutateAsync: joinCompany } = useJoinCompany();
+  const { accept } = useInviteMutations();
   const { refresh } = useActiveCompany();
 
   const [mode, setMode] = useState<Mode>('create');
@@ -43,7 +44,8 @@ export default function RoleSetup() {
       setError(t('onboarding.role.errCompanyName'));
       return;
     }
-    if (mode === 'join' && !code.trim()) {
+    const token = tokenFromInput(code);
+    if (mode === 'join' && !token) {
       setError(t('onboarding.role.errCompanyCode'));
       return;
     }
@@ -51,19 +53,14 @@ export default function RoleSetup() {
     setError(undefined);
     try {
       if (mode === 'join') {
+        // Join only by redeeming an invite token (accept_company_invite validates
+        // the token server-side). Self-joining an arbitrary company is not allowed.
         try {
-          await joinCompany({ companyId: code.trim(), userId: user.id });
-        } catch (joinErr) {
-          // A duplicate-membership error means the user is already in this
-          // company (e.g. a prior attempt joined but onboarding then failed, or a
-          // manager pre-added them) — treat that as success and finish onboarding.
-          const msg = joinErr instanceof Error ? joinErr.message : String(joinErr);
-          const alreadyMember = /duplicate|23505|already exists/i.test(msg);
-          if (!alreadyMember) {
-            setError(t('onboarding.role.errJoin'));
-            setBusy(false);
-            return;
-          }
+          await accept(token);
+        } catch {
+          setError(t('onboarding.role.errJoin'));
+          setBusy(false);
+          return;
         }
         await completeOnboarding(user.id, fullName.trim());
       } else {

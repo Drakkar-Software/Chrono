@@ -7,7 +7,12 @@ import type { AppRole } from '@chrono/sdk';
 import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
-import { useProfile, useProfileMutations } from '@/lib/hooks/use-profile';
+import {
+  useProfile,
+  useProfileMutations,
+  useProfileBilling,
+  useProfileBillingMutations,
+} from '@/lib/hooks/use-profile';
 import { useCompanyMembers, useCompanyMemberMutations } from '@/lib/hooks/use-company-members';
 import { MemberRow } from '@/components/settings/MemberRow';
 import { AvatarUpload } from '@/components/settings/AvatarUpload';
@@ -29,6 +34,8 @@ export default function SettingsScreen() {
 
   const { data: profile } = useProfile();
   const { updateProfile, isPending: savingProfile } = useProfileMutations();
+  const { data: billing } = useProfileBilling();
+  const { saveBilling, isPending: savingBilling } = useProfileBillingMutations();
   const { data: members, isLoading: loadingMembers } = useCompanyMembers(companyId ?? undefined);
   const { updateRole, error: roleError } = useCompanyMemberMutations();
 
@@ -42,15 +49,18 @@ export default function SettingsScreen() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- prop->state sync of async-loaded values
     setName(profile?.full_name ?? '');
-    setAddress(profile?.address ?? '');
-    setVatId(profile?.vat_id ?? '');
-    setBusinessId(profile?.business_id ?? '');
-  }, [profile?.full_name, profile?.address, profile?.vat_id, profile?.business_id]);
+  }, [profile?.full_name]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prop->state sync of async-loaded values
+    setAddress(billing?.address ?? '');
+    setVatId(billing?.vat_id ?? '');
+    setBusinessId(billing?.business_id ?? '');
+  }, [billing?.address, billing?.vat_id, billing?.business_id]);
 
   const saveName = () => {
     if (!user?.id || !name.trim()) return;
-    updateProfile(user.id, {
-      full_name: name.trim(),
+    updateProfile(user.id, { full_name: name.trim() });
+    saveBilling(user.id, {
       address: address.trim() || null,
       vat_id: vatId.trim() || null,
       business_id: businessId.trim() || null,
@@ -106,7 +116,7 @@ export default function SettingsScreen() {
               <Txt variant="caption" tone="textMuted">
                 {t('tabs.settings.invoiceInfo')}
               </Txt>
-              <Button title={t('common.save')} onPress={saveName} loading={savingProfile} disabled={!name.trim()} fullWidth={!isWide} />
+              <Button title={t('common.save')} onPress={saveName} loading={savingProfile || savingBilling} disabled={!name.trim()} fullWidth={!isWide} />
             </Card>
           </View>
 
