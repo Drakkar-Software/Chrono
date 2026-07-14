@@ -1,0 +1,44 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# expo
+.expo/
+dist/
+web-build/
+*.orig.*
+
+# native
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+ios/
+android/
+
+# metro
+.metro-health-check*
+
+# turbo
+.turbo/
+
+# typescript
+*.tsbuildinfo
+
+# supabase
+backend/supabase/.branches/
+backend/supabase/.temp/
+
+# env
+.env
+.env*.local
+apps/mobile/.env
+
+# misc
+.DS_Store
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+coverage/

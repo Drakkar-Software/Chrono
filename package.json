@@ -1,0 +1,25 @@
+{
+  "name": "chrono",
+  "private": true,
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "pnpm --filter @chrono/mobile start",
+    "web": "pnpm --filter @chrono/mobile web",
+    "ios": "pnpm --filter @chrono/mobile ios",
+    "android": "pnpm --filter @chrono/mobile android",
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "lint": "pnpm -r --if-present run lint",
+    "db:reset": "cd backend/supabase && supabase db reset",
+    "db:types": "cd backend/supabase && supabase gen types typescript --local > ../../packages/sdk/src/schema.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "~5.9.2"
+  }
+}

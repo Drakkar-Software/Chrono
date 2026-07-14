@@ -1,0 +1,12 @@
+{
+  "extends": "./packages/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": [],
+  "references": [
+    { "path": "./packages/sdk" },
+    { "path": "./packages/ui" },
+    { "path": "./apps/mobile" }
+  ]
+}
