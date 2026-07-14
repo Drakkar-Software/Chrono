@@ -5,6 +5,7 @@ import { EmptyState, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui
 import { groupByDay, sumDurations, formatDuration, weekBounds } from '@chrono/sdk';
 import type { TablesInsert } from '@chrono/sdk';
 
+import { toISODate, todayISO } from '@/lib/date';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useMyProjects } from '@/lib/hooks/use-projects';
@@ -23,7 +24,7 @@ export default function TodayScreen() {
   const { companyId } = useActiveCompany();
   const userId = user?.id;
 
-  const weekStart = useMemo(() => weekBounds(new Date().toISOString()).start, []);
+  const weekStart = useMemo(() => weekBounds(todayISO()).start, []);
   const { data: projects } = useMyProjects(userId, companyId ?? undefined);
   const { data: entries, isLoading } = useWeekEntries(userId, companyId ?? undefined, weekStart);
   const { create, isPending } = useTimeEntryMutations();
@@ -33,7 +34,7 @@ export default function TodayScreen() {
     [projects],
   );
 
-  const todayKey = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayKey = useMemo(() => todayISO(), []);
   const todayMinutes = useMemo(
     () => sumDurations((entries ?? []).filter((e) => e.entry_date.slice(0, 10) === todayKey)),
     [entries, todayKey],
@@ -53,7 +54,7 @@ export default function TodayScreen() {
       project_id: values.projectId,
       user_id: userId,
       company_id: companyId,
-      entry_date: values.entryDate.toISOString().slice(0, 10),
+      entry_date: toISODate(values.entryDate),
       duration_minutes: values.durationMinutes,
       description: values.description || null,
       billable: values.billable,

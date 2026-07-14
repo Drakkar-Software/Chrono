@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
-import { borders, layout, opacity, radii, spacing } from '../theme';
+import { borders, layout, opacity, radii, spacing, type as typeScale } from '../theme';
 import { useTheme } from '../use-theme';
 import { Txt } from './Txt';
 
@@ -87,6 +87,6 @@ const styles = StyleSheet.create({
     borderWidth: borders.thin,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
-    fontSize: 15,
+    fontSize: typeScale.body.fontSize,
   },
 });

@@ -87,7 +87,7 @@ const light: Palette = {
 
   text: '#1b1f2e',
   textMuted: '#5a6172',
-  textFaint: '#9aa0b3',
+  textFaint: '#6b7180',
 
   border: '#dcdfea',
   borderStrong: '#c2c7d6',

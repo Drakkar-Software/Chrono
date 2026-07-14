@@ -35,7 +35,7 @@ export function buttonMetrics(size: ButtonSize): ButtonMetrics {
   const borderWidth = borders.thin;
   switch (size) {
     case 'sm':
-      return { height: 36, paddingHorizontal: spacing.md, fontVariant: 'label', radius, borderWidth };
+      return { height: 44, paddingHorizontal: spacing.md, fontVariant: 'label', radius, borderWidth };
     case 'lg':
       return { height: 52, paddingHorizontal: spacing.xl, fontVariant: 'bodyMedium', radius, borderWidth };
     case 'md':

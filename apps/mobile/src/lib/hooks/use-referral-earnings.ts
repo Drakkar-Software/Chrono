@@ -5,11 +5,14 @@ import { fetchMyReferralEarnings, fetchReferralEarnings } from '@chrono/sdk';
 import type { ReferralEarning, ReferralEarningFilters } from '@chrono/sdk';
 
 export function useReferralEarnings(filters: ReferralEarningFilters) {
+  // Guard against an unscoped fetch: require at least one concrete scope so an
+  // empty filter can't pull every RLS-visible row.
+  const scoped = !!(filters.companyId || filters.projectId || filters.referrerId);
   return useLinkedQuery(
     () => fetchReferralEarnings(globalSupabaseClient, filters),
     {
       stores: [stores.referral_earnings],
-      enabled: true,
+      enabled: scoped,
       deps: [JSON.stringify(filters)],
       mergeToStore: stores.referral_earnings,
       staleTime: 60_000,

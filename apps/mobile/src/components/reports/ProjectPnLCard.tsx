@@ -30,8 +30,13 @@ export function ProjectPnLCard({ project, companyId, currency }: ProjectPnLCardP
     () => sumReferralEarnings(referralEarnings ?? []),
     [referralEarnings],
   );
+  // Cost = earned on real (submitted/settled) invoices only; drafts aren't
+  // committed cost and cancelled invoices don't count.
   const costCents = useMemo(
-    () => (invoices ?? []).reduce((acc, i) => acc + (i.earned_cents ?? 0), 0),
+    () =>
+      (invoices ?? [])
+        .filter((i) => i.status === 'submitted' || i.status === 'partially_paid' || i.status === 'paid')
+        .reduce((acc, i) => acc + (i.earned_cents ?? 0), 0),
     [invoices],
   );
   const paidInvoices = useMemo(

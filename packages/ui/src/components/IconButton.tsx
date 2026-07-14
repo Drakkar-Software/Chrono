@@ -40,8 +40,8 @@ export function IconButton({ name, onPress, size = 22, tone = 'text', disabled =
 
 const styles = StyleSheet.create({
   base: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',

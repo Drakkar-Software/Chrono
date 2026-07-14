@@ -1,6 +1,6 @@
 import { StyleSheet, TextInput, View } from 'react-native';
 
-import { borders, layout, opacity, radii, spacing } from '../theme';
+import { borders, layout, opacity, radii, spacing, type as typeScale } from '../theme';
 import { useTheme } from '../use-theme';
 import { Txt } from './Txt';
 
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    fontSize: 15,
+    fontSize: typeScale.body.fontSize,
   },
   error: {},
 });

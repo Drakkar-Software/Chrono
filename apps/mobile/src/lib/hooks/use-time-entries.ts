@@ -1,6 +1,7 @@
 import { useLinkedQuery } from '@drakkar.software/anchor/hooks';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
+import { todayISO } from '@/lib/date';
 import { fetchTimeEntries, fetchWeekEntries } from '@chrono/sdk';
 import type { TimeEntryFilters, TimeEntryWithProject } from '@chrono/sdk';
 
@@ -41,7 +42,7 @@ export function useWeekEntries(
 
 /** Today's entries for one user (single-day window). */
 export function useTodayEntries(userId: string | undefined, companyId: string | undefined) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   return useLinkedQuery(
     () =>
       fetchTimeEntries(globalSupabaseClient, {

@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Button, Card, DatePicker, Segmented, TextField, Txt, spacing } from '@chrono/ui';
 import type { TablesUpdate, TimeEntry } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
+import { fromISODate, toISODate } from '@/lib/date';
 
 export interface EditEntryFormProps {
   entry: Pick<TimeEntry, 'entry_date' | 'duration_minutes' | 'description' | 'billable'>;
@@ -18,7 +19,7 @@ const BILLABLE_OPTIONS = [
 
 /** Edit an existing pending time entry (project is fixed). */
 export function EditEntryForm({ entry, onSave, onDelete, isSaving = false }: EditEntryFormProps) {
-  const [date, setDate] = useState(new Date(`${entry.entry_date.slice(0, 10)}T00:00:00.000Z`));
+  const [date, setDate] = useState(fromISODate(entry.entry_date));
   const [hours, setHours] = useState(String(entry.duration_minutes / 60));
   const [description, setDescription] = useState(entry.description ?? '');
   const [billable, setBillable] = useState(entry.billable ? 'billable' : 'nonbillable');
@@ -31,7 +32,7 @@ export function EditEntryForm({ entry, onSave, onDelete, isSaving = false }: Edi
   const save = () => {
     if (durationMinutes <= 0) return;
     onSave({
-      entry_date: date.toISOString().slice(0, 10),
+      entry_date: toISODate(date),
       duration_minutes: durationMinutes,
       description: description.trim() || null,
       billable: billable === 'billable',
