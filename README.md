@@ -154,9 +154,10 @@ pnpm --filter @chrono/sdk build            # build the headless SDK
 cd backend/supabase && supabase start && supabase db reset   # migration + seed
 supabase gen types typescript --local > ../../packages/sdk/src/schema.ts
 
-# App — put the values from `supabase status` into apps/mobile/.env:
-#   EXPO_PUBLIC_SUPABASE_URL=...
-#   EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+# App — copy the template and fill in the values from `supabase status`:
+cp apps/mobile/.env.template apps/mobile/.env
+#   EXPO_PUBLIC_SUPABASE_URL=...        (http://127.0.0.1:54321 for local)
+#   EXPO_PUBLIC_SUPABASE_ANON_KEY=...   (the anon / public key)
 pnpm web        # or: pnpm ios · pnpm android
 ```
 
@@ -172,6 +173,40 @@ pnpm web        # or: pnpm ios · pnpm android
 | `pnpm build` | Turbo build all packages |
 | `pnpm db:reset` | Reset the local DB (migration + seed) |
 | `pnpm db:types` | Regenerate `schema.ts` from the local DB |
+
+---
+
+## 🌍 Environment variables
+
+The app reads a few `EXPO_PUBLIC_*` variables. **These are inlined into the JS
+bundle at _build_ time** (`expo export`), not read at runtime — so they must be
+present in whatever environment runs the build (your shell for local dev, the
+CI/host build settings for a deploy). No committed `.env`; `apps/mobile/.env` is
+gitignored and only `.env.template` ships.
+
+| Variable | Required | Purpose |
+|---|:---:|---|
+| `EXPO_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL — `https://<ref>.supabase.co` (or `http://127.0.0.1:54321` locally). |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase **anon / public** key (safe client-side; never the service-role key). |
+| `EXPO_PUBLIC_APP_URL` | ➖ | Public site URL (e.g. `https://chrono.drakkar.software`) used for auth email redirect links. |
+
+> ⚠️ **Blank screen on deploy?** If the two required vars are missing at build
+> time they compile to `undefined`, and the Supabase client throws
+> `supabaseUrl is required` at startup — the app crashes to a white screen before
+> rendering. Set the variables and rebuild.
+
+### Deploy (Cloudflare Workers)
+
+The web export is deployed as a static-assets Worker: `pnpm build:web` writes
+`apps/mobile/dist`, and `wrangler.jsonc` (repo root) serves it with
+single-page-application routing. To deploy:
+
+1. In the Cloudflare project → **Settings → Variables and Secrets**, add the
+   `EXPO_PUBLIC_*` variables above as **build-time** variables (runtime-only
+   secrets won't work — the values are baked in during `build:web`).
+2. Point `EXPO_PUBLIC_SUPABASE_URL` at a **hosted** Supabase project, not
+   `127.0.0.1`.
+3. Trigger a build — `pnpm install && pnpm build:web`, then `npx wrangler deploy`.
 
 ---
 
