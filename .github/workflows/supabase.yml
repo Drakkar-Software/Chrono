@@ -48,13 +48,13 @@ jobs:
           version: latest
 
       - name: Link to project
-        run: supabase --workdir backend/supabase link --project-ref $PROJECT_ID
+        run: supabase --workdir backend link --project-ref $PROJECT_ID
 
       # Log Local vs Remote migration versions so a "Remote database is up to
       # date" push is easy to interpret (all local versions already applied) vs
       # a workdir/detection problem (no local migrations listed).
       - name: List migrations (local vs remote)
-        run: supabase --workdir backend/supabase migration list
+        run: supabase --workdir backend migration list
 
       # Manual repair: clear phantom remote history rows so `db push` re-applies
       # every migration. Only runs on an explicit workflow_dispatch with the flag
@@ -65,11 +65,11 @@ jobs:
           for f in backend/supabase/migrations/*.sql; do
             version=$(basename "$f" | cut -d_ -f1)
             echo "Reverting remote history entry: $version"
-            supabase --workdir backend/supabase migration repair --status reverted "$version" || true
+            supabase --workdir backend migration repair --status reverted "$version" || true
           done
 
       - name: Push migrations
-        run: supabase --workdir backend/supabase db push
+        run: supabase --workdir backend db push
 
       - name: Migration state after push
-        run: supabase --workdir backend/supabase migration list
+        run: supabase --workdir backend migration list

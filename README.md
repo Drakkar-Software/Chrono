@@ -158,8 +158,8 @@ pnpm install
 pnpm --filter @chrono/sdk build            # build the headless SDK
 
 # Backend (needs the Supabase CLI + Docker)
-cd backend/supabase && supabase start && supabase db reset   # migration + seed
-supabase gen types typescript --local > ../../packages/sdk/src/schema.ts
+supabase --workdir backend start && supabase --workdir backend db reset   # migration + seed
+supabase --workdir backend gen types typescript --local > packages/sdk/src/schema.ts
 
 # App — copy the template and fill in the values from `supabase status`
 cp apps/mobile/.env.template apps/mobile/.env

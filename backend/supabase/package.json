@@ -2,18 +2,19 @@
   "name": "@chrono/supabase",
   "version": "1.0.0",
   "private": true,
+  "comment": "Scripts run from this dir (cwd = backend/supabase). Supabase reads its config at <workdir>/supabase/config.toml, and Chrono's lives at backend/supabase/config.toml, so the project dir is the PARENT — hence `--workdir ..`.",
   "scripts": {
-    "start": "supabase start",
-    "stop": "supabase stop",
-    "status": "supabase status",
-    "reset": "supabase db reset",
-    "reset:linked": "supabase db reset --linked",
-    "diff": "supabase db diff",
-    "diff:linked": "supabase db diff --linked",
-    "migrate": "supabase db diff --use-migra -s auth,extensions,public,storage -f",
-    "push": "supabase db push",
-    "test": "supabase test db",
-    "types": "supabase gen types typescript --local > ../../packages/sdk/src/schema.ts"
+    "start": "supabase --workdir .. start",
+    "stop": "supabase --workdir .. stop",
+    "status": "supabase --workdir .. status",
+    "reset": "supabase --workdir .. db reset",
+    "reset:linked": "supabase --workdir .. db reset --linked",
+    "diff": "supabase --workdir .. db diff",
+    "diff:linked": "supabase --workdir .. db diff --linked",
+    "migrate": "supabase --workdir .. db diff --use-migra -s auth,extensions,public,storage -f",
+    "push": "supabase --workdir .. db push",
+    "test": "supabase --workdir .. test db",
+    "types": "supabase --workdir .. gen types typescript --local > ../../packages/sdk/src/schema.ts"
   },
   "devDependencies": {
     "supabase": "2.109.1"
