@@ -18,7 +18,7 @@ import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { WeekGrid } from '@/components/time/WeekGrid';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
-import { ErrorState } from '@/components/common/ErrorState';
+import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 export default function TodayScreen() {
@@ -36,6 +36,7 @@ export default function TodayScreen() {
   const { data: lastWeekEntries } = useWeekEntries(userId, companyId ?? undefined, lastWeekStart);
   const { create, isPending } = useTimeEntryMutations();
   const [copying, setCopying] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   const projectOptions = useMemo(
     () => (projects ?? []).map((p) => ({ label: p.name, value: p.id })),
@@ -74,12 +75,21 @@ export default function TodayScreen() {
   const copyLastWeek = async () => {
     if (!userId || !companyId || !lastWeekEntries?.length) return;
     setCopying(true);
+    setCopyError(null);
+    // Keep going if one insert fails (offline/RLS) rather than aborting mid-copy
+    // and leaving a silent partial result; report how many didn't copy.
+    let failed = 0;
     try {
       const copies = buildCopiedEntries(lastWeekEntries, 7);
       for (const c of copies) {
-        await create({ ...c, user_id: userId, company_id: companyId } as TablesInsert<'time_entries'>);
+        try {
+          await create({ ...c, user_id: userId, company_id: companyId } as TablesInsert<'time_entries'>);
+        } catch {
+          failed += 1;
+        }
       }
       await refetch();
+      if (failed > 0) setCopyError(t('tabs.today.copyPartial', { n: failed }));
     } finally {
       setCopying(false);
     }
@@ -143,6 +153,7 @@ export default function TodayScreen() {
                 loading={copying}
                 fullWidth
               />
+              {copyError ? <InlineError message={copyError} /> : null}
             </View>
           ) : null}
         </View>

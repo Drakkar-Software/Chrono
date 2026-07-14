@@ -34,6 +34,7 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.today.noEntries': 'No entries yet',
     'tabs.today.noEntriesSubtitle': 'Log your first hours above.',
     'tabs.today.copyLastWeek': 'Copy last week ({n})',
+    'tabs.today.copyPartial': "Couldn't copy {n} of the entries. Try again.",
 
     // Projects
     'tabs.projects.loadError': "Couldn't load projects",
@@ -147,6 +148,7 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.today.noEntries': 'Aucune saisie',
     'tabs.today.noEntriesSubtitle': 'Saisissez vos premières heures ci-dessus.',
     'tabs.today.copyLastWeek': 'Copier la semaine dernière ({n})',
+    'tabs.today.copyPartial': 'Impossible de copier {n} saisie(s). Réessayez.',
 
     // Projects
     'tabs.projects.loadError': 'Impossible de charger les projets',

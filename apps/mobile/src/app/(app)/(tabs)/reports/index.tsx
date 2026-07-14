@@ -54,6 +54,9 @@ export default function ReportsScreen() {
   const range = useMemo(() => rangeBounds(preset, todayISO()), [preset]);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Id of the single entry currently being approved/rejected, so only that row
+  // shows a busy state — one action no longer locks the whole queue.
+  const [actingId, setActingId] = useState<string | null>(null);
 
   const {
     data: pending,
@@ -132,11 +135,30 @@ export default function ReportsScreen() {
   };
   const approveSelected = async () => {
     const ids = [...selected];
-    for (const id of ids) {
-      await approve.mutateAsync(id);
-    }
-    setSelected(new Set());
+    // Don't let one failure abort the rest — settle all, then keep any that
+    // failed selected so the manager can see and retry them.
+    const results = await Promise.allSettled(ids.map((id) => approve.mutateAsync(id)));
+    const failed = new Set(ids.filter((_, i) => results[i].status === 'rejected'));
+    setSelected(failed);
     await refetchPending();
+  };
+  const approveOne = async (id: string) => {
+    deselect(id);
+    setActingId(id);
+    try {
+      await approve.mutateAsync(id);
+    } finally {
+      setActingId(null);
+    }
+  };
+  const rejectOne = async (id: string, reason: string) => {
+    deselect(id);
+    setActingId(id);
+    try {
+      await reject.mutateAsync(id, reason);
+    } finally {
+      setActingId(null);
+    }
   };
   // Drop an id from the selection when it's resolved individually, so the
   // "Approve selected" count and select-all state stay honest.
@@ -224,15 +246,9 @@ export default function ReportsScreen() {
                   selectable
                   selected={selected.has(entry.id)}
                   onToggleSelect={() => toggleSelect(entry.id)}
-                  onApprove={() => {
-                    deselect(entry.id);
-                    approve.mutate(entry.id);
-                  }}
-                  onReject={(reason) => {
-                    deselect(entry.id);
-                    reject.mutate(entry.id, reason);
-                  }}
-                  isBusy={busy}
+                  onApprove={() => void approveOne(entry.id)}
+                  onReject={(reason) => void rejectOne(entry.id, reason)}
+                  isBusy={actingId === entry.id}
                 />
               ))}
             </CardGrid>

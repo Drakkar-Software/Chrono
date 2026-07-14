@@ -217,12 +217,15 @@ export default function ProjectDetail() {
           action={manager && panel !== 'member' ? () => setPanel('member') : undefined}
         >
           {panel === 'member' ? (
-            <AddProjectMemberForm
-              candidates={memberCandidates}
-              onAdd={addMember}
-              onCancel={() => setPanel('none')}
-              isSubmitting={memberMut.isPending}
-            />
+            <>
+              <AddProjectMemberForm
+                candidates={memberCandidates}
+                onAdd={addMember}
+                onCancel={() => setPanel('none')}
+                isSubmitting={memberMut.isPending}
+              />
+              {memberMut.error ? <InlineError error={memberMut.error} /> : null}
+            </>
           ) : null}
           {(members ?? []).map((member) => (
             <ProjectMemberRow
@@ -231,6 +234,8 @@ export default function ProjectDetail() {
               project={project}
               currency={currency}
               showRate={manager || member.user_id === user?.id}
+              onRemove={manager ? () => void memberMut.remove(member.id) : undefined}
+              removing={memberMut.isPending}
             />
           ))}
           {(members ?? []).length === 0 && panel !== 'member' ? (
@@ -247,14 +252,23 @@ export default function ProjectDetail() {
             action={panel !== 'source' ? () => setPanel('source') : undefined}
           >
             {panel === 'source' ? (
-              <AddRevenueSourceForm
-                onAdd={addSource}
-                onCancel={() => setPanel('none')}
-                isSubmitting={sourceMut.isPending}
-              />
+              <>
+                <AddRevenueSourceForm
+                  onAdd={addSource}
+                  onCancel={() => setPanel('none')}
+                  isSubmitting={sourceMut.isPending}
+                />
+                {sourceMut.error ? <InlineError error={sourceMut.error} /> : null}
+              </>
             ) : null}
             {(sources ?? []).map((source) => (
-              <RevenueSourceRow key={source.id} source={source} currency={currency} />
+              <RevenueSourceRow
+                key={source.id}
+                source={source}
+                currency={currency}
+                onRemove={() => void sourceMut.deactivate(source.id)}
+                removing={sourceMut.isPending}
+              />
             ))}
             {(sources ?? []).length === 0 && panel !== 'source' ? (
               <Txt variant="body" tone="textMuted">
@@ -270,16 +284,24 @@ export default function ProjectDetail() {
             action={admin && panel !== 'referrer' ? () => setPanel('referrer') : undefined}
           >
             {panel === 'referrer' ? (
-              <AddReferrerForm
-                candidates={referrerCandidates}
-                remainingPct={remainingPct}
-                onAdd={addReferrer}
-                onCancel={() => setPanel('none')}
-                isSubmitting={referralMut.isPending}
-              />
+              <>
+                <AddReferrerForm
+                  candidates={referrerCandidates}
+                  remainingPct={remainingPct}
+                  onAdd={addReferrer}
+                  onCancel={() => setPanel('none')}
+                  isSubmitting={referralMut.isPending}
+                />
+                {referralMut.error ? <InlineError error={referralMut.error} /> : null}
+              </>
             ) : null}
             {(referrals ?? []).map((referral) => (
-              <ReferrerRow key={referral.id} referral={referral} />
+              <ReferrerRow
+                key={referral.id}
+                referral={referral}
+                onRemove={admin ? () => void referralMut.remove(referral.id) : undefined}
+                removing={referralMut.isPending}
+              />
             ))}
             {(referrals ?? []).length === 0 && panel !== 'referrer' ? (
               <Txt variant="body" tone="textMuted">
