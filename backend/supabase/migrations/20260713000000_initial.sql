@@ -35,6 +35,7 @@ create type public.invoice_status as enum ('draft', 'submitted', 'partially_paid
 create or replace function public.update_updated_at_column()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -87,6 +88,24 @@ as $$
   );
 $$;
 
+-- Does the caller share at least one company with the given user? SECURITY
+-- DEFINER so it can consult company_members without recursing through RLS.
+create or replace function public.shares_company_with(target uuid)
+returns boolean
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select exists (
+    select 1
+    from public.company_members me
+    join public.company_members them on them.company_id = me.company_id
+    where me.user_id = (select auth.uid())
+      and them.user_id = target
+  );
+$$;
+
 -- ----------------------------------------------------------------------------
 -- Start Profiles
 -- ----------------------------------------------------------------------------
@@ -103,8 +122,14 @@ create table public.profiles (
 
 alter table public.profiles enable row level security;
 
-create policy "profiles are readable by authenticated users"
-  on public.profiles for select to authenticated using (true);
+-- Readable to self and to anyone who shares a company (member lists, invoice /
+-- referral author names). NOT world-readable — profiles.content may hold PII.
+create policy "profiles readable to self and company peers"
+  on public.profiles for select to authenticated
+  using (
+    user_id = (select auth.uid())
+    or public.shares_company_with(user_id)
+  );
 
 create policy "users insert their own profile"
   on public.profiles for insert to authenticated
@@ -204,14 +229,24 @@ create policy "members read the roster of their companies"
   on public.company_members for select to authenticated
   using (public.is_company_member(company_id));
 
-create policy "managers add members"
+create policy "managers add members, only admins add admins"
   on public.company_members for insert to authenticated
-  with check (public.is_company_manager(company_id));
+  with check (
+    public.is_company_manager(company_id)
+    and (role <> 'admin' or public.is_company_admin(company_id))
+  );
 
 create policy "managers update members"
   on public.company_members for update to authenticated
   using (public.is_company_manager(company_id))
   with check (public.is_company_manager(company_id));
+
+-- Self-service join: a user may add themselves to a company as a plain
+-- freelancer (via a shared company id / join code). They cannot self-assign a
+-- privileged role — that still requires a manager/admin.
+create policy "users self-join as freelancer"
+  on public.company_members for insert to authenticated
+  with check (user_id = (select auth.uid()) and role = 'freelancer');
 
 create policy "managers remove members"
   on public.company_members for delete to authenticated
@@ -245,26 +280,43 @@ create trigger on_company_created
   after insert on public.companies
   for each row execute function public.handle_new_company();
 
--- A non-admin may not raise their own role (RLS WITH CHECK can't compare OLD/NEW).
-create or replace function public.prevent_role_self_escalation()
+-- Guard the admin tier (RLS WITH CHECK can't compare OLD/NEW). A non-admin may
+-- not: (a) raise their own role, or (b) grant / revoke / alter the admin role on
+-- anyone. The sole exception is the very first member of a brand-new company —
+-- the creator-bootstrap performed by handle_new_company().
+create or replace function public.enforce_role_change_rules()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
 begin
-  if new.role is distinct from old.role
+  -- (b) admin-tier changes require an existing admin (except the bootstrap row).
+  if (new.role = 'admin'
+      or (tg_op = 'UPDATE' and old.role = 'admin' and new.role is distinct from old.role))
+     and not public.is_company_admin(new.company_id)
+     and exists (
+       select 1 from public.company_members cm
+       where cm.company_id = new.company_id and cm.id is distinct from new.id
+     ) then
+    raise exception 'Only an admin can grant or change the admin role';
+  end if;
+
+  -- (a) no self-escalation.
+  if tg_op = 'UPDATE'
+     and new.role is distinct from old.role
      and new.user_id = (select auth.uid())
      and not public.is_company_admin(new.company_id) then
     raise exception 'Only an admin can change your role';
   end if;
+
   return new;
 end;
 $$;
 
-create trigger enforce_no_role_self_escalation
-  before update on public.company_members
-  for each row execute function public.prevent_role_self_escalation();
+create trigger enforce_role_change_rules_trigger
+  before insert or update on public.company_members
+  for each row execute function public.enforce_role_change_rules();
 -- End Company Members
 
 -- ----------------------------------------------------------------------------
@@ -435,6 +487,7 @@ create policy "assigned freelancers log time"
     user_id = (select auth.uid())
     and status = 'pending'
     and public.is_project_member(project_id)
+    and company_id = public.project_company_id(project_id)
   );
 
 -- Owner edits only while pending and not yet invoiced.
@@ -530,7 +583,10 @@ create policy "members read revenue sources"
 create policy "managers write revenue sources"
   on public.revenue_sources for all to authenticated
   using (public.is_company_manager(company_id))
-  with check (public.is_company_manager(company_id));
+  with check (
+    public.is_company_manager(company_id)
+    and company_id = public.project_company_id(project_id)
+  );
 
 create index revenue_sources_project_idx on public.revenue_sources (project_id);
 
@@ -567,7 +623,10 @@ create policy "members read revenue entries"
 create policy "managers write revenue entries"
   on public.revenue_entries for all to authenticated
   using (public.is_company_manager(company_id))
-  with check (public.is_company_manager(company_id));
+  with check (
+    public.is_company_manager(company_id)
+    and company_id = public.project_company_id(project_id)
+  );
 
 create index revenue_entries_project_month_idx on public.revenue_entries (project_id, period_month);
 
@@ -602,7 +661,10 @@ create policy "members read referrals"
 create policy "managers write referrals"
   on public.project_referrals for all to authenticated
   using (public.is_company_manager(company_id))
-  with check (public.is_company_manager(company_id));
+  with check (
+    public.is_company_manager(company_id)
+    and company_id = public.project_company_id(project_id)
+  );
 
 create index project_referrals_project_idx on public.project_referrals (project_id);
 create index project_referrals_user_idx on public.project_referrals (user_id);
@@ -666,10 +728,16 @@ create policy "referrer and managers read referral earnings"
     or public.is_company_manager(company_id)
   );
 
-create policy "managers write referral earnings"
+-- referral_earnings is a system-generated ledger written by settle_project_month
+-- (SECURITY DEFINER, bypasses RLS as owner). Direct writes are admin-only so a
+-- manager cannot fabricate a payout to themselves.
+create policy "admins write referral earnings"
   on public.referral_earnings for all to authenticated
-  using (public.is_company_manager(company_id))
-  with check (public.is_company_manager(company_id));
+  using (public.is_company_admin(company_id))
+  with check (
+    public.is_company_admin(company_id)
+    and company_id = public.project_company_id(project_id)
+  );
 
 create index referral_earnings_project_month_idx on public.referral_earnings (project_id, period_month);
 create index referral_earnings_referrer_month_idx on public.referral_earnings (referrer_id, period_month);
@@ -716,17 +784,22 @@ create policy "freelancer and managers read invoices"
     or public.is_company_manager(company_id)
   );
 
--- Freelancer builds & submits their own draft.
+-- Freelancer builds & submits their own draft, only on a project they belong to
+-- and whose company matches. Money columns are (re)computed server-side by the
+-- enforce_invoice_integrity trigger below — client-supplied amounts are ignored.
 create policy "freelancers create their draft invoices"
   on public.invoices for insert to authenticated
   with check (
-    freelancer_id = (select auth.uid()) and status = 'draft'
+    freelancer_id = (select auth.uid())
+    and status = 'draft'
+    and company_id = public.project_company_id(project_id)
+    and public.is_project_member(project_id)
   );
 
 create policy "freelancers edit their draft invoices"
   on public.invoices for update to authenticated
   using (freelancer_id = (select auth.uid()) and status in ('draft', 'submitted'))
-  with check (freelancer_id = (select auth.uid()));
+  with check (freelancer_id = (select auth.uid()) and status in ('draft', 'submitted'));
 
 -- Managers settle (pay) invoices.
 create policy "managers update invoices"
@@ -748,6 +821,82 @@ create index invoices_freelancer_idx on public.invoices (freelancer_id);
 create trigger set_invoices_updated_at
   before update on public.invoices
   for each row execute function public.update_updated_at_column();
+
+-- Invoice money integrity: freelancers must never be trusted to set their own
+-- payable amounts. For any non-manager writer, recompute worked_minutes /
+-- earned_cents / tjm / hours_per_day / credit_brought_forward from the actual
+-- approved billable time entries and stored rates, and force the settlement
+-- outputs to their zero/null defaults. Managers (including the SECURITY DEFINER
+-- settle_project_month RPC, which runs with the manager's auth.uid()) pass through
+-- so settlement can write the paid/carried columns.
+create or replace function public.enforce_invoice_integrity()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_hpd numeric;
+  v_tjm integer;
+  v_minutes integer;
+  v_credit bigint;
+begin
+  if public.is_company_manager(new.company_id) then
+    return new;
+  end if;
+
+  if new.freelancer_id <> (select auth.uid()) then
+    raise exception 'Cannot write an invoice for another user';
+  end if;
+  if new.status not in ('draft', 'submitted') then
+    raise exception 'Freelancers may only draft or submit invoices';
+  end if;
+  if public.project_company_id(new.project_id) is distinct from new.company_id
+     or not public.is_project_member(new.project_id) then
+    raise exception 'Invalid project for this invoice';
+  end if;
+
+  select p.hours_per_day, coalesce(pm.tjm_cents, p.default_tjm_cents, 0)
+    into v_hpd, v_tjm
+  from public.projects p
+  left join public.project_members pm
+    on pm.project_id = p.id and pm.user_id = new.freelancer_id
+  where p.id = new.project_id;
+
+  select coalesce(sum(duration_minutes), 0) into v_minutes
+  from public.time_entries
+  where project_id = new.project_id
+    and user_id = new.freelancer_id
+    and status = 'approved' and billable = true and deleted = false
+    and date_trunc('month', entry_date)::date = date_trunc('month', new.period_month)::date;
+
+  select coalesce(credit_carried_forward_cents, 0) into v_credit
+  from public.invoices
+  where project_id = new.project_id
+    and freelancer_id = new.freelancer_id
+    and settled_at is not null
+    and id is distinct from new.id
+  order by period_month desc
+  limit 1;
+
+  new.tjm_cents := v_tjm;
+  new.hours_per_day := v_hpd;
+  new.worked_minutes := v_minutes;
+  new.earned_cents := round(v_minutes::numeric / (v_hpd * 60) * v_tjm);
+  new.credit_brought_forward_cents := coalesce(v_credit, 0);
+  new.amount_due_cents := new.earned_cents + new.credit_brought_forward_cents;
+  -- Freelancers never write settlement outputs.
+  new.amount_paid_cents := 0;
+  new.credit_carried_forward_cents := 0;
+  new.funding_snapshot_cents := null;
+  new.settled_at := null;
+  return new;
+end;
+$$;
+
+create trigger enforce_invoice_integrity_trigger
+  before insert or update on public.invoices
+  for each row execute function public.enforce_invoice_integrity();
 
 -- Now that invoices exists, wire the time_entries FK.
 alter table public.time_entries
@@ -795,6 +944,7 @@ begin
   for v_src in
     select * from public.revenue_sources
     where project_id = p_project_id
+      and company_id = v_company_id
       and active = true
       and deleted = false
       and (starts_on is null or starts_on <= (v_period + interval '1 month - 1 day')::date)
@@ -807,6 +957,7 @@ begin
       select coalesce(sum(duration_minutes), 0) into v_billable_minutes
       from public.time_entries
       where project_id = p_project_id
+        and company_id = v_company_id
         and billable = true
         and status = 'approved'
         and deleted = false
@@ -873,11 +1024,13 @@ begin
   -- (2) referrals: first claim, always fully funded (a fraction of this month's revenue)
   select coalesce(sum(amount_cents), 0) into v_month_revenue
   from public.revenue_entries
-  where project_id = p_project_id and period_month = v_period and deleted = false;
+  where project_id = p_project_id and company_id = v_company_id
+    and period_month = v_period and deleted = false;
 
   for v_ref in
     select * from public.project_referrals
     where project_id = p_project_id
+      and company_id = v_company_id
       and deleted = false
       and (starts_on is null or starts_on <= (v_period + interval '1 month - 1 day')::date)
       and (ends_on is null or ends_on >= v_period)
@@ -895,18 +1048,24 @@ begin
                     updated_at = now();
   end loop;
 
-  -- (3) available funding = cumulative revenue - cumulative referral - already-paid invoices (prior months)
+  -- (3) available funding = cumulative revenue - cumulative referral - payments
+  -- already made for ANY other month. Using `period_month <> v_period` (not
+  -- `< v_period`) makes settlement order-independent: settling months out of
+  -- order can no longer double-spend the same recognized revenue.
   select coalesce(sum(amount_cents), 0) into v_cumulative_revenue
   from public.revenue_entries
-  where project_id = p_project_id and period_month <= v_period and deleted = false;
+  where project_id = p_project_id and company_id = v_company_id
+    and period_month <= v_period and deleted = false;
 
   select coalesce(sum(amount_cents), 0) into v_cumulative_referral
   from public.referral_earnings
-  where project_id = p_project_id and period_month <= v_period and deleted = false;
+  where project_id = p_project_id and company_id = v_company_id
+    and period_month <= v_period and deleted = false;
 
   select coalesce(sum(amount_paid_cents), 0) into v_prior_paid
   from public.invoices
-  where project_id = p_project_id and period_month < v_period and deleted = false;
+  where project_id = p_project_id and company_id = v_company_id
+    and period_month <> v_period and deleted = false;
 
   v_available := v_cumulative_revenue - v_cumulative_referral - v_prior_paid;
   if v_available < 0 then
@@ -917,6 +1076,7 @@ begin
   for v_inv in
     select * from public.invoices
     where project_id = p_project_id
+      and company_id = v_company_id
       and period_month = v_period
       and status = 'submitted'
       and deleted = false
