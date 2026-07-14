@@ -16,7 +16,8 @@ type Mode = 'create' | 'join';
 /**
  * First-run setup: capture the user's name and either create their first
  * company (the DB trigger makes the creator an admin member) or join an
- * existing one with its join code (id), landing them in as a freelancer.
+ * existing one by redeeming an invite token (or a pasted invite link), which
+ * lands them in at the role the invite was issued for.
  */
 export default function RoleSetup() {
   const t = useT();
