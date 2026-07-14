@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { Button, Card, TextField, Txt, spacing } from '@chrono/ui';
+import { TextField, TitledCard } from '@chrono/ui';
 import { DEFAULT_HOURS_PER_DAY } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
+import { FormActions } from '@/components/common/FormActions';
+import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
 
 export interface NewProjectValues {
@@ -68,8 +69,7 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
   };
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">{t('comp.project.newTitle')}</Txt>
+    <TitledCard title={t('comp.project.newTitle')}>
       <TextField label={t('comp.field.name')} value={name} onChangeText={setName} placeholder={t('comp.project.namePlaceholder')} />
       <TextField label={t('comp.project.client')} value={clientName} onChangeText={setClientName} placeholder={t('comp.project.clientPlaceholder')} />
       <TextField
@@ -101,17 +101,13 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
         onChangeText={setHoursPerDay}
         keyboardType="decimal-pad"
       />
-      {error ? (
-        <Txt variant="caption" tone="danger">
-          {error}
-        </Txt>
-      ) : null}
-      <Button title={t('comp.project.createBtn')} onPress={submit} loading={isSubmitting} fullWidth />
-      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
-    </Card>
+      <InlineError message={error ?? ''} />
+      <FormActions
+        submitLabel={t('comp.project.createBtn')}
+        onSubmit={submit}
+        busy={isSubmitting}
+        onCancel={onCancel}
+      />
+    </TitledCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-});

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
-import { Button, EmptyState, Segmented, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
+import { Button, CardGrid, EmptyState, Segmented, StackScreen, Txt, spacing } from '@chrono/ui';
 import { canManage, companyCurrency } from '@chrono/sdk';
 import type { InvoiceWithRelations, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
@@ -47,7 +47,6 @@ function groupByProject<T extends { project_id: string }>(rows: T[]): Map<string
 export default function ReportsScreen() {
   const t = useT();
   const router = useRouter();
-  const { isWide } = useResponsive();
   const { companyId, company, role } = useActiveCompany();
   const currency = companyCurrency(company);
 
@@ -116,7 +115,6 @@ export default function ReportsScreen() {
   const projectList = projects ?? [];
   const breakdownLoading =
     (loadingApproved && approvedEntries == null) || (loadingMembers && members == null);
-  const cellStyle = [styles.cell, isWide ? styles.cellWide : styles.cellFull];
 
   const busy = approve.isPending || reject.isPending;
   const allSelected = pendingList.length > 0 && selected.size === pendingList.length;
@@ -218,27 +216,26 @@ export default function ReportsScreen() {
           ) : pendingList.length === 0 ? (
             <EmptyState icon="checkmark-done-outline" title={t('tabs.reports.allCaughtUp')} subtitle={t('tabs.reports.allCaughtUpSubtitle')} />
           ) : (
-            <View style={styles.grid}>
+            <CardGrid minColumnWidth={280}>
               {pendingList.map((entry) => (
-                <View key={entry.id} style={cellStyle}>
-                  <ApprovalRow
-                    entry={entry}
-                    selectable
-                    selected={selected.has(entry.id)}
-                    onToggleSelect={() => toggleSelect(entry.id)}
-                    onApprove={() => {
-                      deselect(entry.id);
-                      approve.mutate(entry.id);
-                    }}
-                    onReject={(reason) => {
-                      deselect(entry.id);
-                      reject.mutate(entry.id, reason);
-                    }}
-                    isBusy={busy}
-                  />
-                </View>
+                <ApprovalRow
+                  key={entry.id}
+                  entry={entry}
+                  selectable
+                  selected={selected.has(entry.id)}
+                  onToggleSelect={() => toggleSelect(entry.id)}
+                  onApprove={() => {
+                    deselect(entry.id);
+                    approve.mutate(entry.id);
+                  }}
+                  onReject={(reason) => {
+                    deselect(entry.id);
+                    reject.mutate(entry.id, reason);
+                  }}
+                  isBusy={busy}
+                />
               ))}
-            </View>
+            </CardGrid>
           )}
         </View>
 
@@ -279,19 +276,18 @@ export default function ReportsScreen() {
           ) : projectList.length === 0 ? (
             <EmptyState icon="bar-chart-outline" title={t('tabs.projects.empty')} subtitle={t('tabs.reports.projectsEmptySubtitle')} />
           ) : (
-            <View style={styles.grid}>
+            <CardGrid minColumnWidth={280}>
               {projectList.map((project) => (
-                <View key={project.id} style={cellStyle}>
-                  <ProjectPnLCard
-                    project={project}
-                    currency={currency}
-                    revenueEntries={revenueByProject.get(project.id) ?? []}
-                    referralEarnings={referralsByProject.get(project.id) ?? []}
-                    invoices={invoicesByProject.get(project.id) ?? []}
-                  />
-                </View>
+                <ProjectPnLCard
+                  key={project.id}
+                  project={project}
+                  currency={currency}
+                  revenueEntries={revenueByProject.get(project.id) ?? []}
+                  referralEarnings={referralsByProject.get(project.id) ?? []}
+                  invoices={invoicesByProject.get(project.id) ?? []}
+                />
               ))}
-            </View>
+            </CardGrid>
           )}
         </View>
       </View>
@@ -304,8 +300,4 @@ const styles = StyleSheet.create({
   section: { gap: spacing.md },
   bulkActions: { flexDirection: 'row', gap: spacing.sm, flexShrink: 1, flexWrap: 'wrap', justifyContent: 'flex-end' },
   exportRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  cell: { flexGrow: 1 },
-  cellWide: { flexBasis: '48%', minWidth: 280 },
-  cellFull: { flexBasis: '100%' },
 });

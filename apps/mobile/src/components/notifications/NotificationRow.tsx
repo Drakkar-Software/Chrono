@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { Txt, borders, opacity, radii, spacing, useTheme } from '@chrono/ui';
+import { IconBadge, IconButton, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 import { notificationIcon, notificationTone } from '@chrono/sdk';
 import type { Notification } from '@chrono/sdk';
 
@@ -23,7 +23,6 @@ export function NotificationRow({
   const { colors } = useTheme();
   const unread = notification.read_at == null;
   const tone = notificationTone(notification.type);
-  const toneColor = colors[tone];
 
   return (
     <Pressable
@@ -37,9 +36,11 @@ export function NotificationRow({
         },
       ]}
     >
-      <View style={[styles.iconWrap, { backgroundColor: colors.fill }]}>
-        <Ionicons name={notificationIcon(notification.type) as IoniconName} size={18} color={toneColor} />
-      </View>
+      <IconBadge
+        name={notificationIcon(notification.type) as IoniconName}
+        tone={tone}
+        background="fill"
+      />
       <View style={styles.body}>
         <Txt variant="bodyMedium" numberOfLines={1}>
           {notification.title}
@@ -54,15 +55,13 @@ export function NotificationRow({
         </Txt>
       </View>
       {unread ? <View style={[styles.dot, { backgroundColor: colors.accent }]} /> : null}
-      <Pressable
+      <IconButton
+        name="close"
+        tone="textFaint"
+        size={18}
         onPress={onDismiss}
-        accessibilityRole="button"
         accessibilityLabel={t('compb.notif.dismiss')}
-        hitSlop={8}
-        style={({ pressed }) => [styles.dismiss, { opacity: pressed ? opacity.muted : 1 }]}
-      >
-        <Ionicons name="close" size={16} color={colors.textFaint} />
-      </Pressable>
+      />
     </Pressable>
   );
 }
@@ -76,14 +75,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     borderWidth: borders.thin,
   },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   body: { flex: 1, gap: 2 },
   dot: { width: 8, height: 8, borderRadius: radii.pill },
-  dismiss: { padding: spacing.xs },
 });

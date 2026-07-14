@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { Button, Card, Picker, Txt, spacing } from '@chrono/ui';
+import { Picker, TitledCard } from '@chrono/ui';
 import { effectiveTjm } from '@chrono/sdk';
 import type { Project } from '@chrono/sdk';
 import { useProjectMembers } from '@/lib/hooks/use-project-members';
 import { FieldRow } from '@/components/common/FieldRow';
+import { FormActions } from '@/components/common/FormActions';
 import { useT } from '@/lib/i18n';
 
 export interface GenerateInvoiceParams {
@@ -63,8 +63,7 @@ export function GenerateInvoiceForm({
   };
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">{t('comp.invoice.generate')}</Txt>
+    <TitledCard title={t('comp.invoice.generate')}>
       <FieldRow>
         <Picker
           label={t('comp.field.project')}
@@ -75,18 +74,13 @@ export function GenerateInvoiceForm({
         />
         <Picker label={t('comp.invoice.month')} value={month} onValueChange={setMonth} options={months} />
       </FieldRow>
-      <Button
-        title={t('comp.invoice.generateSubmit')}
-        onPress={submit}
-        loading={isSubmitting}
-        disabled={projects.length === 0}
-        fullWidth
+      <FormActions
+        submitLabel={t('comp.invoice.generateSubmit')}
+        onSubmit={submit}
+        busy={isSubmitting}
+        submitDisabled={projects.length === 0}
+        onCancel={onCancel}
       />
-      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
-    </Card>
+    </TitledCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-});

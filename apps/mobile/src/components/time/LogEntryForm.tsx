@@ -1,18 +1,18 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
-  Button,
-  Card,
   DatePicker,
   Picker,
   Segmented,
   TextField,
-  Txt,
+  TitledCard,
   spacing,
 } from '@chrono/ui';
 import type { PickerOption } from '@chrono/ui';
 import { parseTags } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
+import { FormActions } from '@/components/common/FormActions';
+import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
 
 export interface LogEntryValues {
@@ -80,8 +80,7 @@ export function LogEntryForm({
   };
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">{t('comp.time.logTime')}</Txt>
+    <TitledCard title={t('comp.time.logTime')}>
       <Picker
         label={t('comp.field.project')}
         value={projectId}
@@ -116,23 +115,17 @@ export function LogEntryForm({
       <View style={styles.segment}>
         <Segmented options={billableOptions} value={billable} onValueChange={setBillable} />
       </View>
-      {error ? (
-        <Txt variant="caption" tone="danger">
-          {error}
-        </Txt>
-      ) : null}
-      <Button
-        title={t('comp.time.addEntry')}
-        onPress={submit}
-        loading={isSubmitting}
-        disabled={projectOptions.length === 0}
-        fullWidth
+      <InlineError message={error} />
+      <FormActions
+        submitLabel={t('comp.time.addEntry')}
+        onSubmit={submit}
+        busy={isSubmitting}
+        submitDisabled={projectOptions.length === 0}
       />
-    </Card>
+    </TitledCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.md },
   segment: { marginTop: spacing.xs },
 });

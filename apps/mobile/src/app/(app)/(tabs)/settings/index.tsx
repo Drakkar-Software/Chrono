@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, EmptyState, Picker, Row, StackScreen, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
+import { Button, EmptyState, Picker, Row, StackScreen, TextField, TitledCard, Txt, spacing, useResponsive } from '@chrono/ui';
 import { canManage, companyName } from '@chrono/sdk';
 import type { AppRole } from '@chrono/sdk';
 
@@ -84,8 +84,7 @@ export default function SettingsScreen() {
       <View style={styles.wrap}>
         <View style={[styles.grid, isWide && styles.gridRow]}>
           <View style={topColStyle}>
-            <Card padding="lg" style={styles.card}>
-              <Txt variant="heading">{t('tabs.settings.profile')}</Txt>
+            <TitledCard title={t('tabs.settings.profile')}>
               <AvatarUpload
                 imageUrl={profile?.avatar_url}
                 name={name || profile?.full_name}
@@ -117,12 +116,11 @@ export default function SettingsScreen() {
                 {t('tabs.settings.invoiceInfo')}
               </Txt>
               <Button title={t('common.save')} onPress={saveName} loading={savingProfile || savingBilling} disabled={!name.trim()} fullWidth={!isWide} />
-            </Card>
+            </TitledCard>
           </View>
 
           <View style={topColStyle}>
-            <Card padding="lg" style={styles.card}>
-              <Txt variant="heading">{t('tabs.settings.appearance')}</Txt>
+            <TitledCard title={t('tabs.settings.appearance')}>
               <ThemeToggle />
               <Txt variant="caption" tone="textMuted">
                 {t('tabs.settings.appearanceHint')}
@@ -131,13 +129,12 @@ export default function SettingsScreen() {
               <Txt variant="caption" tone="textMuted">
                 {t('tabs.settings.languageHint')}
               </Txt>
-            </Card>
+            </TitledCard>
           </View>
         </View>
 
         {hasCompanies ? (
-          <Card padding="lg" style={styles.card}>
-            <Txt variant="heading">{t('tabs.settings.activeCompany')}</Txt>
+          <TitledCard title={t('tabs.settings.activeCompany')}>
             <Picker
               value={companyId ?? ''}
               onValueChange={setCompanyId}
@@ -146,37 +143,33 @@ export default function SettingsScreen() {
             <Txt variant="caption" tone="textMuted">
               {t('tabs.settings.activeCompanyHint')}
             </Txt>
-          </Card>
+          </TitledCard>
         ) : null}
 
         {company ? (
-          <Card padding="lg" style={styles.card}>
-            <Txt variant="heading">{t('tabs.settings.company')}</Txt>
+          <TitledCard title={t('tabs.settings.company')}>
             {isAdmin ? (
               <EditCompanyForm company={company} onSaved={refresh} />
             ) : (
               <Row label={t('tabs.settings.name')} value={companyName(company)} />
             )}
-          </Card>
+          </TitledCard>
         ) : null}
 
         {manager && company && user?.id ? (
-          <Card padding="lg" style={styles.card}>
-            <Txt variant="heading">{t('tabs.settings.inviteTeammates')}</Txt>
+          <TitledCard title={t('tabs.settings.inviteTeammates')}>
             <InvitesCard companyId={company.id} invitedBy={user.id} canGrantElevated={isAdmin} />
-          </Card>
+          </TitledCard>
         ) : null}
 
-        <Card padding="lg" style={styles.card}>
-          <Txt variant="heading">{t('tabs.settings.joinCompany')}</Txt>
+        <TitledCard title={t('tabs.settings.joinCompany')}>
           <JoinCompanyForm userId={user?.id} onJoined={onJoined} />
           <Txt variant="caption" tone="textMuted">
             {t('tabs.settings.joinCompanyHint')}
           </Txt>
-        </Card>
+        </TitledCard>
 
-        <Card padding="lg" style={styles.card}>
-          <Txt variant="heading">{t('tabs.settings.members')}</Txt>
+        <TitledCard title={t('tabs.settings.members')}>
           {loadingMembers && members == null ? (
             <ScreenLoader fill={false} />
           ) : (members ?? []).length === 0 ? (
@@ -198,7 +191,7 @@ export default function SettingsScreen() {
             ))
           )}
           {roleError ? <InlineError error={roleError} describe={{ fallback: t('tabs.settings.roleChangeFailed') }} /> : null}
-        </Card>
+        </TitledCard>
 
         <Button title={t('common.signOut')} variant="danger" onPress={() => signOut()} fullWidth={!isWide} />
       </View>
@@ -212,5 +205,4 @@ const styles = StyleSheet.create({
   gridRow: { flexDirection: 'row', alignItems: 'flex-start' },
   colWide: { flex: 1 },
   colFull: { width: '100%' },
-  card: { gap: spacing.md },
 });

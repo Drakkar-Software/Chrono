@@ -1,7 +1,6 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
+import { IconButton, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 
 import { useT } from '@/lib/i18n';
 
@@ -13,16 +12,12 @@ export function NotificationBell({ unread }: { unread: number }) {
   const showBadge = unread > 0;
 
   return (
-    <Pressable
-      onPress={() => router.push('/notifications')}
-      accessibilityRole="button"
-      accessibilityLabel={showBadge ? t('compb.notif.bellUnread', { n: unread }) : t('compb.notif.bell')}
-      style={({ pressed }) => [
-        styles.base,
-        { backgroundColor: pressed ? colors.pressed : 'transparent' },
-      ]}
-    >
-      <Ionicons name="notifications-outline" size={22} color={colors.text} />
+    <View style={styles.wrap}>
+      <IconButton
+        name="notifications-outline"
+        onPress={() => router.push('/notifications')}
+        accessibilityLabel={showBadge ? t('compb.notif.bellUnread', { n: unread }) : t('compb.notif.bell')}
+      />
       {showBadge ? (
         <View style={[styles.badge, { backgroundColor: colors.danger, borderColor: colors.surface }]}>
           <Txt variant="micro" color={colors.onOverlay} numberOfLines={1}>
@@ -30,18 +25,12 @@ export function NotificationBell({ unread }: { unread: number }) {
           </Txt>
         </View>
       ) : null}
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  wrap: { position: 'relative' },
   badge: {
     position: 'absolute',
     top: spacing.xs,

@@ -2,10 +2,12 @@ import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
+  BrandMark,
   Button,
   Txt,
   useResponsive,
   useTheme,
+  borders,
   radii,
   shadows,
   spacing,
@@ -81,8 +83,8 @@ export default function Landing() {
           }),
         ]}
       >
-        <View style={[styles.brandMark, { backgroundColor: colors.accent, ...shadows.lg }]}>
-          <Ionicons name="stopwatch-outline" size={isWide ? 46 : 38} color={colors.accentText} />
+        <View style={styles.brandMark}>
+          <BrandMark size={88} />
         </View>
 
         <Txt variant={isWide ? 'displayXl' : 'displayLg'} center>
@@ -246,14 +248,7 @@ const styles = StyleSheet.create({
   page: { flexGrow: 1 },
 
   hero: { alignItems: 'center', gap: spacing.md },
-  brandMark: {
-    width: 88,
-    height: 88,
-    borderRadius: radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-  },
+  brandMark: { marginBottom: spacing.lg },
   tagline: { marginTop: spacing.sm, textAlign: 'center' },
   blurb: { marginTop: spacing.sm, maxWidth: 560, textAlign: 'center' },
   ctaRow: {
@@ -289,13 +284,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.md,
   },
-  featureCard: { flexGrow: 1, padding: spacing.xl, borderWidth: 1, minWidth: 240 },
+  featureCard: { flexGrow: 1, padding: spacing.xl, borderWidth: borders.thin, minWidth: 240 },
   featureIcon: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: borders.thin,
     marginBottom: spacing.md,
   },
   featureTitle: { marginBottom: spacing.xs },
@@ -313,7 +308,7 @@ const styles = StyleSheet.create({
   stepTitle: {},
 
   ctaSection: { paddingVertical: 72, alignItems: 'center' },
-  ctaCard: { width: '100%', maxWidth: 620, alignItems: 'center', gap: spacing.md, borderWidth: 1 },
+  ctaCard: { width: '100%', maxWidth: 620, alignItems: 'center', gap: spacing.md, borderWidth: borders.thin },
   ctaBlurb: { marginBottom: spacing.md },
 
   footer: {

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { Button, Card, Picker, TextField, Txt, spacing } from '@chrono/ui';
+import { Picker, TextField, TitledCard } from '@chrono/ui';
 import { revenueSourceLabel } from '@chrono/sdk';
 import type { Json, RevenueSourceType } from '@chrono/sdk';
+import { FormActions } from '@/components/common/FormActions';
+import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
 
 export interface AddRevenueSourceValues {
@@ -71,8 +72,7 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
   };
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">{t('comp.revsource.title')}</Txt>
+    <TitledCard title={t('comp.revsource.title')}>
       <TextField label={t('comp.field.name')} value={name} onChangeText={setName} placeholder={t('comp.revsource.namePlaceholder')} />
       <Picker
         label={t('comp.revsource.type')}
@@ -96,17 +96,13 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
           keyboardType="decimal-pad"
         />
       ) : null}
-      {error ? (
-        <Txt variant="caption" tone="danger">
-          {error}
-        </Txt>
-      ) : null}
-      <Button title={t('comp.revsource.addSource')} onPress={submit} loading={isSubmitting} fullWidth />
-      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
-    </Card>
+      <InlineError message={error ?? ''} />
+      <FormActions
+        submitLabel={t('comp.revsource.addSource')}
+        onSubmit={submit}
+        busy={isSubmitting}
+        onCancel={onCancel}
+      />
+    </TitledCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-});

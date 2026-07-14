@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, DatePicker, Segmented, TextField, Txt, spacing } from '@chrono/ui';
+import { Button, DatePicker, Segmented, TextField, TitledCard, spacing } from '@chrono/ui';
 import type { TablesUpdate, TimeEntry } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
+import { FormActions } from '@/components/common/FormActions';
 import { fromISODate, toISODate } from '@/lib/date';
 import { useT } from '@/lib/i18n';
 
@@ -41,8 +42,7 @@ export function EditEntryForm({ entry, onSave, onDelete, isSaving = false }: Edi
   };
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">{t('comp.time.editEntry')}</Txt>
+    <TitledCard title={t('comp.time.editEntry')}>
       <FieldRow>
         <DatePicker label={t('common.date')} value={date} onChange={setDate} maximumDate={new Date()} />
         <TextField label={t('comp.time.hours')} value={hours} onChangeText={setHours} keyboardType="decimal-pad" />
@@ -51,13 +51,12 @@ export function EditEntryForm({ entry, onSave, onDelete, isSaving = false }: Edi
       <View style={styles.segment}>
         <Segmented options={billableOptions} value={billable} onValueChange={setBillable} />
       </View>
-      <Button title={t('common.save')} onPress={save} loading={isSaving} fullWidth />
+      <FormActions submitLabel={t('common.save')} onSubmit={save} busy={isSaving} />
       <Button title={t('comp.time.deleteEntry')} variant="danger" onPress={onDelete} />
-    </Card>
+    </TitledCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.md },
   segment: { marginTop: spacing.xs },
 });

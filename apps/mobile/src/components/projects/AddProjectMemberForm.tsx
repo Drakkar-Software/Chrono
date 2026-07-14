@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { Button, Card, Picker, TextField, Txt, spacing } from '@chrono/ui';
+import { Picker, TextField, TitledCard } from '@chrono/ui';
 import type { PickerOption } from '@chrono/ui';
+import { FormActions } from '@/components/common/FormActions';
+import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
 
 export interface AddProjectMemberFormProps {
@@ -35,8 +36,7 @@ export function AddProjectMemberForm({ candidates, onAdd, onCancel, isSubmitting
   };
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">{t('comp.member.addTitle')}</Txt>
+    <TitledCard title={t('comp.member.addTitle')}>
       <Picker
         label={t('comp.field.member')}
         value={userId}
@@ -51,23 +51,14 @@ export function AddProjectMemberForm({ candidates, onAdd, onCancel, isSubmitting
         placeholder={t('comp.member.dayRatePlaceholder')}
         keyboardType="decimal-pad"
       />
-      {error ? (
-        <Txt variant="caption" tone="danger">
-          {error}
-        </Txt>
-      ) : null}
-      <Button
-        title={t('common.add')}
-        onPress={submit}
-        loading={isSubmitting}
-        disabled={candidates.length === 0}
-        fullWidth
+      <InlineError message={error ?? ''} />
+      <FormActions
+        submitLabel={t('common.add')}
+        onSubmit={submit}
+        busy={isSubmitting}
+        submitDisabled={candidates.length === 0}
+        onCancel={onCancel}
       />
-      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
-    </Card>
+    </TitledCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-});

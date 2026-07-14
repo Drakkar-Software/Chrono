@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Card, EmptyState, IconButton, Money, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
+import { Button, Card, EmptyState, IconButton, Money, StackScreen, spacing, useResponsive } from '@chrono/ui';
 import {
   canManage,
   companyCurrency,
@@ -25,6 +25,7 @@ import { usePendingApprovals } from '@/lib/hooks/use-approvals';
 import { useNotifications } from '@/lib/hooks/use-notifications';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
+import { DayGroupHeader } from '@/components/time/DayGroupHeader';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
@@ -174,14 +175,7 @@ export default function HomeScreen() {
             <Card padding="lg" style={styles.recentCard}>
               {recentDays.map((day) => (
                 <View key={day.date} style={styles.day}>
-                  <View style={styles.dayHeader}>
-                    <Txt variant="label" tone="textMuted" uppercase>
-                      {day.date}
-                    </Txt>
-                    <Txt variant="label" tone="textMuted" mono>
-                      {formatDuration(sumDurations(day.items))}
-                    </Txt>
-                  </View>
+                  <DayGroupHeader date={day.date} minutes={sumDurations(day.items)} />
                   {day.items.map((entry) => (
                     <TimeEntryRow key={entry.id} entry={entry} />
                   ))}
@@ -204,10 +198,4 @@ const styles = StyleSheet.create({
   action: { flexGrow: 1, flexBasis: 0, minWidth: 160 },
   recentCard: { gap: spacing.xs },
   day: { gap: spacing.xs },
-  dayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Card, StackScreen, TextField, Txt, spacing } from '@chrono/ui';
+import { Button, StackScreen, TextField, TitledCard, Txt, spacing } from '@chrono/ui';
 
 import { globalSupabaseClient } from '@/lib/supabase';
 import { useT } from '@/lib/i18n';
@@ -46,8 +46,7 @@ export default function SecurityScreen() {
   return (
     <StackScreen title={t('tabs.security.title')}>
       <View style={styles.wrap}>
-        <Card padding="lg" style={styles.card}>
-          <Txt variant="heading">{t('tabs.security.heading')}</Txt>
+        <TitledCard title={t('tabs.security.heading')}>
           <Txt variant="caption" tone="textMuted">
             {t('tabs.security.subtitle')}
           </Txt>
@@ -81,7 +80,7 @@ export default function SecurityScreen() {
           {done ? (
             <Button title={t('tabs.security.backToSettings')} variant="ghost" onPress={() => router.replace('/settings')} />
           ) : null}
-        </Card>
+        </TitledCard>
       </View>
     </StackScreen>
   );
@@ -89,5 +88,4 @@ export default function SecurityScreen() {
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
-  card: { gap: spacing.md },
 });

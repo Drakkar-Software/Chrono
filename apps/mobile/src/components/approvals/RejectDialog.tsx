@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, TextField, Txt, spacing } from '@chrono/ui';
+import { TextField, spacing } from '@chrono/ui';
 
+import { FormActions } from '@/components/common/FormActions';
+import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
 
 export interface RejectDialogProps {
@@ -36,20 +38,19 @@ export function RejectDialog({ onConfirm, onCancel, isBusy = false }: RejectDial
         placeholder={t('compb.reject.reasonPlaceholder')}
         multiline
       />
-      {error ? (
-        <Txt variant="caption" tone="danger">
-          {error}
-        </Txt>
-      ) : null}
-      <View style={styles.actions}>
-        <Button title={t('common.cancel')} variant="ghost" size="sm" onPress={onCancel} disabled={isBusy} />
-        <Button title={t('compb.reject.confirm')} variant="danger" size="sm" onPress={confirm} loading={isBusy} />
-      </View>
+      <InlineError message={error} />
+      <FormActions
+        submitLabel={t('compb.reject.confirm')}
+        onSubmit={confirm}
+        busy={isBusy}
+        onCancel={onCancel}
+        layout="row"
+        destructive
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
 });

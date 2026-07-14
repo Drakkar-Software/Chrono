@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Card, EmptyState, Money, Row, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
+import { Button, Card, CardGrid, EmptyState, Money, Row, StackScreen, Txt, spacing } from '@chrono/ui';
 import { canManage, companyCurrency } from '@chrono/sdk';
 import type { InvoiceWithRelations } from '@chrono/sdk';
 
@@ -35,7 +35,6 @@ function groupByMonth(invoices: InvoiceWithRelations[]) {
 export default function InvoicesScreen() {
   const t = useT();
   const router = useRouter();
-  const { isWide } = useResponsive();
   const { user } = useAppAuth();
   const { companyId, company, role } = useActiveCompany();
   const manager = canManage(role);
@@ -163,20 +162,16 @@ export default function InvoicesScreen() {
             {groups.map((group) => (
               <View key={group.month} style={styles.group}>
                 <SectionHeader title={group.month} count={group.items.length} />
-                <View style={styles.grid}>
+                <CardGrid minColumnWidth={260}>
                   {group.items.map((invoice) => (
-                    <View
+                    <InvoiceCard
                       key={invoice.id}
-                      style={[styles.cell, isWide ? styles.cellWide : styles.cellFull]}
-                    >
-                      <InvoiceCard
-                        invoice={invoice}
-                        currency={currency}
-                        onPress={() => router.push(`/invoice/${invoice.id}`)}
-                      />
-                    </View>
+                      invoice={invoice}
+                      currency={currency}
+                      onPress={() => router.push(`/invoice/${invoice.id}`)}
+                    />
                   ))}
-                </View>
+                </CardGrid>
               </View>
             ))}
             <LoadMore
@@ -205,9 +200,5 @@ export default function InvoicesScreen() {
 const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
   group: { gap: spacing.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  cell: { flexGrow: 1 },
-  cellWide: { flexBasis: '48%', minWidth: 260 },
-  cellFull: { flexBasis: '100%' },
   referralCard: { gap: spacing.sm },
 });

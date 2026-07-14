@@ -93,18 +93,29 @@ export interface InlineErrorProps {
   error?: unknown;
   message?: string;
   describe?: DescribeErrorOptions;
+  /** Center the text (for centered auth/onboarding forms). */
+  center?: boolean;
 }
 
 /**
  * Compact one-line error for surfacing a failed action right next to the
- * button that triggered it (e.g. generate/settle).
+ * button that triggered it (e.g. generate/settle). Pass a plain `message` for a
+ * validation string, or an `error` to have it described.
  */
-export function InlineError({ error, message, describe }: InlineErrorProps) {
-  const text = message ?? describeError(error, describe);
+export function InlineError({ error, message, describe, center = false }: InlineErrorProps) {
+  // A non-empty `message` wins; otherwise describe an `error` if one was given.
+  // An absent/empty `message` with no `error` renders nothing — it must NOT fall
+  // through to describeError(undefined), which would show a generic fallback on
+  // a pristine form that simply passed `message={maybeUndefinedString}`.
+  const text = message != null && message !== ''
+    ? message
+    : error != null
+      ? describeError(error, describe)
+      : '';
   if (!text) return null;
   return (
     <View style={styles.inline}>
-      <Txt variant="caption" tone="danger">
+      <Txt variant="caption" tone="danger" center={center}>
         {text}
       </Txt>
     </View>

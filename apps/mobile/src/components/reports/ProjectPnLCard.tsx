@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Card, Money, Row, Txt, spacing, useTheme } from '@chrono/ui';
+import { Money, Row, TitledCard, spacing, useTheme } from '@chrono/ui';
 import { availableFunding, projectMargin, sumReferralEarnings } from '@chrono/sdk';
 import type { Invoice, Project, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
@@ -60,10 +60,7 @@ export function ProjectPnLCard({
   const funding = availableFunding(revenueEntries, referralEarnings, paidInvoices);
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading" numberOfLines={1}>
-        {project.name}
-      </Txt>
+    <TitledCard title={project.name} titleNumberOfLines={1}>
       <StatRow>
         <StatTile label={t('compb.pnl.revenue')}>
           <Money cents={revenueCents} currency={currency} variant="heading" />
@@ -83,11 +80,10 @@ export function ProjectPnLCard({
         <Money cents={funding} currency={currency} tone="textMuted" />
       </Row>
       <BudgetMeter project={project} usedCents={costCents} currency={currency} />
-    </Card>
+    </TitledCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.md },
   divider: { height: 1, marginTop: spacing.xs },
 });

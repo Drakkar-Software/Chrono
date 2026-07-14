@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, DatePicker, IconButton, Money, Picker, Row, TextField, Txt, spacing } from '@chrono/ui';
+import { Button, Card, DatePicker, IconButton, Money, Picker, Row, TextField, TitledCard, Txt, spacing } from '@chrono/ui';
 import { PAYMENT_METHODS, paymentMethodLabel, sumPayments } from '@chrono/sdk';
 
 import { toISODate } from '@/lib/date';
 import { useInvoicePayments, useInvoicePaymentMutations } from '@/lib/hooks/use-invoice-payments';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
 
@@ -71,22 +72,21 @@ export function PaymentsSection({ invoiceId, companyId, currency, canManage, use
       />
 
       {open ? (
-        <Card padding="lg" style={styles.form}>
+        <TitledCard title={t('comp.invoice.record')}>
           <TextField label={t('common.amount')} value={amount} onChangeText={setAmount} placeholder={t('comp.invoice.amountPlaceholder')} keyboardType="decimal-pad" />
           <DatePicker label={t('comp.invoice.paidOn')} value={paidOn} onChange={setPaidOn} maximumDate={new Date()} />
           <Picker label={t('comp.invoice.method')} value={method} onValueChange={setMethod} options={[...PAYMENT_METHODS]} />
           <TextField label={t('comp.invoice.noteOptional')} value={note} onChangeText={setNote} placeholder={t('comp.invoice.notePlaceholder')} />
-          {formError ? (
-            <Txt variant="caption" tone="danger">
-              {formError}
-            </Txt>
-          ) : null}
+          <InlineError message={formError} />
           {error ? <InlineError error={error} describe={{ fallback: t('comp.invoice.recordFail') }} /> : null}
-          <View style={styles.actions}>
-            <Button title={t('common.cancel')} variant="ghost" onPress={() => setOpen(false)} />
-            <Button title={t('comp.invoice.savePayment')} onPress={submit} loading={isPending} />
-          </View>
-        </Card>
+          <FormActions
+            submitLabel={t('comp.invoice.savePayment')}
+            onSubmit={submit}
+            busy={isPending}
+            onCancel={() => setOpen(false)}
+            layout="row"
+          />
+        </TitledCard>
       ) : null}
 
       {list.length === 0 && !open ? (
@@ -118,9 +118,7 @@ export function PaymentsSection({ invoiceId, companyId, currency, canManage, use
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
-  form: { gap: spacing.md },
   list: { gap: spacing.xs },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   total: { marginTop: spacing.xs },
 });

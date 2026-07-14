@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { Button, Card, Picker, TextField, Txt, spacing } from '@chrono/ui';
+import { Picker, TextField, TitledCard, Txt } from '@chrono/ui';
 import type { PickerOption } from '@chrono/ui';
+import { FormActions } from '@/components/common/FormActions';
 import { useT } from '@/lib/i18n';
 
 export interface AddReferrerFormProps {
@@ -39,8 +39,7 @@ export function AddReferrerForm({ candidates, remainingPct, onAdd, onCancel, isS
   };
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">{t('comp.referrer.title')}</Txt>
+    <TitledCard title={t('comp.referrer.title')}>
       <Txt variant="caption" tone="textMuted">
         {t('comp.referrer.stillAssignable', { n: remainingPct })}
       </Txt>
@@ -59,18 +58,13 @@ export function AddReferrerForm({ candidates, remainingPct, onAdd, onCancel, isS
         keyboardType="decimal-pad"
         error={error}
       />
-      <Button
-        title={t('comp.referrer.title')}
-        onPress={submit}
-        loading={isSubmitting}
-        disabled={candidates.length === 0 || remainingPct <= 0}
-        fullWidth
+      <FormActions
+        submitLabel={t('comp.referrer.title')}
+        onSubmit={submit}
+        busy={isSubmitting}
+        submitDisabled={candidates.length === 0 || remainingPct <= 0}
+        onCancel={onCancel}
       />
-      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
-    </Card>
+    </TitledCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-});

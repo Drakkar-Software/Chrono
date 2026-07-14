@@ -50,8 +50,16 @@ export { IconButton } from './components/IconButton';
 export type { IconButtonProps } from './components/IconButton';
 export { Card } from './components/Card';
 export type { CardProps } from './components/Card';
+export { TitledCard } from './components/TitledCard';
+export type { TitledCardProps } from './components/TitledCard';
+export { CardGrid } from './components/CardGrid';
+export type { CardGridProps } from './components/CardGrid';
 export { Row } from './components/Row';
 export type { RowProps } from './components/Row';
+export { IconBadge } from './components/IconBadge';
+export type { IconBadgeProps } from './components/IconBadge';
+export { BrandMark } from './components/BrandMark';
+export type { BrandMarkProps } from './components/BrandMark';
 
 // ── Forms ───────────────────────────────────────────────────────────────────
 export { TextField, TextField as Field } from './components/TextField';

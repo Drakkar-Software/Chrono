@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { Card, Txt, radii, shadows, spacing, useTheme } from '@chrono/ui';
+import { BrandMark, Card, Txt, spacing, useTheme } from '@chrono/ui';
 
 export interface AuthCardProps {
   title: string;
@@ -36,9 +35,7 @@ export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.centered}>
-          <View style={[styles.brandMark, { backgroundColor: colors.accent, ...shadows.md }]}>
-            <Ionicons name="stopwatch-outline" size={34} color={colors.accentText} />
-          </View>
+          <BrandMark size={68} />
 
           <Card padding="xl" shadow="md" style={styles.card}>
             <View style={styles.heading}>
@@ -69,13 +66,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   centered: { width: '100%', maxWidth: 420, alignItems: 'center', gap: spacing.lg },
-  brandMark: {
-    width: 68,
-    height: 68,
-    borderRadius: radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   card: { width: '100%', gap: spacing.md },
   heading: { gap: spacing.xs, marginBottom: spacing.xs },
   footer: { alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },

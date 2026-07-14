@@ -18,6 +18,7 @@ import {
   type HistoryFilterState,
 } from '@/components/common/HistoryFilters';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
+import { DayGroupHeader } from '@/components/time/DayGroupHeader';
 import { ListFooterSpinner } from '@/components/common/LoadMore';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
@@ -116,14 +117,7 @@ export default function HistoryScreen() {
         showsVerticalScrollIndicator={false}
         renderItem={({ item: day }) => (
           <View style={styles.day}>
-            <View style={styles.dayHeader}>
-              <Txt variant="label" tone="textMuted" uppercase>
-                {day.date}
-              </Txt>
-              <Txt variant="label" tone="textMuted" mono>
-                {formatDuration(sumDurations(day.items))}
-              </Txt>
-            </View>
+            <DayGroupHeader date={day.date} minutes={sumDurations(day.items)} />
             {day.items.map((entry) => (
               <TimeEntryRow
                 key={entry.id}
@@ -147,10 +141,4 @@ const styles = StyleSheet.create({
   contentWide: { maxWidth: 900, width: '100%', alignSelf: 'center' },
   header: { gap: spacing.lg, marginBottom: spacing.sm },
   day: { gap: spacing.xs },
-  dayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
 });

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, EmptyState, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
+import { Button, EmptyState, StackScreen, spacing, useResponsive } from '@chrono/ui';
 import { buildCopiedEntries, groupByDay, shiftEntryDate, sumDurations, formatDuration, weekBounds } from '@chrono/sdk';
 import type { TablesInsert } from '@chrono/sdk';
 
@@ -13,6 +13,7 @@ import { useMyProjects } from '@/lib/hooks/use-projects';
 import { useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
 import { LogEntryForm, type LogEntryValues } from '@/components/time/LogEntryForm';
+import { DayGroupHeader } from '@/components/time/DayGroupHeader';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { WeekGrid } from '@/components/time/WeekGrid';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -109,14 +110,7 @@ export default function TodayScreen() {
       ) : (
         days.map((day) => (
           <View key={day.date} style={styles.day}>
-            <View style={styles.dayHeader}>
-              <Txt variant="label" tone="textMuted" uppercase>
-                {day.date}
-              </Txt>
-              <Txt variant="label" tone="textMuted" mono>
-                {formatDuration(sumDurations(day.items))}
-              </Txt>
-            </View>
+            <DayGroupHeader date={day.date} minutes={sumDurations(day.items)} />
             {day.items.map((entry) => (
               <TimeEntryRow
                 key={entry.id}
@@ -165,10 +159,4 @@ const styles = StyleSheet.create({
   copyBtn: { marginTop: spacing.xs },
   section: { gap: spacing.md },
   day: { gap: spacing.xs },
-  dayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
 });

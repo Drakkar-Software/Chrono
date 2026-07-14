@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, EmptyState, StackScreen, spacing, useResponsive } from '@chrono/ui';
+import { Button, CardGrid, EmptyState, StackScreen, spacing } from '@chrono/ui';
 import { canManage, companyCurrency } from '@chrono/sdk';
 import type { TablesInsert } from '@chrono/sdk';
 
@@ -20,7 +20,6 @@ import { LoadMore } from '@/components/common/LoadMore';
 export default function ProjectsScreen() {
   const t = useT();
   const router = useRouter();
-  const { isWide } = useResponsive();
   const { user } = useAppAuth();
   const { companyId, company, role } = useActiveCompany();
   const manager = canManage(role);
@@ -92,17 +91,16 @@ export default function ProjectsScreen() {
           />
         ) : (
           <>
-            <View style={styles.grid}>
+            <CardGrid minColumnWidth={220}>
               {page.map((project) => (
-                <View key={project.id} style={[styles.cell, isWide ? styles.cellWide : styles.cellFull]}>
-                  <ProjectCard
-                    project={project}
-                    currency={currency}
-                    onPress={() => router.push(`/project/${project.id}`)}
-                  />
-                </View>
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  currency={currency}
+                  onPress={() => router.push(`/project/${project.id}`)}
+                />
               ))}
-            </View>
+            </CardGrid>
             <LoadMore hasMore={hasMore} onLoadMore={loadMore} remaining={list.length - page.length} />
           </>
         )}
@@ -113,8 +111,4 @@ export default function ProjectsScreen() {
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  cell: { flexGrow: 1 },
-  cellWide: { flexBasis: '31%', minWidth: 220 },
-  cellFull: { flexBasis: '100%' },
 });

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { Button, Card, Segmented, TextField, Txt, spacing } from '@chrono/ui';
+import { Segmented, TextField, TitledCard, Txt } from '@chrono/ui';
 import type { Project, ProjectStatus } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
+import { FormActions } from '@/components/common/FormActions';
+import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
 
 export interface EditProjectValues {
@@ -94,8 +95,7 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
   };
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">{t('comp.project.editTitle')}</Txt>
+    <TitledCard title={t('comp.project.editTitle')}>
       <TextField label={t('comp.field.name')} value={name} onChangeText={setName} placeholder={t('comp.project.namePlaceholder')} />
       <TextField label={t('comp.project.client')} value={clientName} onChangeText={setClientName} placeholder={t('comp.project.clientPlaceholder')} />
       <TextField
@@ -140,17 +140,13 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
         {t('common.status')}
       </Txt>
       <Segmented options={statusOptions} value={status} onValueChange={(v) => setStatus(v as ProjectStatus)} />
-      {error ? (
-        <Txt variant="caption" tone="danger">
-          {error}
-        </Txt>
-      ) : null}
-      <Button title={t('comp.project.saveChanges')} onPress={submit} loading={isSubmitting} fullWidth />
-      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
-    </Card>
+      <InlineError message={error ?? ''} />
+      <FormActions
+        submitLabel={t('comp.project.saveChanges')}
+        onSubmit={submit}
+        busy={isSubmitting}
+        onCancel={onCancel}
+      />
+    </TitledCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-});

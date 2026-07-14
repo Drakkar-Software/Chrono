@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { Button, Card, Picker, Txt, spacing } from '@chrono/ui';
+import { Picker, TitledCard } from '@chrono/ui';
 import type { Project } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
+import { FormActions } from '@/components/common/FormActions';
 import { useT } from '@/lib/i18n';
 
 export interface SettleMonthFormProps {
@@ -29,8 +29,7 @@ export function SettleMonthForm({ projects, onSettle, onCancel, isSubmitting = f
   const [month, setMonth] = useState(months[0]?.value ?? '');
 
   return (
-    <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">{t('comp.invoice.settleMonth')}</Txt>
+    <TitledCard title={t('comp.invoice.settleMonth')}>
       <FieldRow>
         <Picker
           label={t('comp.field.project')}
@@ -41,18 +40,13 @@ export function SettleMonthForm({ projects, onSettle, onCancel, isSubmitting = f
         />
         <Picker label={t('comp.invoice.month')} value={month} onValueChange={setMonth} options={months} />
       </FieldRow>
-      <Button
-        title={t('comp.invoice.settleMonthBtn')}
-        onPress={() => projectId && month && onSettle(projectId, month)}
-        loading={isSubmitting}
-        disabled={projects.length === 0}
-        fullWidth
+      <FormActions
+        submitLabel={t('comp.invoice.settleMonthBtn')}
+        onSubmit={() => projectId && month && onSettle(projectId, month)}
+        busy={isSubmitting}
+        submitDisabled={projects.length === 0}
+        onCancel={onCancel}
       />
-      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
-    </Card>
+    </TitledCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-});
