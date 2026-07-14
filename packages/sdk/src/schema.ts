@@ -31,7 +31,8 @@ export type NotificationType =
   | 'time_rejected'
   | 'invoice_paid'
   | 'invoice_partially_paid'
-  | 'referral_earned';
+  | 'referral_earned'
+  | 'reminder';
 
 type Timestamps = {
   created_at: string;
@@ -219,6 +220,7 @@ export type Database = {
           approved_at: string | null;
           rejection_reason: string | null;
           invoice_id: string | null;
+          tags: string[];
         } & Timestamps;
         Insert: {
           id?: string;
@@ -234,6 +236,7 @@ export type Database = {
           approved_at?: string | null;
           rejection_reason?: string | null;
           invoice_id?: string | null;
+          tags?: string[];
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -411,6 +414,8 @@ export type Database = {
           submission_seq: number;
           settled_at: string | null;
           vat_rate: number | null;
+          invoice_number: string | null;
+          issued_on: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -432,6 +437,8 @@ export type Database = {
           submission_seq?: number;
           settled_at?: string | null;
           vat_rate?: number | null;
+          invoice_number?: string | null;
+          issued_on?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -538,6 +545,64 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      invoice_payments: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          company_id: string;
+          amount_cents: number;
+          paid_on: string;
+          method: string | null;
+          note: string | null;
+          recorded_by: string | null;
+        } & Timestamps;
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          company_id: string;
+          amount_cents: number;
+          paid_on?: string;
+          method?: string | null;
+          note?: string | null;
+          recorded_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['invoice_payments']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'invoice_payments_invoice_id_fkey';
+            columns: ['invoice_id'];
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      audit_log: {
+        Row: {
+          id: string;
+          company_id: string;
+          actor_id: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string | null;
+          detail: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          actor_id?: string | null;
+          action: string;
+          entity_type: string;
+          entity_id?: string | null;
+          detail?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['audit_log']['Insert']>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;

@@ -27,6 +27,8 @@ const TABLES = [
   'notifications',
   'device_tokens',
   'company_invites',
+  'invoice_payments',
+  'audit_log',
 ] as const;
 
 // Lazy singleton — avoids creating stores during SSR where the Supabase client can't run.

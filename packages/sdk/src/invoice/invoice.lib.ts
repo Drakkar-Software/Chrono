@@ -14,6 +14,14 @@ export function invoiceStatusLabel(status: InvoiceStatus): string {
   return STATUS_LABELS[status] ?? status;
 }
 
+/** Human label for an invoice: its assigned number, else the period (draft). */
+export function invoiceLabel(
+  invoice: Pick<Invoice, 'invoice_number' | 'period_month'>,
+): string {
+  if (invoice.invoice_number) return invoice.invoice_number;
+  return invoice.period_month.slice(0, 7);
+}
+
 /** Format integer cents as a localized currency string. */
 export function formatMoney(
   cents: number,

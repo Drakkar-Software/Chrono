@@ -137,3 +137,67 @@ export function summarizeByUser(
   }
   return out;
 }
+
+/** All distinct tags across entries, sorted alphabetically. */
+export function allTags(entries: Array<Pick<TimeEntry, 'tags'>>): string[] {
+  const set = new Set<string>();
+  for (const e of entries) for (const t of e.tags ?? []) set.add(t);
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+
+/** Minutes + count per tag (an entry with multiple tags counts under each). */
+export function summarizeByTag(
+  entries: Array<Pick<TimeEntry, 'tags' | 'duration_minutes'>>,
+): Record<string, EntrySummary> {
+  const out: Record<string, EntrySummary> = {};
+  for (const entry of entries) {
+    for (const tag of entry.tags ?? []) {
+      const acc = (out[tag] ??= { minutes: 0, count: 0 });
+      acc.minutes += entry.duration_minutes ?? 0;
+      acc.count += 1;
+    }
+  }
+  return out;
+}
+
+/** Parse a comma/space-separated tag input into a normalized, deduped list. */
+export function parseTags(input: string): string[] {
+  const seen = new Set<string>();
+  for (const raw of input.split(/[,\n]/)) {
+    const t = raw.trim().toLowerCase();
+    if (t) seen.add(t);
+  }
+  return [...seen];
+}
+
+type CopyableEntry = Pick<
+  TimeEntry,
+  'project_id' | 'duration_minutes' | 'description' | 'billable' | 'tags' | 'entry_date'
+>;
+
+/**
+ * Build insert payloads that clone `entries` shifted by a whole number of days
+ * (e.g. +7 to copy last week into this week). Preserves project/duration/tags,
+ * resets money/approval state (those default on insert). `shiftDays` moves each
+ * entry's `entry_date` forward.
+ */
+export function shiftEntryDate(dateISO: string, shiftDays: number): string {
+  const [y, m, d] = dateISO.slice(0, 10).split('-').map(Number);
+  const dt = new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1));
+  dt.setUTCDate(dt.getUTCDate() + shiftDays);
+  return dt.toISOString().slice(0, 10);
+}
+
+export function buildCopiedEntries<T extends CopyableEntry>(
+  entries: T[],
+  shiftDays: number,
+): Array<Pick<TimeEntry, 'project_id' | 'entry_date' | 'duration_minutes' | 'description' | 'billable' | 'tags'>> {
+  return entries.map((e) => ({
+    project_id: e.project_id,
+    entry_date: shiftEntryDate(e.entry_date, shiftDays),
+    duration_minutes: e.duration_minutes,
+    description: e.description,
+    billable: e.billable,
+    tags: e.tags ?? [],
+  }));
+}

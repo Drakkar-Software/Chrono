@@ -77,3 +77,16 @@ export * from './device-token/device-token.queries';
 export * from './invite/invite.entity';
 export * from './invite/invite.queries';
 export * from './invite/invite.lib';
+
+// Invoice payments (manual disbursements)
+export * from './invoice-payment/invoice-payment.entity';
+export * from './invoice-payment/invoice-payment.queries';
+export * from './invoice-payment/invoice-payment.lib';
+
+// Audit log
+export * from './audit/audit.entity';
+export * from './audit/audit.queries';
+export * from './audit/audit.lib';
+
+// Global search
+export * from './search/search.queries';
