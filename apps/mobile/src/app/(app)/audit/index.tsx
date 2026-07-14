@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { Card, EmptyState, StackScreen, Txt, spacing, useTheme } from '@chrono/ui';
-import { auditActionLabel, auditIcon, describeAudit } from '@chrono/sdk';
+import { auditActionLabel, auditIcon, canManage, describeAudit } from '@chrono/sdk';
 import type { AuditEntry } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
@@ -41,11 +41,14 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 export default function AuditScreen() {
   const t = useT();
   const router = useRouter();
-  const { companyId } = useActiveCompany();
+  const { companyId, role } = useActiveCompany();
   const { data, isLoading, error, refetch } = useAuditLog(companyId ?? undefined);
 
   const list = useMemo(() => data ?? [], [data]);
   const { page, hasMore, loadMore } = usePagination(list, companyId ?? '');
+
+  // Managers/admins only — guard direct navigation.
+  if (!canManage(role)) return <Redirect href="/(app)/(tabs)/home" />;
 
   return (
     <StackScreen title={t('details.auditLog')} onBack={() => router.back()}>

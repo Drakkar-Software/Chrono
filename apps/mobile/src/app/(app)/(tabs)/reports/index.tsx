@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { Button, EmptyState, Segmented, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
-import { companyCurrency } from '@chrono/sdk';
+import { canManage, companyCurrency } from '@chrono/sdk';
 import type { InvoiceWithRelations, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
@@ -48,7 +48,7 @@ export default function ReportsScreen() {
   const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
-  const { companyId, company } = useActiveCompany();
+  const { companyId, company, role } = useActiveCompany();
   const currency = companyCurrency(company);
 
   const [preset, setPreset] = useState<RangePreset>('this_month');
@@ -150,6 +150,10 @@ export default function ReportsScreen() {
       return next;
     });
   };
+
+  // Manager/admin only. Guard the direct-URL case (the tab is already hidden for
+  // freelancers) — all hooks above run so hook order stays stable.
+  if (!canManage(role)) return <Redirect href="/(app)/(tabs)/home" />;
 
   return (
     <StackScreen title={t('tabs.nav.reports')}>

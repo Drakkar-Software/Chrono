@@ -98,6 +98,7 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.settings.joinCompany': 'Join a company',
     'tabs.settings.joinCompanyHint': 'Have a company code? Paste it here to join another team.',
     'tabs.settings.members': 'Members',
+    'tabs.settings.roleChangeFailed': 'Could not change this member’s role.',
     'tabs.settings.noMembers': 'No members yet',
     'tabs.settings.noMembersSubtitle': 'Invite teammates to this company to see them here.',
 
@@ -210,6 +211,7 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.settings.joinCompany': 'Rejoindre une entreprise',
     'tabs.settings.joinCompanyHint': 'Vous avez un code d’entreprise ? Collez-le ici pour rejoindre une autre équipe.',
     'tabs.settings.members': 'Membres',
+    'tabs.settings.roleChangeFailed': 'Impossible de changer le rôle de ce membre.',
     'tabs.settings.noMembers': 'Aucun membre',
     'tabs.settings.noMembersSubtitle': 'Invitez des collègues dans cette entreprise pour les voir ici.',
 

@@ -318,3 +318,16 @@ begin
 exception when others then
   raise notice 'pg_cron unavailable — reminders can be scheduled manually or via an external cron calling enqueue_reminders()';
 end $$;
+
+-- ----------------------------------------------------------------------------
+-- Tighten project_members reads: confidential day rates (tjm_cents) must not be
+-- shipped to peers. Previously any assigned member could read every member row;
+-- now a non-manager reads only their OWN row (managers still read all).
+-- ----------------------------------------------------------------------------
+drop policy if exists "members read assignments they can see" on public.project_members;
+create policy "members read assignments they can see"
+  on public.project_members for select to authenticated
+  using (
+    user_id = (select auth.uid())
+    or public.is_company_manager(public.project_company_id(project_id))
+  );

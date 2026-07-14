@@ -17,6 +17,7 @@ import { EditCompanyForm } from '@/components/settings/EditCompanyForm';
 import { JoinCompanyForm } from '@/components/settings/JoinCompanyForm';
 import { InvitesCard } from '@/components/settings/InvitesCard';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { InlineError } from '@/components/common/ErrorState';
 
 export default function SettingsScreen() {
   const t = useT();
@@ -29,7 +30,7 @@ export default function SettingsScreen() {
   const { data: profile } = useProfile();
   const { updateProfile, isPending: savingProfile } = useProfileMutations();
   const { data: members, isLoading: loadingMembers } = useCompanyMembers(companyId ?? undefined);
-  const { updateRole } = useCompanyMemberMutations();
+  const { updateRole, error: roleError } = useCompanyMemberMutations();
 
   // Seed the editable name field once the profile loads asynchronously, while
   // still letting the user type over it. This intentional prop->state sync is a
@@ -175,12 +176,18 @@ export default function SettingsScreen() {
               <MemberRow
                 key={member.id}
                 member={member}
-                canEdit={manager}
-                canGrantAdmin={role === 'admin'}
+                // Managers can edit others' non-admin roles; only admins may
+                // change an admin's role. Nobody edits their own role here —
+                // all three are enforced by triggers, so gate the UI to match.
+                canEdit={
+                  manager && member.user_id !== user?.id && (member.role !== 'admin' || isAdmin)
+                }
+                canGrantAdmin={isAdmin}
                 onRoleChange={(next: AppRole) => updateRole(member.id, next)}
               />
             ))
           )}
+          {roleError ? <InlineError error={roleError} describe={{ fallback: t('tabs.settings.roleChangeFailed') }} /> : null}
         </Card>
 
         <Button title={t('common.signOut')} variant="danger" onPress={() => signOut()} fullWidth={!isWide} />
