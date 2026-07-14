@@ -1,6 +1,8 @@
-import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { canManage } from '@chrono/sdk';
 import { useActiveCompany } from '@/lib/active-company-context';
+
+const { Label, Icon } = NativeTabs.Trigger;
 
 /**
  * Native (iOS/Android) bottom tabs backed by the platform tab bar. The
