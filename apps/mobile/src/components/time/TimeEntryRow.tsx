@@ -19,6 +19,7 @@ export function TimeEntryRow({ entry, onPress }: TimeEntryRowProps) {
     <Pressable
       onPress={onPress}
       disabled={onPress == null}
+      accessibilityRole={onPress ? 'button' : undefined}
       style={({ pressed }) => [
         styles.row,
         { backgroundColor: pressed && onPress ? colors.hover : 'transparent' },

@@ -18,6 +18,7 @@ export function ProjectCard({ project, currency, onPress }: ProjectCardProps) {
     <Pressable
       onPress={onPress}
       disabled={onPress == null}
+      accessibilityRole={onPress ? 'button' : undefined}
       style={({ pressed }) => [
         styles.card,
         {

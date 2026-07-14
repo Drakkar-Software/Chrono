@@ -95,6 +95,7 @@ export default function SettingsScreen() {
                 key={member.id}
                 member={member}
                 canEdit={manager}
+                canGrantAdmin={role === 'admin'}
                 onRoleChange={(next: AppRole) => updateRole(member.id, next)}
               />
             ))

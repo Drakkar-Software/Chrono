@@ -91,7 +91,6 @@ export function LogEntryForm({
           onChangeText={setHours}
           placeholder="e.g. 7.5"
           keyboardType="decimal-pad"
-          error={error}
         />
       </FieldRow>
       <TextField
@@ -104,6 +103,11 @@ export function LogEntryForm({
       <View style={styles.segment}>
         <Segmented options={BILLABLE_OPTIONS} value={billable} onValueChange={setBillable} />
       </View>
+      {error ? (
+        <Txt variant="caption" tone="danger">
+          {error}
+        </Txt>
+      ) : null}
       <Button
         title="Add entry"
         onPress={submit}

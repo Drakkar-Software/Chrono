@@ -20,6 +20,7 @@ export function InvoiceCard({ invoice, currency, onPress }: InvoiceCardProps) {
     <Pressable
       onPress={onPress}
       disabled={onPress == null}
+      accessibilityRole={onPress ? 'button' : undefined}
       style={({ pressed }) => [
         styles.card,
         {

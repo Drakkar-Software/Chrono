@@ -90,7 +90,7 @@ export default function Landing() {
           variant="title"
           weight="regular"
           center
-          style={[styles.tagline, { maxWidth: isWide ? 620 : 420, fontSize: isWide ? 24 : 20 }]}
+          style={[styles.tagline, { maxWidth: isWide ? 620 : 420 }]}
         >
           Track freelance time, recognize revenue, and get everyone paid.
         </Txt>

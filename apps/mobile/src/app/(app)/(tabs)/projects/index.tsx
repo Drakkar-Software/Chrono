@@ -35,7 +35,9 @@ export default function ProjectsScreen() {
       company_id: companyId,
       name: values.name,
       client_name: values.clientName || null,
+      description: values.description || null,
       default_tjm_cents: values.defaultTjmCents,
+      budget_cents: values.budgetCents,
       hours_per_day: values.hoursPerDay,
       created_by: user.id,
     };

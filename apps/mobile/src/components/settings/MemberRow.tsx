@@ -3,20 +3,25 @@ import { Badge, Picker, Txt, spacing } from '@chrono/ui';
 import { displayName, roleLabel } from '@chrono/sdk';
 import type { AppRole, CompanyMemberWithProfile } from '@chrono/sdk';
 
-const ROLE_OPTIONS = [
+const BASE_ROLE_OPTIONS = [
   { label: 'Freelancer', value: 'freelancer' },
   { label: 'Manager', value: 'manager' },
-  { label: 'Admin', value: 'admin' },
 ];
+const ADMIN_OPTION = { label: 'Admin', value: 'admin' };
 
 export interface MemberRowProps {
   member: CompanyMemberWithProfile;
   canEdit: boolean;
+  /** Only admins may grant/keep the admin role — hide the option otherwise. */
+  canGrantAdmin?: boolean;
   onRoleChange: (role: AppRole) => void;
 }
 
 /** A company member: name + role, with an inline role Picker for managers. */
-export function MemberRow({ member, canEdit, onRoleChange }: MemberRowProps) {
+export function MemberRow({ member, canEdit, canGrantAdmin = false, onRoleChange }: MemberRowProps) {
+  // Show "Admin" only to admins; keep it visible if the member already is one.
+  const options =
+    canGrantAdmin || member.role === 'admin' ? [...BASE_ROLE_OPTIONS, ADMIN_OPTION] : BASE_ROLE_OPTIONS;
   return (
     <View style={styles.row}>
       <Txt variant="bodyMedium" numberOfLines={1} style={styles.name}>
@@ -27,7 +32,7 @@ export function MemberRow({ member, canEdit, onRoleChange }: MemberRowProps) {
           <Picker
             value={member.role}
             onValueChange={(v) => onRoleChange(v as AppRole)}
-            options={ROLE_OPTIONS}
+            options={options}
           />
         </View>
       ) : (
