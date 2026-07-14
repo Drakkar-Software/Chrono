@@ -54,8 +54,8 @@ export { Row } from './components/Row';
 export type { RowProps } from './components/Row';
 
 // ── Forms ───────────────────────────────────────────────────────────────────
-export { TextField } from './components/TextField';
-export type { TextFieldProps } from './components/TextField.types';
+export { TextField, TextField as Field } from './components/TextField';
+export type { TextFieldProps, TextFieldProps as FieldProps } from './components/TextField.types';
 export { Picker } from './components/Picker';
 export type { PickerProps, PickerOption } from './components/Picker.types';
 export { DatePicker } from './components/DatePicker';

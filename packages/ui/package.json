@@ -1,0 +1,42 @@
+{
+  "name": "@chrono/ui",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Chrono UI kit — presentational @expo/ui (SwiftUI / Jetpack Compose) primitives with react-native-web fallbacks, over a single design-token source. Consumed from source in the monorepo.",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "react-native": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build": "echo \"@chrono/ui is consumed from source via Metro; no build step\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"no lint configured\""
+  },
+  "peerDependencies": {
+    "@expo/ui": "~57.0.4",
+    "@expo/vector-icons": "^15.1.1",
+    "expo": "57.0.4",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0"
+  },
+  "peerDependenciesMeta": {
+    "@expo/ui": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@chrono/tsconfig": "workspace:*",
+    "@types/react": "~19.2.2",
+    "typescript": "~5.9.2"
+  }
+}
