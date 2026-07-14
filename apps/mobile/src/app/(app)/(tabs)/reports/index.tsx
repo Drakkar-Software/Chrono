@@ -70,14 +70,14 @@ export default function ReportsScreen() {
   const { data: invoices } = useInvoices({ companyId: companyId ?? '' });
 
   // Approved billable time in-range — one company-scoped query, sliced per user.
-  const { data: approvedEntries } = useTimeEntries({
+  const { data: approvedEntries, isLoading: loadingApproved } = useTimeEntries({
     companyId: companyId ?? '',
     status: 'approved',
     billable: true,
     from: range.from,
     to: range.to,
   });
-  const { data: members } = useCompanyMembers(companyId ?? undefined);
+  const { data: members, isLoading: loadingMembers } = useCompanyMembers(companyId ?? undefined);
 
   const revenueByProject = useMemo(
     () => groupByProject<RevenueEntry>(revenueEntries ?? []),
@@ -99,6 +99,8 @@ export default function ReportsScreen() {
 
   const pendingList = pending ?? [];
   const projectList = projects ?? [];
+  const breakdownLoading =
+    (loadingApproved && approvedEntries == null) || (loadingMembers && members == null);
   const cellStyle = [styles.cell, isWide ? styles.cellWide : styles.cellFull];
 
   const busy = approve.isPending || reject.isPending;
@@ -122,6 +124,16 @@ export default function ReportsScreen() {
     }
     setSelected(new Set());
     await refetchPending();
+  };
+  // Drop an id from the selection when it's resolved individually, so the
+  // "Approve selected" count and select-all state stay honest.
+  const deselect = (id: string) => {
+    setSelected((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   return (
@@ -180,8 +192,14 @@ export default function ReportsScreen() {
                     selectable
                     selected={selected.has(entry.id)}
                     onToggleSelect={() => toggleSelect(entry.id)}
-                    onApprove={() => approve.mutate(entry.id)}
-                    onReject={(reason) => reject.mutate(entry.id, reason)}
+                    onApprove={() => {
+                      deselect(entry.id);
+                      approve.mutate(entry.id);
+                    }}
+                    onReject={(reason) => {
+                      deselect(entry.id);
+                      reject.mutate(entry.id, reason);
+                    }}
                     isBusy={busy}
                   />
                 </View>
@@ -195,7 +213,11 @@ export default function ReportsScreen() {
           <Txt variant="caption" tone="textMuted">
             Approved billable time and invoiced amounts in the selected range.
           </Txt>
-          <FreelancerBreakdown rows={freelancerRows} members={members ?? []} currency={currency} />
+          {breakdownLoading ? (
+            <ScreenLoader />
+          ) : (
+            <FreelancerBreakdown rows={freelancerRows} members={members ?? []} currency={currency} />
+          )}
         </View>
 
         <View style={styles.section}>

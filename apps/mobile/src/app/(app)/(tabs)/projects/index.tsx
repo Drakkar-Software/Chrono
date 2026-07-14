@@ -59,7 +59,10 @@ export default function ProjectsScreen() {
   );
 
   const list = projects ?? [];
-  const { page, hasMore, loadMore } = usePagination(list, manager ? 'managed' : 'mine');
+  const { page, hasMore, loadMore } = usePagination(
+    list,
+    `${companyId ?? ''}:${manager ? 'managed' : 'mine'}`,
+  );
 
   return (
     <StackScreen title="Projects" headerRight={headerRight}>

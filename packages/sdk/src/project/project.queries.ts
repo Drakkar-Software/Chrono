@@ -22,9 +22,13 @@ export async function fetchProjects(
     query = query.eq('status', filters.status);
   }
   if (filters?.search) {
-    query = query.or(
-      `name.ilike.%${filters.search}%,client_name.ilike.%${filters.search}%`,
-    );
+    // Strip PostgREST filter metacharacters so a search string can't inject
+    // extra `.or()` clauses (comma / dot / parens). Stays within RLS scope
+    // regardless, but keep the filter honest.
+    const term = filters.search.replace(/[,.()*:]/g, ' ').trim();
+    if (term) {
+      query = query.or(`name.ilike.%${term}%,client_name.ilike.%${term}%`);
+    }
   }
 
   const { data, error } = await query;

@@ -7,9 +7,18 @@
 --   company-logos/{company_id}/… — company managers may write their company's folder
 -- ============================================================================
 
-insert into storage.buckets (id, name, public)
-values ('avatars', 'avatars', true), ('company-logos', 'company-logos', true)
-on conflict (id) do nothing;
+-- Public buckets, but restricted to raster image types (NO image/svg+xml — an
+-- SVG served from a public URL can execute script) and capped at 2 MB. The
+-- bucket-level allow-list is the only SERVER-side content enforcement; never
+-- trust the client-supplied content-type.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values
+  ('avatars', 'avatars', true, 2097152, array['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+  ('company-logos', 'company-logos', true, 2097152, array['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 
 -- ── Avatars ──────────────────────────────────────────────────────────────────
 create policy "avatars are publicly readable"

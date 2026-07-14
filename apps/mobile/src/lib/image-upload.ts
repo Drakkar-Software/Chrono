@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { globalSupabaseClient } from '@/lib/supabase';
@@ -20,25 +21,40 @@ export class PermissionDeniedError extends Error {
   }
 }
 
+// Only the raster types the storage buckets accept (see the storage migration's
+// `allowed_mime_types`). HEIC is intentionally omitted — the buckets reject it,
+// and the picker re-encodes edited images to JPEG anyway.
 const EXT_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/jpg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
-  'image/heic': 'heic',
 };
 
+const EXT_BY_NAME: Record<string, string> = {
+  jpg: 'jpg',
+  jpeg: 'jpg',
+  png: 'png',
+  webp: 'webp',
+  gif: 'gif',
+};
+
+/**
+ * Resolve a bucket-allowed `{ ext, contentType }` for a picked asset. Anything
+ * outside the accepted raster set (e.g. HEIC) falls back to JPEG so the upload
+ * matches the picker's default re-encode and the bucket's `allowed_mime_types`.
+ */
 function resolveExtAndType(asset: ImagePicker.ImagePickerAsset): { ext: string; contentType: string } {
   const mime = asset.mimeType?.toLowerCase();
   if (mime && EXT_BY_MIME[mime]) return { ext: EXT_BY_MIME[mime], contentType: mime };
 
   const fromName = asset.fileName?.split('.').pop()?.toLowerCase();
-  if (fromName) {
-    const ext = fromName === 'jpeg' ? 'jpg' : fromName;
-    return { ext, contentType: mime ?? `image/${ext === 'jpg' ? 'jpeg' : ext}` };
+  if (fromName && EXT_BY_NAME[fromName]) {
+    const ext = EXT_BY_NAME[fromName];
+    return { ext, contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}` };
   }
-  return { ext: 'jpg', contentType: mime ?? 'image/jpeg' };
+  return { ext: 'jpg', contentType: 'image/jpeg' };
 }
 
 /**
@@ -66,9 +82,26 @@ export async function pickImage(): Promise<PickedImage | null> {
 }
 
 /**
+ * Read a picked image URI into an upload body Supabase accepts.
+ *
+ * Native `file://` URIs can't go through `fetch().blob()` reliably — on some
+ * engines it yields a zero-byte blob — so read the file into an `ArrayBuffer`
+ * via `expo-file-system`'s `File`. On web the picker produces `blob:`/`data:`
+ * URIs, where `fetch().blob()` is the correct path.
+ */
+async function readUploadBody(uri: string): Promise<Blob | ArrayBuffer> {
+  if (Platform.OS === 'web') {
+    const res = await fetch(uri);
+    return res.blob();
+  }
+  // Lazy-load: `expo-file-system`'s `File` is native-only.
+  const { File } = await import('expo-file-system');
+  return new File(uri).arrayBuffer();
+}
+
+/**
  * Upload a local/blob image URI to a public Supabase storage bucket and return
- * its cache-busted public URL. `fetch(uri) -> blob` works for both native
- * `file://` URIs and web blob/data URIs the picker produces.
+ * its cache-busted public URL. Reads the body per-platform (see `readUploadBody`).
  */
 export async function uploadImage(
   bucket: string,
@@ -76,12 +109,11 @@ export async function uploadImage(
   uri: string,
   contentType: string,
 ): Promise<string> {
-  const res = await fetch(uri);
-  const blob = await res.blob();
+  const body = await readUploadBody(uri);
 
   const { error } = await globalSupabaseClient.storage
     .from(bucket)
-    .upload(path, blob, { upsert: true, contentType });
+    .upload(path, body, { upsert: true, contentType });
   if (error) throw error;
 
   const { data } = globalSupabaseClient.storage.from(bucket).getPublicUrl(path);

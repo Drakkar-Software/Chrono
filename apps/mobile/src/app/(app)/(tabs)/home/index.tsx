@@ -16,7 +16,7 @@ import {
 import { todayISO } from '@/lib/date';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
-import { useMyProjects } from '@/lib/hooks/use-projects';
+import { useMyProjects, useProjects } from '@/lib/hooks/use-projects';
 import { useTimeEntries, useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { usePendingApprovals } from '@/lib/hooks/use-approvals';
@@ -50,7 +50,10 @@ export default function HomeScreen() {
     companyId: companyId ?? '',
     freelancerId: manager ? undefined : userId,
   });
-  const { data: myProjects } = useMyProjects(userId, companyId ?? undefined);
+  // Managers see the company's active projects; freelancers see the ones
+  // they're assigned to. Only one of these queries is enabled per role.
+  const { data: myProjects } = useMyProjects(!manager ? userId : undefined, !manager ? companyId ?? undefined : undefined);
+  const { data: companyProjects } = useProjects(manager ? companyId ?? undefined : undefined);
   const { data: pending } = usePendingApprovals(manager ? companyId ?? undefined : undefined);
 
   const monthMinutes = useMemo(() => sumDurations(monthEntries.data ?? []), [monthEntries.data]);
@@ -59,7 +62,9 @@ export default function HomeScreen() {
     () => (invoices ?? []).reduce((acc, inv) => acc + invoiceAmounts(inv).outstandingCents, 0),
     [invoices],
   );
-  const activeProjects = (myProjects ?? []).length;
+  const activeProjects = manager
+    ? (companyProjects ?? []).filter((p) => p.status === 'active').length
+    : (myProjects ?? []).length;
   const pendingCount = (pending ?? []).length;
 
   // The 5 most recent week entries, grouped by day for the preview.

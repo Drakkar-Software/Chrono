@@ -52,7 +52,10 @@ export default function InvoicesScreen() {
     freelancerId: manager ? undefined : userId,
   });
   const allInvoices = useMemo(() => invoices ?? [], [invoices]);
-  const { page, hasMore, loadMore } = usePagination(allInvoices, manager ? 'managed' : 'mine');
+  const { page, hasMore, loadMore } = usePagination(
+    allInvoices,
+    `${companyId ?? ''}:${manager ? 'managed' : 'mine'}`,
+  );
   const groups = useMemo(() => groupByMonth(page), [page]);
 
   const mine = useMyProjects(!manager ? userId : undefined, !manager ? companyId ?? undefined : undefined);
