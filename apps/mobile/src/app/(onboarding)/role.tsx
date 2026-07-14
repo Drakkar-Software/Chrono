@@ -69,7 +69,7 @@ export default function RoleSetup() {
         await create({ content: { name: companyName.trim() }, created_by: user.id });
       }
       await refresh();
-      router.replace('/(app)');
+      router.replace('/(app)/(tabs)/home');
     } catch (e) {
       setError(e instanceof Error ? e.message : t('onboarding.role.errGeneric'));
       setBusy(false);

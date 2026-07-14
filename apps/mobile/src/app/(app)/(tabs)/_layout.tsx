@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import type { ColorValue } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@chrono/ui';
+import { useResponsive, useTheme } from '@chrono/ui';
 import { canManage, unreadCount } from '@chrono/sdk';
 import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
@@ -20,6 +20,7 @@ const icon = (name: IoniconName) =>
 export default function TabsLayout() {
   const t = useT();
   const { colors } = useTheme();
+  const { isWide } = useResponsive();
   const { role } = useActiveCompany();
   const { user } = useAppAuth();
   const { data: notifications } = useNotifications(user?.id);
@@ -32,7 +33,11 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
+        // On wide web the persistent DesktopSidebar (in the (app) layout)
+        // replaces the bottom bar, so hide it there.
+        tabBarStyle: isWide
+          ? { display: 'none' }
+          : { backgroundColor: colors.surface, borderTopColor: colors.border },
       }}
     >
       <Tabs.Screen

@@ -4,6 +4,6 @@ import { useAppAuth } from '@/lib/supabase-stores';
 /** Public routes. Redirects into the app once a session exists. */
 export default function LandingLayout() {
   const { session, isLoading } = useAppAuth();
-  if (!isLoading && session) return <Redirect href="/(app)" />;
+  if (!isLoading && session) return <Redirect href="/(app)/(tabs)/home" />;
   return <Stack screenOptions={{ headerShown: false }} />;
 }

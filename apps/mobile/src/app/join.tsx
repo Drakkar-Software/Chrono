@@ -55,7 +55,7 @@ export default function JoinScreen() {
   if (isLoading) return <ScreenLoader />;
 
   return (
-    <StackScreen title={t('auth.join.title')} onBack={() => router.replace('/(app)')}>
+    <StackScreen title={t('auth.join.title')} onBack={() => router.replace('/(app)/(tabs)/home')}>
       {!token ? (
         <Txt tone="textMuted">{t('auth.join.missingCode')}</Txt>
       ) : error ? (
