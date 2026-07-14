@@ -65,7 +65,7 @@ export default function Landing() {
   const t = useT();
   const { colors } = useTheme();
   const { isWide } = useResponsive();
-  const year = 2026;
+  const year = new Date().getFullYear();
 
   return (
     <ScrollView

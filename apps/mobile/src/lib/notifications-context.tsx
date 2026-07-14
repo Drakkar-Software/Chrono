@@ -15,6 +15,11 @@ interface NotificationsValue {
 
 const NotificationsContext = createContext<NotificationsValue | null>(null);
 
+// Stable reference for the no-data case so the memo below doesn't rebuild the
+// context value (re-rendering every badge/feed consumer) on each render while
+// the feed is loading or genuinely empty.
+const EMPTY: Notification[] = [];
+
 /**
  * Mounts the notifications feed query ONCE for the signed-in user and shares it.
  *
@@ -26,7 +31,7 @@ const NotificationsContext = createContext<NotificationsValue | null>(null);
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { user } = useAppAuth();
   const { data, isLoading, error, refetch } = useNotifications(user?.id);
-  const notifications = data ?? [];
+  const notifications = data ?? EMPTY;
 
   const value = useMemo<NotificationsValue>(
     () => ({ notifications, unread: unreadCount(notifications), isLoading, error, refetch }),

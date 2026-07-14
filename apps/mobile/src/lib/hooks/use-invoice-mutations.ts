@@ -56,14 +56,16 @@ export function useCancelInvoice() {
 /**
  * Settle a project's month (recognizes revenue, pays referrals, settles FIFO).
  * The RPC flips many invoices to paid and writes referral_earnings +
- * revenue_entries the client never sees, so callers must refetch the affected
- * `useInvoices` / `useReferralEarnings` / `useRevenueEntries` queries after this
- * resolves. Bumping the invoices store here also nudges linked invoice queries.
+ * revenue_entries the client never sees. Bump every store the RPC touches so the
+ * linked `useInvoices` / `useReferralEarnings` / `useRevenueEntries` queries all
+ * re-pull automatically — callers no longer have to refetch by hand.
  */
 export function useSettleProjectMonth() {
   return useAsyncAction(async (projectId: string, month: string) => {
     await settleProjectMonth(globalSupabaseClient, projectId, month);
-    // No rows are returned; bump the store so linked invoice queries re-pull.
+    // No rows are returned; bump each affected store so its linked queries re-pull.
     stores.invoices.getState().mergeRecords([]);
+    stores.referral_earnings.getState().mergeRecords([]);
+    stores.revenue_entries.getState().mergeRecords([]);
   });
 }

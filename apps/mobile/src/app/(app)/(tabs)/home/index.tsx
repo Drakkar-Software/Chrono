@@ -113,7 +113,7 @@ export default function HomeScreen() {
             <StatTile label={t('tabs.home.thisMonth')} value={formatDuration(monthMinutes)} tone="accent" />
             <StatTile label={t('tabs.home.thisWeek')} value={formatDuration(weekMinutes)} />
             <StatTile label={t('tabs.home.outstanding')}>
-              <Money cents={outstandingCents} currency={currency} variant="heading" />
+              <Money cents={outstandingCents} currency={currency} variant="heading" mono />
             </StatTile>
             <StatTile label={t('tabs.home.activeProjects')} value={String(activeProjects)} />
           </StatRow>

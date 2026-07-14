@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ColorScheme } from '@chrono/ui';
 
@@ -32,16 +32,18 @@ export function ThemePrefProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
-  const setPref = (next: ThemePref) => {
+  const setPref = useCallback((next: ThemePref) => {
     setPrefState(next);
     AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
-  };
+  }, []);
 
   const scheme = pref === 'system' ? undefined : pref;
 
-  return (
-    <ThemePrefContext.Provider value={{ pref, scheme, setPref }}>{children}</ThemePrefContext.Provider>
-  );
+  // Memoized so consumers (and the UI ThemeProvider one level down) don't
+  // re-render on every ThemePrefProvider render — this sits at the tree root.
+  const value = useMemo<ThemePrefValue>(() => ({ pref, scheme, setPref }), [pref, scheme, setPref]);
+
+  return <ThemePrefContext.Provider value={value}>{children}</ThemePrefContext.Provider>;
 }
 
 export const useThemePref = () => useContext(ThemePrefContext);

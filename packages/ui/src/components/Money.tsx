@@ -13,6 +13,8 @@ export interface MoneyProps {
   variant?: TypeVariant;
   /** Palette token for the text color. Default `text`. */
   tone?: keyof Palette;
+  /** Render in the monospace family, matching `StatTile` figures. Default `false`. */
+  mono?: boolean;
 }
 
 /**
@@ -29,9 +31,9 @@ export function formatMoney(cents: number, currency = 'EUR', locale = 'fr-FR'): 
  * Renders a monetary amount (integer minor units) as themed, tabular-figure
  * text via `Intl.NumberFormat`. Presentational — pass an already-known amount.
  */
-export function Money({ cents, currency = 'EUR', locale = 'fr-FR', variant = 'bodyMedium', tone = 'text' }: MoneyProps) {
+export function Money({ cents, currency = 'EUR', locale = 'fr-FR', variant = 'bodyMedium', tone = 'text', mono = false }: MoneyProps) {
   return (
-    <Txt variant={variant} tone={tone} tabularNums>
+    <Txt variant={variant} tone={tone} tabularNums mono={mono}>
       {formatMoney(cents, currency, locale)}
     </Txt>
   );

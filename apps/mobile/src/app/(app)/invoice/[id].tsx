@@ -151,13 +151,13 @@ export default function InvoiceDetail() {
           </View>
           <StatRow>
             <StatTile label={t('details.earned')}>
-              <Money cents={a.earnedCents} currency={currency} variant="heading" />
+              <Money cents={a.earnedCents} currency={currency} variant="heading" mono />
             </StatTile>
             <StatTile label={t('details.paid')}>
-              <Money cents={a.amountPaidCents} currency={currency} variant="heading" tone="success" />
+              <Money cents={a.amountPaidCents} currency={currency} variant="heading" tone="success" mono />
             </StatTile>
             <StatTile label={t('details.carriedForward')}>
-              <Money cents={a.creditCarriedForwardCents} currency={currency} variant="heading" tone="textMuted" />
+              <Money cents={a.creditCarriedForwardCents} currency={currency} variant="heading" tone="textMuted" mono />
             </StatTile>
           </StatRow>
           {invoice.invoice_number ? <Row label={t('details.invoiceNumber')} value={invoice.invoice_number} /> : null}
