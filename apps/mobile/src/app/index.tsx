@@ -8,6 +8,6 @@ export default function Index() {
   const { session, isLoading } = useAppAuth();
 
   if (isLoading) return null;
-  if (session) return <Redirect href="/(app)" />;
+  if (session) return <Redirect href="/(app)/(tabs)/home" />;
   return <Redirect href={Platform.OS === 'web' ? '/(landing)' : '/(landing)/login'} />;
 }

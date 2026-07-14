@@ -39,7 +39,7 @@ export default function AuthCallback() {
       const profile = await fetchProfile(globalSupabaseClient, session.user.id).catch(
         () => null,
       );
-      router.replace(profile?.onboarded ? '/(app)' : '/(onboarding)/role');
+      router.replace(profile?.onboarded ? '/(app)/(tabs)/home' : '/(onboarding)/role');
     },
     onError: () => {
       router.replace('/(landing)/login');
