@@ -7,13 +7,18 @@ import type { AppRole, CompanyInvite } from '@chrono/sdk';
 import { useCompanyInvites, useInviteMutations } from '@/lib/hooks/use-invites';
 import { InlineError } from '@/components/common/ErrorState';
 
-/** Build a shareable invite link the invitee can open to redeem the token. */
+/**
+ * Build a shareable invite link. Prefer an https universal link — it works for a
+ * recipient who doesn't have the app yet (opens the web app / store), unlike the
+ * `chrono://` scheme. Uses the current web origin on web, else EXPO_PUBLIC_APP_URL,
+ * falling back to the scheme only when no web URL is configured.
+ */
 function inviteLink(token: string): string {
-  const base =
-    Platform.OS === 'web' && typeof window !== 'undefined'
-      ? `${window.location.origin}/join`
-      : 'chrono://join';
-  return `${base}?token=${token}`;
+  const webOrigin =
+    Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : undefined;
+  const configuredBase = process.env.EXPO_PUBLIC_APP_URL?.replace(/\/$/, '');
+  const base = webOrigin ?? configuredBase ?? 'chrono:/';
+  return `${base}/join?token=${token}`;
 }
 
 function statusTone(state: ReturnType<typeof inviteState>) {

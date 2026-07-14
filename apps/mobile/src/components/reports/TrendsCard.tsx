@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Card, Segmented, Txt, spacing, useTheme } from '@chrono/ui';
+import { Card, Segmented, Txt, formatMoney, spacing, useTheme } from '@chrono/ui';
+import { DEFAULT_LOCALE } from '@chrono/sdk';
 
 import type { MonthlyPoint } from '@/lib/reports';
+import { shortMonthLabel } from '@/lib/date';
 import { TrendChart } from '@/components/reports/TrendChart';
 
 type Metric = 'revenue' | 'cost' | 'margin';
@@ -13,14 +15,22 @@ const METRIC_OPTIONS = [
   { label: 'Margin', value: 'margin' },
 ];
 
-/** Compact currency for axis captions ("€1.2K"). */
+/**
+ * Compact currency for axis captions ("1,2 k €"). Pinned to the app locale, and
+ * falls back to plain `formatMoney` where the engine lacks `Intl` compact
+ * notation (older Hermes on iOS) so captions never throw or drift locale.
+ */
 function compactMoney(cents: number, currency: string): string {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency,
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(cents / 100);
+  try {
+    return new Intl.NumberFormat(DEFAULT_LOCALE, {
+      style: 'currency',
+      currency,
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(cents / 100);
+  } catch {
+    return formatMoney(cents, currency, DEFAULT_LOCALE);
+  }
 }
 
 export interface TrendsCardProps {
@@ -36,7 +46,7 @@ export function TrendsCard({ points, currency }: TrendsCardProps) {
   const chartPoints = useMemo(
     () =>
       points.map((p) => ({
-        label: p.month,
+        label: shortMonthLabel(p.month),
         value:
           metric === 'revenue' ? p.revenueCents : metric === 'cost' ? p.costCents : p.marginCents,
       })),

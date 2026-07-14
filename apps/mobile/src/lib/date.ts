@@ -27,6 +27,20 @@ export function todayISO(): string {
   return toISODate(new Date());
 }
 
+/** Short localized month label ("Jul") for a 'YYYY-MM' key. */
+export function shortMonthLabel(yyyyMm: string, locale = 'fr-FR'): string {
+  const [y, m] = yyyyMm.split('-').map(Number);
+  if (!y || !m) return yyyyMm;
+  try {
+    return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(locale, {
+      month: 'short',
+      timeZone: 'UTC',
+    });
+  } catch {
+    return yyyyMm.slice(5);
+  }
+}
+
 /** Compact relative time ("just now", "5m", "3h", "2d") for a timestamp. */
 export function relativeTime(iso: string, now: Date = new Date()): string {
   const then = new Date(iso).getTime();

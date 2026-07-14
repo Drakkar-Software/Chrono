@@ -2,11 +2,7 @@ import { useCallback } from 'react';
 import { useLinkedQuery, useMutation } from '@drakkar.software/anchor/hooks';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
-import {
-  acceptCompanyInvite,
-  createCompanyInvite,
-  fetchCompanyInvites,
-} from '@chrono/sdk';
+import { acceptCompanyInvite, fetchCompanyInvites } from '@chrono/sdk';
 import type { AppRole, CompanyInvite } from '@chrono/sdk';
 
 /** A company's invites (managers only), offline-first. */
@@ -27,12 +23,19 @@ export function useCompanyInvites(companyId: string | undefined) {
 }
 
 export function useInviteMutations() {
-  const { update, isLoading, error } = useMutation(stores.company_invites);
+  const { insert, update, isLoading, error } = useMutation(stores.company_invites);
 
+  // Insert through the store so the new invite (with its DB-generated token)
+  // shows up in useCompanyInvites immediately, without waiting for a refetch.
   const create = useCallback(
     (input: { companyId: string; email: string; role: AppRole; invitedBy: string }) =>
-      createCompanyInvite(globalSupabaseClient, input),
-    [],
+      insert({
+        company_id: input.companyId,
+        email: input.email,
+        role: input.role,
+        invited_by: input.invitedBy,
+      }),
+    [insert],
   );
   const revoke = useCallback(
     (id: string) => update(id, { revoked_at: new Date().toISOString() }),

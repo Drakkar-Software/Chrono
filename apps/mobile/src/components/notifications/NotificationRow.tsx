@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
+import { Txt, borders, opacity, radii, spacing, useTheme } from '@chrono/ui';
 import { notificationIcon, notificationTone } from '@chrono/sdk';
 import type { Notification } from '@chrono/sdk';
 
@@ -57,7 +57,7 @@ export function NotificationRow({
         accessibilityRole="button"
         accessibilityLabel="Dismiss notification"
         hitSlop={8}
-        style={({ pressed }) => [styles.dismiss, { opacity: pressed ? 0.5 : 1 }]}
+        style={({ pressed }) => [styles.dismiss, { opacity: pressed ? opacity.muted : 1 }]}
       >
         <Ionicons name="close" size={16} color={colors.textFaint} />
       </Pressable>

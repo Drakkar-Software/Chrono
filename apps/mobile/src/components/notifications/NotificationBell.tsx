@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Txt, radii, spacing, useTheme } from '@chrono/ui';
+import { Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 
 /** Header bell that opens the notifications feed, with an unread-count badge. */
 export function NotificationBell({ unread }: { unread: number }) {
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     height: 16,
     paddingHorizontal: 3,
     borderRadius: radii.pill,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     alignItems: 'center',
     justifyContent: 'center',
   },

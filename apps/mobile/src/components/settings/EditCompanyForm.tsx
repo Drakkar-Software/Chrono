@@ -41,6 +41,7 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
   const [vatId, setVatId] = useState('');
   const [registrationId, setRegistrationId] = useState('');
   const [vatRate, setVatRate] = useState('');
+  const [vatError, setVatError] = useState<string | undefined>();
 
   // Seed the editable fields when the active company loads/changes. Legitimate
   // prop->state sync of async-loaded values (mirrors the profile-name pattern).
@@ -64,7 +65,16 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
       name: name.trim(),
       logo_url: logoUrl ?? undefined,
     };
-    const parsedVat = vatRate.trim() === '' ? null : Number(vatRate);
+    let parsedVat: number | null = null;
+    if (vatRate.trim() !== '') {
+      const n = Number(vatRate.replace(',', '.'));
+      if (!Number.isFinite(n) || n < 0 || n > 100) {
+        setVatError('VAT rate must be between 0 and 100');
+        return;
+      }
+      parsedVat = n;
+    }
+    setVatError(undefined);
     await update(company.id, {
       content: mergedContent as Json,
       currency,
@@ -72,7 +82,7 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
       address: address.trim() || null,
       vat_id: vatId.trim() || null,
       registration_id: registrationId.trim() || null,
-      vat_rate: parsedVat != null && Number.isFinite(parsedVat) ? parsedVat : null,
+      vat_rate: parsedVat,
     });
     await onSaved();
   };
@@ -122,6 +132,7 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
         onChangeText={setVatRate}
         placeholder="e.g. 20"
         keyboardType="decimal-pad"
+        error={vatError}
       />
       {error ? (
         <InlineError error={error} describe={{ fallback: 'Could not save company settings.' }} />

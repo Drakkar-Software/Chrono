@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -7,10 +7,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Button, ThemeProvider, Txt, spacing, useTheme } from '@chrono/ui';
-import { ActiveCompanyProvider } from '@/lib/active-company-context';
+import { ActiveCompanyProvider, useActiveCompany } from '@/lib/active-company-context';
 import { ThemePrefProvider, useThemePref } from '@/lib/theme-pref';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { usePushRegistration } from '@/lib/hooks/use-push';
+import { useInviteMutations } from '@/lib/hooks/use-invites';
+import { clearPendingInvite, getPendingInvite } from '@/lib/pending-invite';
 
 // Keep the splash up until auth resolves (see the effect below).
 void SplashScreen.preventAutoHideAsync();
@@ -78,10 +80,43 @@ function ThemedApp() {
     <ThemeProvider scheme={scheme}>
       <StatusBar style="auto" />
       <ActiveCompanyProvider>
+        <PendingInviteRedeemer />
         <Stack screenOptions={{ headerShown: false }} />
       </ActiveCompanyProvider>
     </ThemeProvider>
   );
+}
+
+/**
+ * Redeems an invite token stashed before login (see `join.tsx`) once the user
+ * is signed in, then switches to the joined company. Runs once per session.
+ */
+function PendingInviteRedeemer() {
+  const { user } = useAppAuth();
+  const { accept } = useInviteMutations();
+  const { refresh, setCompanyId } = useActiveCompany();
+  const handled = useRef(false);
+
+  useEffect(() => {
+    if (!user?.id || handled.current) return;
+    handled.current = true;
+    (async () => {
+      const token = await getPendingInvite();
+      if (!token) return;
+      try {
+        const companyId = await accept(token);
+        await refresh();
+        setCompanyId(companyId);
+      } catch {
+        // Used/expired/invalid — nothing to do.
+      } finally {
+        // Clear after one attempt so a bad token doesn't retry every launch.
+        await clearPendingInvite();
+      }
+    })();
+  }, [user?.id, accept, refresh, setCompanyId]);
+
+  return null;
 }
 
 const styles = StyleSheet.create({

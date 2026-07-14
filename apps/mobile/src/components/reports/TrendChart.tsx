@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Txt, radii, spacing, useTheme } from '@chrono/ui';
+import { Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 
 export interface TrendPoint {
   label: string;
@@ -28,14 +28,17 @@ export function TrendChart({ points, color, negativeColor, formatValue, height =
   const values = points.map((p) => p.value);
   const maxV = Math.max(0, ...values);
   const minV = Math.min(0, ...values);
+  const allZero = maxV === 0 && minV === 0;
   const range = maxV - minV || 1;
-  const zeroFromTop = (maxV / range) * height; // px from top to the zero line
+  // When every value is 0 the baseline belongs at the bottom (a flat line), not
+  // at the top where maxV/range would put it.
+  const zeroFromTop = allZero ? height : (maxV / range) * height;
 
   return (
     <View style={styles.wrap}>
       <View style={[styles.row, { height }]}>
         {points.map((p) => {
-          const magnitude = (Math.abs(p.value) / range) * height;
+          const magnitude = allZero ? 0 : (Math.abs(p.value) / range) * height;
           const isNeg = p.value < 0;
           const barColor = isNeg ? negativeColor ?? color : color;
           return (
@@ -62,7 +65,7 @@ export function TrendChart({ points, color, negativeColor, formatValue, height =
         {points.map((p) => (
           <View key={p.label} style={styles.col}>
             <Txt variant="micro" tone="textFaint" style={styles.axisLabel} numberOfLines={1}>
-              {p.label.slice(5)}
+              {p.label}
             </Txt>
             <Txt variant="micro" tone="textMuted" style={styles.axisLabel} numberOfLines={1}>
               {formatValue(p.value)}
@@ -79,7 +82,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-end' },
   col: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
   plot: { width: '100%', justifyContent: 'flex-end' },
-  baseline: { position: 'absolute', left: 0, right: 0, height: StyleSheet.hairlineWidth },
+  baseline: { position: 'absolute', left: 0, right: 0, height: borders.hairline },
   bar: { position: 'absolute', left: '15%', right: '15%', borderRadius: radii.sm },
   axisLabel: { textAlign: 'center' },
 });

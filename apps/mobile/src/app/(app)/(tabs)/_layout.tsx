@@ -3,8 +3,10 @@ import type { ColorValue } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@chrono/ui';
-import { canManage } from '@chrono/sdk';
+import { canManage, unreadCount } from '@chrono/sdk';
 import { useActiveCompany } from '@/lib/active-company-context';
+import { useAppAuth } from '@/lib/supabase-stores';
+import { useNotifications } from '@/lib/hooks/use-notifications';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -17,6 +19,9 @@ const icon = (name: IoniconName) =>
 export default function TabsLayout() {
   const { colors } = useTheme();
   const { role } = useActiveCompany();
+  const { user } = useAppAuth();
+  const { data: notifications } = useNotifications(user?.id);
+  const unread = unreadCount(notifications ?? []);
   const showReports = canManage(role);
 
   return (
@@ -28,7 +33,14 @@ export default function TabsLayout() {
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
       }}
     >
-      <Tabs.Screen name="home/index" options={{ title: 'Home', tabBarIcon: icon('home-outline') }} />
+      <Tabs.Screen
+        name="home/index"
+        options={{
+          title: 'Home',
+          tabBarIcon: icon('home-outline'),
+          tabBarBadge: unread > 0 ? (unread > 99 ? '99+' : unread) : undefined,
+        }}
+      />
       <Tabs.Screen
         name="projects/index"
         options={{ title: 'Projects', tabBarIcon: icon('folder-outline') }}

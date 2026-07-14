@@ -1,8 +1,10 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { canManage } from '@chrono/sdk';
+import { canManage, unreadCount } from '@chrono/sdk';
 import { useActiveCompany } from '@/lib/active-company-context';
+import { useAppAuth } from '@/lib/supabase-stores';
+import { useNotifications } from '@/lib/hooks/use-notifications';
 
-const { Label, Icon } = NativeTabs.Trigger;
+const { Label, Icon, Badge } = NativeTabs.Trigger;
 
 /**
  * Native (iOS/Android) bottom tabs backed by the platform tab bar. The
@@ -11,6 +13,9 @@ const { Label, Icon } = NativeTabs.Trigger;
  */
 export default function NativeTabsLayout() {
   const { role } = useActiveCompany();
+  const { user } = useAppAuth();
+  const { data: notifications } = useNotifications(user?.id);
+  const unread = unreadCount(notifications ?? []);
   const showReports = canManage(role);
 
   return (
@@ -18,6 +23,7 @@ export default function NativeTabsLayout() {
       <NativeTabs.Trigger name="home/index">
         <Label>Home</Label>
         <Icon sf="house" />
+        {unread > 0 ? <Badge>{unread > 99 ? '99+' : String(unread)}</Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="projects/index">
         <Label>Projects</Label>

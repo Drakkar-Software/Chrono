@@ -8,18 +8,11 @@ import type { Notification } from '@chrono/sdk';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useNotifications, useNotificationMutations } from '@/lib/hooks/use-notifications';
 import { usePagination } from '@/lib/hooks/use-pagination';
+import { notificationTarget } from '@/lib/notification-target';
 import { NotificationRow } from '@/components/notifications/NotificationRow';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { LoadMore } from '@/components/common/LoadMore';
-
-/** Route a notification to the most relevant screen from its `data` payload. */
-function targetFor(n: Notification): string | null {
-  const data = (n.data ?? {}) as { invoiceId?: string; projectId?: string };
-  if (data.invoiceId) return `/invoice/${data.invoiceId}`;
-  if (data.projectId) return `/project/${data.projectId}`;
-  return null;
-}
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -29,13 +22,15 @@ export default function NotificationsScreen() {
   const { data, isLoading, error, refetch } = useNotifications(userId);
   const { markRead, dismiss, markAllRead } = useNotificationMutations(userId);
 
-  const list = useMemo(() => data ?? [], [data]);
+  // Filter `deleted` locally so a dismissed row vanishes immediately from the
+  // optimistic store update, before the linked query refetches.
+  const list = useMemo(() => (data ?? []).filter((n) => !n.deleted), [data]);
   const unread = unreadCount(list);
   const { page, hasMore, loadMore } = usePagination(list, userId ?? '');
 
   const openNotification = (n: Notification) => {
     if (n.read_at == null) void markRead(n.id);
-    const target = targetFor(n);
+    const target = notificationTarget(n.data);
     if (target) router.push(target as never);
   };
 
