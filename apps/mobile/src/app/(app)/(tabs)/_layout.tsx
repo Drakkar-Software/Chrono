@@ -3,11 +3,10 @@ import type { ColorValue } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useResponsive, useTheme } from '@chrono/ui';
-import { canManage, unreadCount } from '@chrono/sdk';
+import { canManage } from '@chrono/sdk';
 import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
-import { useAppAuth } from '@/lib/supabase-stores';
-import { useNotifications } from '@/lib/hooks/use-notifications';
+import { useNotificationsFeed } from '@/lib/notifications-context';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -22,9 +21,7 @@ export default function TabsLayout() {
   const { colors } = useTheme();
   const { isWide } = useResponsive();
   const { role } = useActiveCompany();
-  const { user } = useAppAuth();
-  const { data: notifications } = useNotifications(user?.id);
-  const unread = unreadCount(notifications ?? []);
+  const { unread } = useNotificationsFeed();
   const showReports = canManage(role);
 
   return (

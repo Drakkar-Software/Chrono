@@ -10,7 +10,6 @@ export function useAuditLog(companyId: string | undefined) {
     stores: [stores.audit_log],
     enabled: !!companyId,
     deps: [companyId],
-    mergeToStore: stores.audit_log,
     staleTime: 30_000,
     queryKey: `audit-log:${companyId}`,
   }) as {

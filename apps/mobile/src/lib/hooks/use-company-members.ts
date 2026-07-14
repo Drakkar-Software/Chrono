@@ -12,7 +12,6 @@ export function useCompanyMembers(companyId: string | undefined) {
       stores: [stores.company_members],
       enabled: !!companyId,
       deps: [companyId],
-      mergeToStore: stores.company_members,
       staleTime: 60_000,
       queryKey: `company-members:${companyId}`,
     },

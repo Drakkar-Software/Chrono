@@ -10,12 +10,11 @@ import {
   spacing,
   useTheme,
 } from '@chrono/ui';
-import { canManage, companyName, unreadCount } from '@chrono/sdk';
+import { canManage, companyName } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
-import { useAppAuth } from '@/lib/supabase-stores';
-import { useNotifications } from '@/lib/hooks/use-notifications';
+import { useNotificationsFeed } from '@/lib/notifications-context';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -70,9 +69,7 @@ export function DesktopSidebar() {
   const { colors } = useTheme();
   const pathname = usePathname();
   const { company, role } = useActiveCompany();
-  const { user } = useAppAuth();
-  const { data: notifications } = useNotifications(user?.id);
-  const unread = unreadCount(notifications ?? []);
+  const { unread } = useNotificationsFeed();
 
   const primary: NavItem[] = [
     { key: 'home', label: t('tabs.nav.home'), icon: 'home-outline', path: '/home', match: ['/home'] },

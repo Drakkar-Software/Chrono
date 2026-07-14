@@ -5,6 +5,7 @@ import { useAppAuth } from '@/lib/supabase-stores';
 import { useProfile } from '@/lib/hooks/use-profile';
 import { Loading } from '@/components/Loading';
 import { DesktopSidebar } from '@/components/nav/DesktopSidebar';
+import { NotificationsProvider } from '@/lib/notifications-context';
 
 /**
  * Authenticated gate. Waits for auth to resolve, redirects signed-out users to
@@ -32,13 +33,17 @@ export default function AppLayout() {
     </Stack>
   );
 
-  if (!useSidebar) return stack;
-
   return (
-    <View style={styles.shell}>
-      <DesktopSidebar />
-      <View style={styles.main}>{stack}</View>
-    </View>
+    <NotificationsProvider>
+      {useSidebar ? (
+        <View style={styles.shell}>
+          <DesktopSidebar />
+          <View style={styles.main}>{stack}</View>
+        </View>
+      ) : (
+        stack
+      )}
+    </NotificationsProvider>
   );
 }
 

@@ -9,10 +9,11 @@ export function usePendingApprovals(companyId: string | undefined) {
   return useLinkedQuery(
     () => fetchPendingApprovals(globalSupabaseClient, companyId!),
     {
+      // Watches the store for mutation-driven refresh but doesn't mergeToStore —
+      // see use-time-entries: two mergers into time_entries would loop.
       stores: [stores.time_entries],
       enabled: !!companyId,
       deps: [companyId],
-      mergeToStore: stores.time_entries,
       staleTime: 30_000,
       queryKey: `pending-approvals:${companyId}`,
     },

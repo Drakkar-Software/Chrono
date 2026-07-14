@@ -7,7 +7,8 @@ import type { Notification } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
-import { useNotifications, useNotificationMutations } from '@/lib/hooks/use-notifications';
+import { useNotificationMutations } from '@/lib/hooks/use-notifications';
+import { useNotificationsFeed } from '@/lib/notifications-context';
 import { usePagination } from '@/lib/hooks/use-pagination';
 import { notificationTarget } from '@/lib/notification-target';
 import { NotificationRow } from '@/components/notifications/NotificationRow';
@@ -21,7 +22,7 @@ export default function NotificationsScreen() {
   const { user } = useAppAuth();
   const userId = user?.id;
 
-  const { data, isLoading, error, refetch } = useNotifications(userId);
+  const { notifications: data, isLoading, error, refetch } = useNotificationsFeed();
   const { markRead, dismiss, markAllRead } = useNotificationMutations(userId);
 
   // Filter `deleted` locally so a dismissed row vanishes immediately from the

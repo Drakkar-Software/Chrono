@@ -11,7 +11,6 @@ export function useCompanyInvites(companyId: string | undefined) {
     stores: [stores.company_invites],
     enabled: !!companyId,
     deps: [companyId],
-    mergeToStore: stores.company_invites,
     staleTime: 30_000,
     queryKey: `company-invites:${companyId}`,
   }) as {

@@ -11,7 +11,6 @@ export function useInvoicePayments(invoiceId: string | undefined) {
     stores: [stores.invoice_payments],
     enabled: !!invoiceId,
     deps: [invoiceId],
-    mergeToStore: stores.invoice_payments,
     staleTime: 30_000,
     queryKey: `invoice-payments:${invoiceId}`,
   }) as {

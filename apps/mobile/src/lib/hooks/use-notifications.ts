@@ -11,7 +11,6 @@ export function useNotifications(userId: string | undefined) {
     stores: [stores.notifications],
     enabled: !!userId,
     deps: [userId],
-    mergeToStore: stores.notifications,
     staleTime: 30_000,
     queryKey: `notifications:${userId}`,
   }) as {

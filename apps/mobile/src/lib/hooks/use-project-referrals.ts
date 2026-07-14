@@ -12,7 +12,6 @@ export function useProjectReferrals(projectId: string | undefined) {
       stores: [stores.project_referrals],
       enabled: !!projectId,
       deps: [projectId],
-      mergeToStore: stores.project_referrals,
       staleTime: 60_000,
       queryKey: `project-referrals:${projectId}`,
     },

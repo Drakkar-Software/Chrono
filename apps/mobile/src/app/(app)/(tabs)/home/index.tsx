@@ -10,7 +10,6 @@ import {
   invoiceAmounts,
   monthBounds,
   sumDurations,
-  unreadCount,
   weekBounds,
 } from '@chrono/sdk';
 
@@ -22,7 +21,7 @@ import { useMyProjects, useProjects } from '@/lib/hooks/use-projects';
 import { useTimeEntries, useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { usePendingApprovals } from '@/lib/hooks/use-approvals';
-import { useNotifications } from '@/lib/hooks/use-notifications';
+import { useNotificationsFeed } from '@/lib/notifications-context';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { DayGroupHeader } from '@/components/time/DayGroupHeader';
@@ -61,8 +60,7 @@ export default function HomeScreen() {
   const { data: myProjects } = useMyProjects(!manager ? userId : undefined, !manager ? companyId ?? undefined : undefined);
   const { data: companyProjects } = useProjects(manager ? companyId ?? undefined : undefined);
   const { data: pending } = usePendingApprovals(manager ? companyId ?? undefined : undefined);
-  const { data: notifications } = useNotifications(userId);
-  const unread = useMemo(() => unreadCount(notifications ?? []), [notifications]);
+  const { unread } = useNotificationsFeed();
 
   const monthMinutes = useMemo(() => sumDurations(monthEntries.data ?? []), [monthEntries.data]);
   const weekMinutes = useMemo(() => sumDurations(week.data ?? []), [week.data]);

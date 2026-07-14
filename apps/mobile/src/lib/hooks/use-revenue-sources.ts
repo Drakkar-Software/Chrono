@@ -12,7 +12,6 @@ export function useRevenueSources(projectId: string | undefined) {
       stores: [stores.revenue_sources],
       enabled: !!projectId,
       deps: [projectId],
-      mergeToStore: stores.revenue_sources,
       staleTime: 60_000,
       queryKey: `revenue-sources:${projectId}`,
     },

@@ -1,9 +1,8 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { canManage, unreadCount } from '@chrono/sdk';
+import { canManage } from '@chrono/sdk';
 import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
-import { useAppAuth } from '@/lib/supabase-stores';
-import { useNotifications } from '@/lib/hooks/use-notifications';
+import { useNotificationsFeed } from '@/lib/notifications-context';
 
 const { Label, Icon, Badge } = NativeTabs.Trigger;
 
@@ -15,9 +14,7 @@ const { Label, Icon, Badge } = NativeTabs.Trigger;
 export default function NativeTabsLayout() {
   const t = useT();
   const { role } = useActiveCompany();
-  const { user } = useAppAuth();
-  const { data: notifications } = useNotifications(user?.id);
-  const unread = unreadCount(notifications ?? []);
+  const { unread } = useNotificationsFeed();
   const showReports = canManage(role);
 
   return (

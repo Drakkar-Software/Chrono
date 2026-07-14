@@ -13,7 +13,6 @@ export function useTimeEntry(id: string | undefined, companyId: string | undefin
       stores: [stores.time_entries],
       enabled: !!id && !!companyId,
       deps: [companyId],
-      mergeToStore: stores.time_entries,
       staleTime: 30_000,
       queryKey: `time-entries:${companyId}`,
     },

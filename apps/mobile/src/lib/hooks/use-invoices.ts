@@ -13,7 +13,6 @@ export function useInvoices(filters: InvoiceFilters) {
       stores: [stores.invoices],
       enabled: !!filters.companyId,
       deps: [JSON.stringify(filters)],
-      mergeToStore: stores.invoices,
       staleTime: 30_000,
       queryKey: `invoices:${JSON.stringify(filters)}`,
     },

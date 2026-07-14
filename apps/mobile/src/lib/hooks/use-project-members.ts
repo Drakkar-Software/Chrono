@@ -12,7 +12,6 @@ export function useProjectMembers(projectId: string | undefined) {
       stores: [stores.project_members],
       enabled: !!projectId,
       deps: [projectId],
-      mergeToStore: stores.project_members,
       staleTime: 60_000,
       queryKey: `project-members:${projectId}`,
     },
