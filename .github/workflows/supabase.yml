@@ -17,10 +17,19 @@ on:
   pull_request:
     paths:
       - backend/supabase/**
+  workflow_dispatch:
+    inputs:
+      repair_history:
+        description: >-
+          Mark every local migration as reverted on the remote before pushing.
+          Use to fix an out-of-sync history (schema empty but migrations recorded
+          as applied) — this re-applies ALL migrations. Leave off for normal runs.
+        type: boolean
+        default: false
 
 jobs:
   deploy:
-    # Run only on push; on PRs the workflow still reports a check but skips the deploy.
+    # Run only on push / manual dispatch; on PRs the workflow reports a check but skips the deploy.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
@@ -41,5 +50,26 @@ jobs:
       - name: Link to project
         run: supabase --workdir backend/supabase link --project-ref $PROJECT_ID
 
+      # Log Local vs Remote migration versions so a "Remote database is up to
+      # date" push is easy to interpret (all local versions already applied) vs
+      # a workdir/detection problem (no local migrations listed).
+      - name: List migrations (local vs remote)
+        run: supabase --workdir backend/supabase migration list
+
+      # Manual repair: clear phantom remote history rows so `db push` re-applies
+      # every migration. Only runs on an explicit workflow_dispatch with the flag
+      # set — never on a normal push.
+      - name: Repair migration history (manual)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.repair_history == 'true' }}
+        run: |
+          for f in backend/supabase/migrations/*.sql; do
+            version=$(basename "$f" | cut -d_ -f1)
+            echo "Reverting remote history entry: $version"
+            supabase --workdir backend/supabase migration repair --status reverted "$version" || true
+          done
+
       - name: Push migrations
         run: supabase --workdir backend/supabase db push
+
+      - name: Migration state after push
+        run: supabase --workdir backend/supabase migration list
