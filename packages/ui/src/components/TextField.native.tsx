@@ -1,4 +1,10 @@
-import { Host, TextField as UITextField } from '@expo/ui/swift-ui';
+import {
+  Host,
+  SecureField as UISecureField,
+  TextField as UITextField,
+  useNativeState,
+} from '@expo/ui/swift-ui';
+import { foregroundStyle } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View } from 'react-native';
 
 import { borders, layout, radii, spacing } from '../theme';
@@ -8,23 +14,25 @@ import { Txt } from './Txt';
 import type { TextFieldProps } from './TextField.types';
 
 /**
- * Native labeled input built on `@expo/ui` `TextField` inside a `Host`. Label
- * and error are themed RN text so the field matches the web layout. Props are
- * kept minimal against the alpha `@expo/ui` surface.
+ * Native labeled input built on `@expo/ui` `TextField` (or `SecureField` for
+ * masked entry) inside a `Host`. Label and error are themed RN text so the field
+ * matches the web layout. The text is seeded through an observable state
+ * (`useNativeState`) and changes flow back via `onTextChange`.
+ *
+ * `keyboardType`, `autoCapitalize`, `editable` and `multiline` have no typed
+ * equivalent on the native `@expo/ui` field and are honored only on web.
  */
 export function TextField({
   label,
   value,
   onChangeText,
   placeholder,
-  keyboardType,
   error,
   secureTextEntry = false,
-  autoCapitalize = 'sentences',
-  editable = true,
   multiline = false,
 }: TextFieldProps) {
   const { colors } = useTheme();
+  const textState = useNativeState(value);
   const borderColor = error ? colors.danger : colors.border;
   return (
     <View style={styles.wrap}>
@@ -44,17 +52,21 @@ export function TextField({
         ]}
       >
         <Host matchContents>
-          <UITextField
-            defaultValue={value}
-            placeholder={placeholder}
-            keyboardType={keyboardType}
-            multiline={multiline}
-            secure={secureTextEntry}
-            autocapitalize={autoCapitalize}
-            editable={editable}
-            onChangeText={onChangeText}
-            color={colors.text}
-          />
+          {secureTextEntry ? (
+            <UISecureField
+              text={textState}
+              placeholder={placeholder}
+              onTextChange={onChangeText}
+              modifiers={[foregroundStyle(colors.text)]}
+            />
+          ) : (
+            <UITextField
+              text={textState}
+              placeholder={placeholder}
+              onTextChange={onChangeText}
+              modifiers={[foregroundStyle(colors.text)]}
+            />
+          )}
         </Host>
       </View>
       {error ? (

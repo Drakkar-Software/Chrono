@@ -1,4 +1,5 @@
-import { Host, Picker as UIPicker } from '@expo/ui/swift-ui';
+import { Host, Picker as UIPicker, Text as UIText } from '@expo/ui/swift-ui';
+import { pickerStyle, tag, tint } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View } from 'react-native';
 
 import { spacing } from '../theme';
@@ -9,15 +10,11 @@ import type { PickerProps } from './Picker.types';
 
 /**
  * Native select built on `@expo/ui` `Picker` inside a `Host` (a menu-style
- * picker). The option index is bridged to/from our `{label,value}` list. Props
- * kept minimal against the alpha `@expo/ui` surface.
+ * picker). Selection is driven by each option's `tag` value. Props kept minimal
+ * against the `@expo/ui` surface.
  */
 export function Picker({ label, value, onValueChange, options, disabled = false }: PickerProps) {
   const { colors } = useTheme();
-  const selectedIndex = Math.max(
-    0,
-    options.findIndex((o) => o.value === value),
-  );
   return (
     <View style={styles.wrap}>
       {label ? (
@@ -27,15 +24,18 @@ export function Picker({ label, value, onValueChange, options, disabled = false 
       ) : null}
       <Host matchContents>
         <UIPicker
-          variant="menu"
-          options={options.map((o) => o.label)}
-          selectedIndex={selectedIndex}
-          color={colors.accent}
-          onOptionSelected={({ nativeEvent: { index } }) => {
-            const opt = options[index];
-            if (opt && !disabled) onValueChange(opt.value);
+          selection={value}
+          onSelectionChange={(selection: string) => {
+            if (!disabled) onValueChange(selection);
           }}
-        />
+          modifiers={[pickerStyle('menu'), tint(colors.accent)]}
+        >
+          {options.map((o) => (
+            <UIText key={o.value} modifiers={[tag(o.value)]}>
+              {o.label}
+            </UIText>
+          ))}
+        </UIPicker>
       </Host>
     </View>
   );

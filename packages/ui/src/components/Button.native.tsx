@@ -1,6 +1,7 @@
 import { Host, Button as SwiftUIButton } from '@expo/ui/swift-ui';
+import { buttonStyle, disabled as disabledModifier, tint } from '@expo/ui/swift-ui/modifiers';
 import { Button as ComposeButton } from '@expo/ui/jetpack-compose';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 
 import { opacity } from '../theme';
 import { useTheme } from '../use-theme';
@@ -8,9 +9,10 @@ import { buttonColors, buttonMetrics } from './Button.styles';
 import type { ButtonProps, ButtonVariant } from './Button.types';
 import { Txt } from './Txt';
 
-// Map our variant to the closest SwiftUI/Compose button role/variant. Kept
-// minimal because the @expo/ui API is alpha; colors come from the theme.
-function nativeVariant(variant: ButtonVariant): 'borderedProminent' | 'bordered' | 'plain' {
+// Map our variant to the closest SwiftUI native button style. `borderedProminent`
+// gives primary/danger a filled look, `bordered` an outlined one, and `plain` a
+// text-only ghost. The accent tint / destructive role carries the color.
+function swiftButtonStyle(variant: ButtonVariant): 'borderedProminent' | 'bordered' | 'plain' {
   if (variant === 'primary' || variant === 'danger') return 'borderedProminent';
   if (variant === 'secondary') return 'bordered';
   return 'plain';
@@ -20,7 +22,7 @@ function nativeVariant(variant: ButtonVariant): 'borderedProminent' | 'bordered'
  * Native Button built on `@expo/ui` (SwiftUI on iOS, Jetpack Compose on
  * Android) inside a `Host`. Colors and role derive from the theme + variant. A
  * `loading` state (which the native primitives don't express) falls back to a
- * themed `Pressable` spinner so the interface matches the web implementation.
+ * themed view spinner so the interface matches the web implementation.
  */
 export function Button({
   title,
@@ -37,8 +39,8 @@ export function Button({
   const blocked = disabled || loading;
   const hostStyle = [styles.host, fullWidth ? styles.full : styles.auto, { height: m.height }];
 
-  // Loading isn't expressible on the native button — render a themed pressable
-  // that mirrors the web look so the busy state is consistent cross-platform.
+  // Loading isn't expressible on the native button — render a themed view that
+  // mirrors the web look so the busy state is consistent cross-platform.
   if (loading) {
     return (
       <View
@@ -65,13 +67,13 @@ export function Button({
   }
 
   if (Platform.OS === 'android') {
+    // Compose `Button` takes `onClick` / `enabled` / `colors` and text children.
     return (
       <Host style={hostStyle} matchContents>
         <ComposeButton
-          variant={nativeVariant(variant)}
-          color={c.bg}
-          disabled={blocked}
-          onPress={onPress}
+          enabled={!blocked}
+          colors={{ containerColor: c.bg, contentColor: c.text }}
+          onClick={onPress}
         >
           {title}
         </ComposeButton>
@@ -79,17 +81,21 @@ export function Button({
     );
   }
 
+  // SwiftUI `Button`: text via `label`, destructive styling via `role`, and all
+  // other styling through `modifiers` (there is no `variant`/`color`/`disabled`
+  // prop). Ghost buttons tint with the accent; the rest tint with their bg.
   return (
     <Host style={hostStyle} matchContents>
       <SwiftUIButton
-        variant={nativeVariant(variant)}
-        color={variant === 'ghost' ? colors.accent : c.bg}
+        label={title}
         role={variant === 'danger' ? 'destructive' : undefined}
-        disabled={blocked}
         onPress={onPress}
-      >
-        {title}
-      </SwiftUIButton>
+        modifiers={[
+          buttonStyle(swiftButtonStyle(variant)),
+          tint(variant === 'ghost' ? colors.accent : c.bg),
+          disabledModifier(blocked),
+        ]}
+      />
     </Host>
   );
 }

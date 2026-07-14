@@ -1,4 +1,5 @@
-import { Host, DateTimePicker } from '@expo/ui/swift-ui';
+import { Host, DatePicker as UIDatePicker } from '@expo/ui/swift-ui';
+import { disabled as disabledModifier, tint } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View } from 'react-native';
 
 import { spacing } from '../theme';
@@ -8,11 +9,17 @@ import { Txt } from './Txt';
 import type { DatePickerProps } from './DatePicker.types';
 
 /**
- * Native date picker built on `@expo/ui` `DateTimePicker` inside a `Host`.
- * Emits a JS `Date` on selection. Props kept minimal against the alpha
- * `@expo/ui` surface.
+ * Native date picker built on `@expo/ui` `DatePicker` inside a `Host`. Emits a
+ * JS `Date` on selection. Props kept minimal against the `@expo/ui` surface.
  */
-export function DatePicker({ label, value, onChange, disabled = false }: DatePickerProps) {
+export function DatePicker({
+  label,
+  value,
+  onChange,
+  minimumDate,
+  maximumDate,
+  disabled = false,
+}: DatePickerProps) {
   const { colors } = useTheme();
   return (
     <View style={styles.wrap}>
@@ -22,13 +29,16 @@ export function DatePicker({ label, value, onChange, disabled = false }: DatePic
         </Txt>
       ) : null}
       <Host matchContents>
-        <DateTimePicker
-          variant="automatic"
-          displayedComponents="date"
-          initialDate={value.toISOString()}
-          color={colors.accent}
-          disabled={disabled}
-          onDateSelected={(date: Date) => onChange(date)}
+        <UIDatePicker
+          selection={value}
+          displayedComponents={['date']}
+          range={
+            minimumDate || maximumDate
+              ? { start: minimumDate, end: maximumDate }
+              : undefined
+          }
+          onDateChange={(date: Date) => onChange(date)}
+          modifiers={[tint(colors.accent), disabledModifier(disabled)]}
         />
       </Host>
     </View>
