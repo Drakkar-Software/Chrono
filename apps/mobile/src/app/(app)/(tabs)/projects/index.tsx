@@ -5,6 +5,7 @@ import { Button, EmptyState, StackScreen, spacing, useResponsive } from '@chrono
 import { canManage, companyCurrency } from '@chrono/sdk';
 import type { TablesInsert } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useMyProjects, useProjects } from '@/lib/hooks/use-projects';
@@ -17,6 +18,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { LoadMore } from '@/components/common/LoadMore';
 
 export default function ProjectsScreen() {
+  const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
   const { user } = useAppAuth();
@@ -53,9 +55,9 @@ export default function ProjectsScreen() {
   const headerRight = useMemo(
     () =>
       manager && !creating ? (
-        <Button title="New" size="sm" onPress={() => setCreating(true)} />
+        <Button title={t('common.new')} size="sm" onPress={() => setCreating(true)} />
       ) : undefined,
-    [manager, creating],
+    [manager, creating, t],
   );
 
   const list = projects ?? [];
@@ -65,7 +67,7 @@ export default function ProjectsScreen() {
   );
 
   return (
-    <StackScreen title="Projects" headerRight={headerRight}>
+    <StackScreen title={t('tabs.nav.projects')} headerRight={headerRight}>
       <View style={styles.wrap}>
         {creating ? (
           <NewProjectForm onCreate={onCreate} onCancel={() => setCreating(false)} isSubmitting={isPending} />
@@ -76,7 +78,7 @@ export default function ProjectsScreen() {
         ) : error && projects == null ? (
           <ErrorState
             error={error}
-            title="Couldn't load projects"
+            title={t('tabs.projects.loadError')}
             onRetry={() => {
               void refetch();
             }}
@@ -84,9 +86,9 @@ export default function ProjectsScreen() {
         ) : list.length === 0 && !creating ? (
           <EmptyState
             icon="folder-outline"
-            title="No projects"
-            subtitle={manager ? 'Create your first project to start tracking time.' : 'You are not assigned to any projects yet.'}
-            action={manager ? <Button title="New project" onPress={() => setCreating(true)} /> : undefined}
+            title={t('tabs.projects.empty')}
+            subtitle={manager ? t('tabs.projects.emptyManager') : t('tabs.projects.emptyFreelancer')}
+            action={manager ? <Button title={t('tabs.projects.newProject')} onPress={() => setCreating(true)} /> : undefined}
           />
         ) : (
           <>

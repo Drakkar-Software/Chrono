@@ -1,5 +1,6 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { canManage, unreadCount } from '@chrono/sdk';
+import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useNotifications } from '@/lib/hooks/use-notifications';
@@ -12,6 +13,7 @@ const { Label, Icon, Badge } = NativeTabs.Trigger;
  * `<Tabs>` layout in `_layout.tsx`.
  */
 export default function NativeTabsLayout() {
+  const t = useT();
   const { role } = useActiveCompany();
   const { user } = useAppAuth();
   const { data: notifications } = useNotifications(user?.id);
@@ -21,26 +23,26 @@ export default function NativeTabsLayout() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="home/index">
-        <Label>Home</Label>
+        <Label>{t('tabs.nav.home')}</Label>
         <Icon sf="house" />
         {unread > 0 ? <Badge>{unread > 99 ? '99+' : String(unread)}</Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="projects/index">
-        <Label>Projects</Label>
+        <Label>{t('tabs.nav.projects')}</Label>
         <Icon sf="folder" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="invoices/index">
-        <Label>Invoices</Label>
+        <Label>{t('tabs.nav.invoices')}</Label>
         <Icon sf="doc.text" />
       </NativeTabs.Trigger>
       {showReports ? (
         <NativeTabs.Trigger name="reports/index">
-          <Label>Reports</Label>
+          <Label>{t('tabs.nav.reports')}</Label>
           <Icon sf="chart.bar" />
         </NativeTabs.Trigger>
       ) : null}
       <NativeTabs.Trigger name="settings/index">
-        <Label>Settings</Label>
+        <Label>{t('tabs.nav.settings')}</Label>
         <Icon sf="gearshape" />
       </NativeTabs.Trigger>
     </NativeTabs>

@@ -3,8 +3,10 @@ import { Link } from 'expo-router';
 import { Txt } from '@chrono/ui';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { globalSupabaseClient } from '@/lib/supabase';
+import { useT } from '@/lib/i18n';
 
 export default function Register() {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [done, setDone] = useState(false);
@@ -20,16 +22,16 @@ export default function Register() {
 
   return (
     <AuthForm
-      title="Create your account"
-      subtitle={done ? 'Check your inbox to confirm your email.' : 'Start tracking your time'}
-      submitLabel="Sign up"
+      title={t('auth.createAccount')}
+      subtitle={done ? t('auth.register.checkInbox') : t('auth.register.subtitle')}
+      submitLabel={t('auth.signUp')}
       onSubmit={signUp}
       busy={busy}
       error={error}
       footer={
         <Link href="/(landing)/login">
           <Txt variant="caption" tone="accent">
-            Already have an account? Sign in
+            {t('auth.register.haveAccount')}
           </Txt>
         </Link>
       }

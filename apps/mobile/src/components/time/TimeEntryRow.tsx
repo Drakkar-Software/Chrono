@@ -3,6 +3,7 @@ import { Badge, Txt, radii, spacing, useTheme } from '@chrono/ui';
 import { formatDuration } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';
 import { timeEntryBadge } from '@/lib/status';
+import { useT } from '@/lib/i18n';
 
 export interface TimeEntryRowProps {
   entry: TimeEntryWithProject;
@@ -11,9 +12,10 @@ export interface TimeEntryRowProps {
 
 /** One time entry: project + description on the left, duration + status right. */
 export function TimeEntryRow({ entry, onPress }: TimeEntryRowProps) {
+  const t = useT();
   const { colors } = useTheme();
-  const projectName = entry.project?.name ?? 'Project';
-  const statusLabel = entry.status.charAt(0).toUpperCase() + entry.status.slice(1);
+  const projectName = entry.project?.name ?? t('comp.project.fallbackName');
+  const statusLabel = t('status.' + entry.status);
 
   return (
     <Pressable

@@ -3,8 +3,10 @@ import { Link } from 'expo-router';
 import { Txt } from '@chrono/ui';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { globalSupabaseClient } from '@/lib/supabase';
+import { useT } from '@/lib/i18n';
 
 export default function Login() {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -21,9 +23,9 @@ export default function Login() {
 
   return (
     <AuthForm
-      title="Welcome back"
-      subtitle="Sign in to your Chrono account"
-      submitLabel="Sign in"
+      title={t('auth.login.title')}
+      subtitle={t('auth.login.subtitle')}
+      submitLabel={t('auth.signIn')}
       onSubmit={signIn}
       busy={busy}
       error={error}
@@ -31,12 +33,12 @@ export default function Login() {
         <>
           <Link href="/(landing)/register">
             <Txt variant="caption" tone="accent">
-              Create an account
+              {t('auth.login.createAccount')}
             </Txt>
           </Link>
           <Link href="/(landing)/reset-password">
             <Txt variant="caption" tone="textMuted">
-              Forgot your password?
+              {t('auth.login.forgotPassword')}
             </Txt>
           </Link>
         </>

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Platform, Share, StyleSheet, View } from 'react-native';
 import { Badge, Button, Picker, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
-import { inviteState, inviteStateLabel } from '@chrono/sdk';
+import { inviteState } from '@chrono/sdk';
 import type { AppRole, CompanyInvite } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useCompanyInvites, useInviteMutations } from '@/lib/hooks/use-invites';
 import { InlineError } from '@/components/common/ErrorState';
 
@@ -41,6 +42,7 @@ export interface InvitesCardProps {
 
 /** Manager tool: invite teammates by email, and manage pending invites. */
 export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesCardProps) {
+  const t = useT();
   const { isWide } = useResponsive();
   const { data: invites } = useCompanyInvites(companyId);
   const { create, revoke, isPending, error } = useInviteMutations();
@@ -52,11 +54,11 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
   const now = useMemo(() => new Date().toISOString(), []);
   const roleOptions = canGrantElevated
     ? [
-        { label: 'Freelancer', value: 'freelancer' },
-        { label: 'Manager', value: 'manager' },
-        { label: 'Admin', value: 'admin' },
+        { label: t('role.freelancer'), value: 'freelancer' },
+        { label: t('role.manager'), value: 'manager' },
+        { label: t('role.admin'), value: 'admin' },
       ]
-    : [{ label: 'Freelancer', value: 'freelancer' }];
+    : [{ label: t('role.freelancer'), value: 'freelancer' }];
 
   const send = async () => {
     const trimmed = email.trim();
@@ -73,7 +75,7 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
       setCopiedId(invite.id);
       return;
     }
-    await Share.share({ message: `Join our team on Chrono: ${link}` });
+    await Share.share({ message: t('compb.invites.shareMessage', { link }) });
   };
 
   const list = invites ?? [];
@@ -83,26 +85,26 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
       <View style={[styles.form, isWide && styles.formWide]}>
         <View style={styles.emailField}>
           <TextField
-            label="Invite by email"
+            label={t('compb.invites.emailLabel')}
             value={email}
             onChangeText={setEmail}
-            placeholder="teammate@company.com"
+            placeholder={t('compb.invites.emailPlaceholder')}
             autoCapitalize="none"
             keyboardType="email-address"
           />
         </View>
         {canGrantElevated ? (
           <View style={styles.roleField}>
-            <Picker label="Role" value={role} onValueChange={(v) => setRole(v as AppRole)} options={roleOptions} />
+            <Picker label={t('compb.invites.roleLabel')} value={role} onValueChange={(v) => setRole(v as AppRole)} options={roleOptions} />
           </View>
         ) : null}
-        <Button title="Send invite" onPress={send} loading={isPending} disabled={!email.trim()} fullWidth={!isWide} />
+        <Button title={t('compb.invites.send')} onPress={send} loading={isPending} disabled={!email.trim()} fullWidth={!isWide} />
       </View>
-      {error ? <InlineError error={error} describe={{ fallback: 'Could not create the invite.' }} /> : null}
+      {error ? <InlineError error={error} describe={{ fallback: t('compb.invites.createFail') }} /> : null}
 
       {list.length === 0 ? (
         <Txt variant="caption" tone="textMuted">
-          No invites yet. Invite teammates by email — they redeem the link to join.
+          {t('compb.invites.empty')}
         </Txt>
       ) : (
         list.map((invite) => {
@@ -116,22 +118,28 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
                 </Txt>
                 <View style={styles.inviteMeta}>
                   <Txt variant="caption" tone="textMuted">
-                    {invite.role}
+                    {t('role.' + invite.role)}
                   </Txt>
-                  <Badge label={inviteStateLabel(state)} status={statusTone(state)} />
+                  <Badge label={t('compb.invites.state.' + state)} status={statusTone(state)} />
                 </View>
               </View>
               <View style={styles.inviteActions}>
                 {redeemable ? (
                   <Button
-                    title={Platform.OS === 'web' ? (copiedId === invite.id ? 'Copied' : 'Copy link') : 'Share link'}
+                    title={
+                      Platform.OS === 'web'
+                        ? copiedId === invite.id
+                          ? t('compb.invites.copied')
+                          : t('compb.invites.copyLink')
+                        : t('compb.invites.shareLink')
+                    }
                     size="sm"
                     variant="secondary"
                     onPress={() => void shareLink(invite)}
                   />
                 ) : null}
                 {redeemable ? (
-                  <Button title="Revoke" size="sm" variant="ghost" onPress={() => void revoke(invite.id)} />
+                  <Button title={t('compb.invites.revoke')} size="sm" variant="ghost" onPress={() => void revoke(invite.id)} />
                 ) : null}
               </View>
             </View>

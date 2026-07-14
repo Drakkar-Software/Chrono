@@ -7,6 +7,7 @@ import { Card, EmptyState, StackScreen, Txt, spacing, useTheme } from '@chrono/u
 import { auditActionLabel, auditIcon, describeAudit } from '@chrono/sdk';
 import type { AuditEntry } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useAuditLog } from '@/lib/hooks/use-audit';
 import { usePagination } from '@/lib/hooks/use-pagination';
@@ -38,6 +39,7 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 }
 
 export default function AuditScreen() {
+  const t = useT();
   const router = useRouter();
   const { companyId } = useActiveCompany();
   const { data, isLoading, error, refetch } = useAuditLog(companyId ?? undefined);
@@ -46,13 +48,13 @@ export default function AuditScreen() {
   const { page, hasMore, loadMore } = usePagination(list, companyId ?? '');
 
   return (
-    <StackScreen title="Audit log" onBack={() => router.back()}>
+    <StackScreen title={t('details.auditLog')} onBack={() => router.back()}>
       {isLoading && data == null ? (
         <ScreenLoader />
       ) : error && data == null ? (
         <ErrorState
           error={error}
-          title="Couldn't load the audit log"
+          title={t('details.auditLoadError')}
           onRetry={() => {
             void refetch();
           }}
@@ -60,8 +62,8 @@ export default function AuditScreen() {
       ) : list.length === 0 ? (
         <EmptyState
           icon="document-text-outline"
-          title="Nothing logged yet"
-          subtitle="Role changes, settlements and payments are recorded here."
+          title={t('details.nothingLogged')}
+          subtitle={t('details.nothingLoggedSubtitle')}
         />
       ) : (
         <View style={styles.wrap}>

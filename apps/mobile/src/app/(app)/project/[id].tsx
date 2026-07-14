@@ -6,10 +6,10 @@ import {
   canManage,
   companyCurrency,
   displayName,
-  projectStatusLabel,
   remainingReferralPct,
 } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useProject } from '@/lib/hooks/use-projects';
 import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
@@ -37,6 +37,7 @@ import { StatRow, StatTile } from '@/components/ui/StatTile';
 type Panel = 'none' | 'edit' | 'member' | 'source' | 'referrer';
 
 export default function ProjectDetail() {
+  const t = useT();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { company, role } = useActiveCompany();
@@ -87,17 +88,17 @@ export default function ProjectDetail() {
 
   if (isLoading && !project) {
     return (
-      <StackScreen title="Project" onBack={() => router.back()}>
+      <StackScreen title={t('details.project')} onBack={() => router.back()}>
         <ScreenLoader />
       </StackScreen>
     );
   }
   if (projectError && !project) {
     return (
-      <StackScreen title="Project" onBack={() => router.back()}>
+      <StackScreen title={t('details.project')} onBack={() => router.back()}>
         <ErrorState
           error={projectError}
-          title="Couldn't load project"
+          title={t('details.projectLoadError')}
           onRetry={() => {
             void refetchProject();
           }}
@@ -107,8 +108,12 @@ export default function ProjectDetail() {
   }
   if (!project) {
     return (
-      <StackScreen title="Project" onBack={() => router.back()}>
-        <EmptyState icon="folder-outline" title="Project not found" subtitle="It may have been removed." />
+      <StackScreen title={t('details.project')} onBack={() => router.back()}>
+        <EmptyState
+          icon="folder-outline"
+          title={t('details.projectNotFound')}
+          subtitle={t('details.mayHaveBeenRemoved')}
+        />
       </StackScreen>
     );
   }
@@ -177,23 +182,23 @@ export default function ProjectDetail() {
                   </Txt>
                 ) : null}
               </View>
-              <Badge label={projectStatusLabel(project.status)} status={projectBadge(project.status)} />
+              <Badge label={t('status.' + project.status)} status={projectBadge(project.status)} />
             </View>
             <StatRow>
               <StatTile
-                label="Default TJM"
+                label={t('details.defaultTjm')}
                 value={project.default_tjm_cents != null ? formatMoney(project.default_tjm_cents, currency) : '—'}
               />
-              <StatTile label="Hours / day" value={String(project.hours_per_day)} />
+              <StatTile label={t('details.hoursPerDay')} value={String(project.hours_per_day)} />
               {project.budget_cents != null ? (
-                <StatTile label="Budget" value={formatMoney(project.budget_cents, currency)} />
+                <StatTile label={t('details.budget')} value={formatMoney(project.budget_cents, currency)} />
               ) : null}
             </StatRow>
             {manager ? (
               <View style={styles.headerActions}>
-                <Button title="Edit" size="sm" variant="secondary" onPress={() => setPanel('edit')} />
+                <Button title={t('common.edit')} size="sm" variant="secondary" onPress={() => setPanel('edit')} />
                 <Button
-                  title={project.status === 'archived' ? 'Unarchive' : 'Archive'}
+                  title={project.status === 'archived' ? t('details.unarchive') : t('details.archive')}
                   size="sm"
                   variant="ghost"
                   onPress={toggleArchive}
@@ -206,7 +211,7 @@ export default function ProjectDetail() {
         )}
 
         <Section
-          title="Members"
+          title={t('details.members')}
           action={manager && panel !== 'member' ? () => setPanel('member') : undefined}
         >
           {panel === 'member' ? (
@@ -222,7 +227,7 @@ export default function ProjectDetail() {
           ))}
           {(members ?? []).length === 0 && panel !== 'member' ? (
             <Txt variant="body" tone="textMuted">
-              None yet
+              {t('common.noneYet')}
             </Txt>
           ) : null}
         </Section>
@@ -230,7 +235,7 @@ export default function ProjectDetail() {
         {/* Revenue config is manager-only (pricing/margins); referrer setup is admin-only. */}
         {manager ? (
           <Section
-            title="Revenue sources"
+            title={t('details.revenueSources')}
             action={panel !== 'source' ? () => setPanel('source') : undefined}
           >
             {panel === 'source' ? (
@@ -245,7 +250,7 @@ export default function ProjectDetail() {
             ))}
             {(sources ?? []).length === 0 && panel !== 'source' ? (
               <Txt variant="body" tone="textMuted">
-                None yet
+                {t('common.noneYet')}
               </Txt>
             ) : null}
           </Section>
@@ -253,7 +258,7 @@ export default function ProjectDetail() {
 
         {manager ? (
           <Section
-            title="Referrers"
+            title={t('details.referrers')}
             action={admin && panel !== 'referrer' ? () => setPanel('referrer') : undefined}
           >
             {panel === 'referrer' ? (
@@ -270,7 +275,7 @@ export default function ProjectDetail() {
             ))}
             {(referrals ?? []).length === 0 && panel !== 'referrer' ? (
               <Txt variant="body" tone="textMuted">
-                {admin ? 'None yet' : 'No referrers'}
+                {admin ? t('common.noneYet') : t('details.noReferrers')}
               </Txt>
             ) : null}
           </Section>
@@ -299,11 +304,12 @@ function Section({
   action?: () => void;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <View style={styles.section}>
       <SectionHeader
         title={title}
-        action={action ? <Button title="Add" size="sm" variant="secondary" onPress={action} /> : undefined}
+        action={action ? <Button title={t('common.add')} size="sm" variant="secondary" onPress={action} /> : undefined}
       />
       {children}
     </View>

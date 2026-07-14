@@ -5,6 +5,7 @@ import { EmptyState, Row, StackScreen, Txt, spacing, useResponsive } from '@chro
 import { formatDuration, groupByDay, sumDurations } from '@chrono/sdk';
 import type { TimeEntryFilters, TimeEntryWithProject } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useMyProjects } from '@/lib/hooks/use-projects';
@@ -24,6 +25,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 type DayGroup = { date: string; items: TimeEntryWithProject[] };
 
 export default function HistoryScreen() {
+  const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
   const { user } = useAppAuth();
@@ -69,7 +71,9 @@ export default function HistoryScreen() {
   const header = (
     <View style={styles.header}>
       <HistoryFilters projects={projects ?? []} value={filters} onChange={setFilters} />
-      <Row label={`${sorted.length} ${sorted.length === 1 ? 'entry' : 'entries'}`}>
+      <Row
+        label={t(sorted.length === 1 ? 'details.entryCountOne' : 'details.entryCountOther', { n: sorted.length })}
+      >
         <Txt variant="bodyMedium" mono tabularNums tone="accent">
           {formatDuration(totalMinutes)}
         </Txt>
@@ -83,7 +87,7 @@ export default function HistoryScreen() {
     ) : error && entries == null ? (
       <ErrorState
         error={error}
-        title="Couldn't load history"
+        title={t('details.historyLoadError')}
         onRetry={() => {
           void refetch();
         }}
@@ -91,13 +95,13 @@ export default function HistoryScreen() {
     ) : (
       <EmptyState
         icon="time-outline"
-        title="No entries"
-        subtitle="No time matches these filters. Try widening the date range."
+        title={t('details.noEntries')}
+        subtitle={t('details.noEntriesSubtitle')}
       />
     );
 
   return (
-    <StackScreen title="Time history" onBack={() => router.back()} scroll={false}>
+    <StackScreen title={t('details.timeHistory')} onBack={() => router.back()} scroll={false}>
       <FlatList
         data={dayGroups}
         keyExtractor={(group) => group.date}

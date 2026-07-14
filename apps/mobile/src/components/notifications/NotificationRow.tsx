@@ -5,6 +5,7 @@ import { Txt, borders, opacity, radii, spacing, useTheme } from '@chrono/ui';
 import { notificationIcon, notificationTone } from '@chrono/sdk';
 import type { Notification } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { relativeTime } from '@/lib/date';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
@@ -18,6 +19,7 @@ export function NotificationRow({
   onPress: () => void;
   onDismiss: () => void;
 }) {
+  const t = useT();
   const { colors } = useTheme();
   const unread = notification.read_at == null;
   const tone = notificationTone(notification.type);
@@ -55,7 +57,7 @@ export function NotificationRow({
       <Pressable
         onPress={onDismiss}
         accessibilityRole="button"
-        accessibilityLabel="Dismiss notification"
+        accessibilityLabel={t('compb.notif.dismiss')}
         hitSlop={8}
         style={({ pressed }) => [styles.dismiss, { opacity: pressed ? opacity.muted : 1 }]}
       >

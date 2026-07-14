@@ -4,12 +4,15 @@ import { Card, Row, Txt, spacing } from '@chrono/ui';
 import { formatDuration, summarizeByTag } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
+
 export interface TagBreakdownProps {
   entries: TimeEntryWithProject[];
 }
 
 /** Approved time grouped by tag (an entry with several tags counts under each). */
 export function TagBreakdown({ entries }: TagBreakdownProps) {
+  const t = useT();
   const rows = useMemo(() => {
     const summary = summarizeByTag(entries);
     return Object.entries(summary)
@@ -21,7 +24,7 @@ export function TagBreakdown({ entries }: TagBreakdownProps) {
     return (
       <Card padding="lg">
         <Txt variant="caption" tone="textMuted">
-          No tagged time in this range.
+          {t('compb.reports.noTaggedTime')}
         </Txt>
       </Card>
     );

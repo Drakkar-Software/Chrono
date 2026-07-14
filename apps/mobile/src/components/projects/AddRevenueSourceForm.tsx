@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { Button, Card, Picker, TextField, Txt, spacing } from '@chrono/ui';
 import { revenueSourceLabel } from '@chrono/sdk';
 import type { Json, RevenueSourceType } from '@chrono/sdk';
+import { useT } from '@/lib/i18n';
 
 export interface AddRevenueSourceValues {
   name: string;
@@ -28,22 +29,23 @@ function toCents(input: string): number {
 
 /** Add a revenue source; the amount field's meaning follows the chosen type. */
 export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: AddRevenueSourceFormProps) {
+  const t = useT();
   const [name, setName] = useState('');
   const [type, setType] = useState<RevenueSourceType>('time_based');
   const [amount, setAmount] = useState('');
   const [markup, setMarkup] = useState('');
   const [error, setError] = useState<string | undefined>();
 
-  const amountLabel = type === 'recurring' ? 'Monthly amount' : 'Client day rate (TJM)';
+  const amountLabel = type === 'recurring' ? t('comp.revsource.monthlyAmount') : t('comp.revsource.clientDayRate');
 
   const submit = () => {
     if (!name.trim()) {
-      setError('Enter a name');
+      setError(t('comp.revsource.errName'));
       return;
     }
     const cents = toCents(amount);
     if (cents < 0) {
-      setError(`${amountLabel} cannot be negative`);
+      setError(t('comp.revsource.errNegative', { label: amountLabel }));
       return;
     }
     let content: Json;
@@ -54,7 +56,7 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
         ? parseFloat(markup.replace(',', '.'))
         : 0;
       if (markupPct < -100) {
-        setError('Markup % cannot be below -100');
+        setError(t('comp.revsource.errMarkupMin'));
         return;
       }
       content = {
@@ -70,10 +72,10 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
 
   return (
     <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">Add revenue source</Txt>
-      <TextField label="Name" value={name} onChangeText={setName} placeholder="Monthly retainer" />
+      <Txt variant="heading">{t('comp.revsource.title')}</Txt>
+      <TextField label={t('comp.field.name')} value={name} onChangeText={setName} placeholder={t('comp.revsource.namePlaceholder')} />
       <Picker
-        label="Type"
+        label={t('comp.revsource.type')}
         value={type}
         onValueChange={(v) => setType(v as RevenueSourceType)}
         options={TYPE_OPTIONS}
@@ -87,7 +89,7 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
       />
       {type === 'self_billing' ? (
         <TextField
-          label="Markup %"
+          label={t('comp.revsource.markup')}
           value={markup}
           onChangeText={setMarkup}
           placeholder="0"
@@ -99,8 +101,8 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
           {error}
         </Txt>
       ) : null}
-      <Button title="Add source" onPress={submit} loading={isSubmitting} fullWidth />
-      <Button title="Cancel" variant="ghost" onPress={onCancel} />
+      <Button title={t('comp.revsource.addSource')} onPress={submit} loading={isSubmitting} fullWidth />
+      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
     </Card>
   );
 }

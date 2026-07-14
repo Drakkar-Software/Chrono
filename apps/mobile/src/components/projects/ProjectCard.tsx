@@ -1,9 +1,9 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge, Money, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
-import { projectStatusLabel } from '@chrono/sdk';
 import type { Project } from '@chrono/sdk';
 import { projectBadge } from '@/lib/status';
+import { useT } from '@/lib/i18n';
 
 export interface ProjectCardProps {
   project: Project;
@@ -13,6 +13,7 @@ export interface ProjectCardProps {
 
 /** Summary card for a project row: name, client, TJM and status. */
 export function ProjectCard({ project, currency, onPress }: ProjectCardProps) {
+  const t = useT();
   const { colors } = useTheme();
   return (
     <Pressable
@@ -41,7 +42,7 @@ export function ProjectCard({ project, currency, onPress }: ProjectCardProps) {
             </Txt>
           ) : null}
         </View>
-        <Badge label={projectStatusLabel(project.status)} status={projectBadge(project.status)} />
+        <Badge label={t('status.' + project.status)} status={projectBadge(project.status)} />
       </View>
       {project.default_tjm_cents != null ? (
         <View style={styles.meta}>

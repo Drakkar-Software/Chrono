@@ -5,6 +5,7 @@ import { Button, EmptyState, Segmented, StackScreen, Txt, spacing, useResponsive
 import { companyCurrency } from '@chrono/sdk';
 import type { InvoiceWithRelations, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { todayISO } from '@/lib/date';
 import { exportCsv, invoicesCsv, timeEntriesCsv } from '@/lib/csv-export';
@@ -44,6 +45,7 @@ function groupByProject<T extends { project_id: string }>(rows: T[]): Map<string
 }
 
 export default function ReportsScreen() {
+  const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
   const { companyId, company } = useActiveCompany();
@@ -150,45 +152,45 @@ export default function ReportsScreen() {
   };
 
   return (
-    <StackScreen title="Reports">
+    <StackScreen title={t('tabs.nav.reports')}>
       <View style={styles.wrap}>
         <View style={styles.section}>
-          <SectionHeader eyebrow="Scope" title="Date range" />
+          <SectionHeader eyebrow={t('tabs.reports.scope')} title={t('tabs.reports.dateRange')} />
           <Segmented options={RANGE_OPTIONS} value={preset} onValueChange={(v) => setPreset(v as RangePreset)} />
           <View style={styles.exportRow}>
             <Button
-              title="Export time (CSV)"
+              title={t('tabs.reports.exportTime')}
               size="sm"
               variant="secondary"
               onPress={() => void exportCsv(`chrono-time-${range.from ?? 'all'}.csv`, timeEntriesCsv(approvedEntries ?? []))}
             />
             <Button
-              title="Export invoices (CSV)"
+              title={t('tabs.reports.exportInvoices')}
               size="sm"
               variant="secondary"
               onPress={() => void exportCsv('chrono-invoices.csv', invoicesCsv(invoices ?? []))}
             />
-            <Button title="Audit log" size="sm" variant="ghost" onPress={() => router.push('/audit')} />
+            <Button title={t('tabs.reports.auditLog')} size="sm" variant="ghost" onPress={() => router.push('/audit')} />
           </View>
         </View>
 
         <View style={styles.section}>
           <SectionHeader
-            eyebrow="Review"
-            title="Pending approvals"
+            eyebrow={t('tabs.reports.review')}
+            title={t('tabs.home.pendingApprovals')}
             count={pendingList.length}
             action={
               pendingList.length > 0 ? (
                 <View style={styles.bulkActions}>
                   <Button
-                    title={allSelected ? 'Clear' : 'Select all'}
+                    title={allSelected ? t('tabs.reports.clear') : t('tabs.reports.selectAll')}
                     size="sm"
                     variant="ghost"
                     onPress={toggleSelectAll}
                     disabled={busy}
                   />
                   <Button
-                    title={`Approve selected (${selected.size})`}
+                    title={t('tabs.reports.approveSelected', { n: selected.size })}
                     size="sm"
                     variant="primary"
                     onPress={approveSelected}
@@ -204,13 +206,13 @@ export default function ReportsScreen() {
           ) : pendingError && pending == null ? (
             <ErrorState
               error={pendingError}
-              title="Couldn't load approvals"
+              title={t('tabs.reports.approvalsError')}
               onRetry={() => {
                 void refetchPending();
               }}
             />
           ) : pendingList.length === 0 ? (
-            <EmptyState icon="checkmark-done-outline" title="All caught up" subtitle="No time entries awaiting approval." />
+            <EmptyState icon="checkmark-done-outline" title={t('tabs.reports.allCaughtUp')} subtitle={t('tabs.reports.allCaughtUpSubtitle')} />
           ) : (
             <View style={styles.grid}>
               {pendingList.map((entry) => (
@@ -237,14 +239,14 @@ export default function ReportsScreen() {
         </View>
 
         <View style={styles.section}>
-          <SectionHeader eyebrow="Trends" title="Last 6 months" />
+          <SectionHeader eyebrow={t('tabs.reports.trends')} title={t('tabs.reports.last6Months')} />
           <TrendsCard points={trend} currency={currency} />
         </View>
 
         <View style={styles.section}>
-          <SectionHeader eyebrow="People" title="Per-freelancer breakdown" count={freelancerRows.length} />
+          <SectionHeader eyebrow={t('tabs.reports.people')} title={t('tabs.reports.freelancerBreakdown')} count={freelancerRows.length} />
           <Txt variant="caption" tone="textMuted">
-            Approved billable time and invoiced amounts in the selected range.
+            {t('tabs.reports.breakdownCaption')}
           </Txt>
           {breakdownLoading ? (
             <ScreenLoader />
@@ -254,24 +256,24 @@ export default function ReportsScreen() {
         </View>
 
         <View style={styles.section}>
-          <SectionHeader eyebrow="Categories" title="By tag" />
+          <SectionHeader eyebrow={t('tabs.reports.categories')} title={t('tabs.reports.byTag')} />
           {breakdownLoading ? <ScreenLoader /> : <TagBreakdown entries={approvedEntries ?? []} />}
         </View>
 
         <View style={styles.section}>
-          <SectionHeader eyebrow="Profitability" title="Project P&amp;L" count={projectList.length} />
+          <SectionHeader eyebrow={t('tabs.reports.profitability')} title={t('tabs.reports.projectPnl')} count={projectList.length} />
           {loadingProjects && projects == null ? (
             <ScreenLoader />
           ) : projectsError && projects == null ? (
             <ErrorState
               error={projectsError}
-              title="Couldn't load projects"
+              title={t('tabs.projects.loadError')}
               onRetry={() => {
                 void refetchProjects();
               }}
             />
           ) : projectList.length === 0 ? (
-            <EmptyState icon="bar-chart-outline" title="No projects" subtitle="Create a project to see its profit and loss." />
+            <EmptyState icon="bar-chart-outline" title={t('tabs.projects.empty')} subtitle={t('tabs.reports.projectsEmptySubtitle')} />
           ) : (
             <View style={styles.grid}>
               {projectList.map((project) => (

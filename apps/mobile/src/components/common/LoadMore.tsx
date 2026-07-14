@@ -1,6 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 import { Button, Txt, spacing } from '@chrono/ui';
 
+import { useT } from '@/lib/i18n';
+
 export interface LoadMoreProps {
   /** Whether more items remain to reveal. */
   hasMore: boolean;
@@ -17,11 +19,12 @@ export interface LoadMoreProps {
  * disappears once the list is fully shown.
  */
 export function LoadMore({ hasMore, onLoadMore, remaining }: LoadMoreProps) {
+  const t = useT();
   if (!hasMore) return null;
   return (
     <View style={styles.wrap}>
       <Button
-        title={remaining && remaining > 0 ? `Load more (${remaining})` : 'Load more'}
+        title={remaining && remaining > 0 ? t('compb.loadMore.withCount', { n: remaining }) : t('compb.loadMore.more')}
         variant="secondary"
         size="sm"
         onPress={onLoadMore}
@@ -36,12 +39,13 @@ export interface ListFooterSpinnerProps {
 }
 
 /** A muted "loading more" caption for FlatList `ListFooterComponent`. */
-export function ListFooterSpinner({ visible, label = 'Loading more…' }: ListFooterSpinnerProps) {
+export function ListFooterSpinner({ visible, label }: ListFooterSpinnerProps) {
+  const t = useT();
   if (!visible) return null;
   return (
     <View style={styles.wrap}>
       <Txt variant="caption" tone="textMuted" center>
-        {label}
+        {label ?? t('compb.loadMore.loadingMore')}
       </Txt>
     </View>
   );

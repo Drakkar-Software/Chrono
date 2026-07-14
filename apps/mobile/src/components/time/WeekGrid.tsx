@@ -3,8 +3,9 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 import { formatDuration, shiftEntryDate } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';
+import { useT } from '@/lib/i18n';
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export interface WeekGridProps {
   entries: TimeEntryWithProject[];
@@ -17,6 +18,7 @@ export interface WeekGridProps {
  * in a horizontal ScrollView so the grid never overflows a narrow screen.
  */
 export function WeekGrid({ entries, weekStart }: WeekGridProps) {
+  const t = useT();
   const { colors } = useTheme();
 
   const { rows, dayDates } = useMemo(() => {
@@ -28,14 +30,14 @@ export function WeekGrid({ entries, weekStart }: WeekGridProps) {
       const idx = dayIndex.get(e.entry_date.slice(0, 10));
       if (idx == null) continue;
       const row = byProject.get(e.project_id) ?? {
-        name: e.project?.name ?? 'Project',
+        name: e.project?.name ?? t('comp.project.fallbackName'),
         minutes: Array(7).fill(0) as number[],
       };
       row.minutes[idx] += e.duration_minutes ?? 0;
       byProject.set(e.project_id, row);
     }
     return { rows: [...byProject.values()], dayDates };
-  }, [entries, weekStart]);
+  }, [entries, weekStart, t]);
 
   if (rows.length === 0) return null;
 
@@ -44,17 +46,17 @@ export function WeekGrid({ entries, weekStart }: WeekGridProps) {
   return (
     <Card padding="md" style={styles.card}>
       <Txt variant="label" tone="textMuted" uppercase>
-        Week overview
+        {t('comp.time.weekOverview')}
       </Txt>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View>
           {/* Header */}
           <View style={styles.row}>
             <View style={styles.projectCell} />
-            {DAY_LABELS.map((d) => (
+            {DAY_KEYS.map((d) => (
               <View key={d} style={styles.dayCell}>
                 <Txt variant="micro" tone="textFaint">
-                  {d}
+                  {t('comp.time.weekday.' + d)}
                 </Txt>
               </View>
             ))}
@@ -80,7 +82,7 @@ export function WeekGrid({ entries, weekStart }: WeekGridProps) {
           <View style={[styles.row, styles.totalRow, { borderTopColor: colors.borderStrong }]}>
             <View style={styles.projectCell}>
               <Txt variant="micro" tone="textMuted" uppercase>
-                Total
+                {t('common.total')}
               </Txt>
             </View>
             {colTotals.map((m, i) => (

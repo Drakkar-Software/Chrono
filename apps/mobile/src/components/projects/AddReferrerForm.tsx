@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Button, Card, Picker, TextField, Txt, spacing } from '@chrono/ui';
 import type { PickerOption } from '@chrono/ui';
+import { useT } from '@/lib/i18n';
 
 export interface AddReferrerFormProps {
   candidates: PickerOption[];
@@ -14,6 +15,7 @@ export interface AddReferrerFormProps {
 
 /** Add a referrer with a percentage cut, capped at the remaining amount. */
 export function AddReferrerForm({ candidates, remainingPct, onAdd, onCancel, isSubmitting = false }: AddReferrerFormProps) {
+  const t = useT();
   const [userId, setUserId] = useState(candidates[0]?.value ?? '');
   const [percent, setPercent] = useState('');
   const [error, setError] = useState<string | undefined>();
@@ -21,15 +23,15 @@ export function AddReferrerForm({ candidates, remainingPct, onAdd, onCancel, isS
   const submit = () => {
     const pct = parseFloat(percent.replace(',', '.'));
     if (!userId) {
-      setError('Select a member');
+      setError(t('comp.field.selectMember'));
       return;
     }
     if (!Number.isFinite(pct) || pct <= 0) {
-      setError('Enter a percentage');
+      setError(t('comp.referrer.errPercent'));
       return;
     }
     if (pct > remainingPct) {
-      setError(`Only ${remainingPct}% remaining`);
+      setError(t('comp.referrer.onlyRemaining', { n: remainingPct }));
       return;
     }
     setError(undefined);
@@ -38,19 +40,19 @@ export function AddReferrerForm({ candidates, remainingPct, onAdd, onCancel, isS
 
   return (
     <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">Add referrer</Txt>
+      <Txt variant="heading">{t('comp.referrer.title')}</Txt>
       <Txt variant="caption" tone="textMuted">
-        {remainingPct}% still assignable
+        {t('comp.referrer.stillAssignable', { n: remainingPct })}
       </Txt>
       <Picker
-        label="Member"
+        label={t('comp.field.member')}
         value={userId}
         onValueChange={setUserId}
         options={candidates}
-        placeholder="Select a member"
+        placeholder={t('comp.field.selectMember')}
       />
       <TextField
-        label="Percent"
+        label={t('comp.referrer.percent')}
         value={percent}
         onChangeText={setPercent}
         placeholder="10"
@@ -58,13 +60,13 @@ export function AddReferrerForm({ candidates, remainingPct, onAdd, onCancel, isS
         error={error}
       />
       <Button
-        title="Add referrer"
+        title={t('comp.referrer.title')}
         onPress={submit}
         loading={isSubmitting}
         disabled={candidates.length === 0 || remainingPct <= 0}
         fullWidth
       />
-      <Button title="Cancel" variant="ghost" onPress={onCancel} />
+      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
     </Card>
   );
 }

@@ -3,8 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 
+import { useT } from '@/lib/i18n';
+
 /** Header bell that opens the notifications feed, with an unread-count badge. */
 export function NotificationBell({ unread }: { unread: number }) {
+  const t = useT();
   const router = useRouter();
   const { colors } = useTheme();
   const showBadge = unread > 0;
@@ -13,7 +16,7 @@ export function NotificationBell({ unread }: { unread: number }) {
     <Pressable
       onPress={() => router.push('/notifications')}
       accessibilityRole="button"
-      accessibilityLabel={showBadge ? `Notifications, ${unread} unread` : 'Notifications'}
+      accessibilityLabel={showBadge ? t('compb.notif.bellUnread', { n: unread }) : t('compb.notif.bell')}
       style={({ pressed }) => [
         styles.base,
         { backgroundColor: pressed ? colors.pressed : 'transparent' },

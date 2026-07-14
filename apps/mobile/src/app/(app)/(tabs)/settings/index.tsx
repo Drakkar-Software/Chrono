@@ -4,6 +4,7 @@ import { Button, Card, EmptyState, Picker, Row, StackScreen, TextField, Txt, spa
 import { canManage, companyName } from '@chrono/sdk';
 import type { AppRole } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useProfile, useProfileMutations } from '@/lib/hooks/use-profile';
@@ -11,12 +12,14 @@ import { useCompanyMembers, useCompanyMemberMutations } from '@/lib/hooks/use-co
 import { MemberRow } from '@/components/settings/MemberRow';
 import { AvatarUpload } from '@/components/settings/AvatarUpload';
 import { ThemeToggle } from '@/components/settings/ThemeToggle';
+import { LanguageToggle } from '@/components/settings/LanguageToggle';
 import { EditCompanyForm } from '@/components/settings/EditCompanyForm';
 import { JoinCompanyForm } from '@/components/settings/JoinCompanyForm';
 import { InvitesCard } from '@/components/settings/InvitesCard';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 
 export default function SettingsScreen() {
+  const t = useT();
   const { isWide } = useResponsive();
   const { user, signOut } = useAppAuth();
   const { companyId, company, companies, role, setCompanyId, refresh } = useActiveCompany();
@@ -66,12 +69,12 @@ export default function SettingsScreen() {
   const topColStyle = isWide ? styles.colWide : styles.colFull;
 
   return (
-    <StackScreen title="Settings">
+    <StackScreen title={t('tabs.nav.settings')}>
       <View style={styles.wrap}>
         <View style={[styles.grid, isWide && styles.gridRow]}>
           <View style={topColStyle}>
             <Card padding="lg" style={styles.card}>
-              <Txt variant="heading">Profile</Txt>
+              <Txt variant="heading">{t('tabs.settings.profile')}</Txt>
               <AvatarUpload
                 imageUrl={profile?.avatar_url}
                 name={name || profile?.full_name}
@@ -79,39 +82,43 @@ export default function SettingsScreen() {
                 folder={user?.id ?? ''}
                 onUploaded={onAvatarUploaded}
               />
-              <TextField label="Name" value={name} onChangeText={setName} placeholder="Your name" />
+              <TextField label={t('tabs.settings.name')} value={name} onChangeText={setName} placeholder={t('tabs.settings.namePlaceholder')} />
               {user?.email ? (
                 <Txt variant="caption" tone="textMuted">
                   {user.email}
                 </Txt>
               ) : null}
               <TextField
-                label="Address (optional)"
+                label={t('tabs.settings.address')}
                 value={address}
                 onChangeText={setAddress}
-                placeholder="Billing address for your invoices"
+                placeholder={t('tabs.settings.addressPlaceholder')}
                 multiline
               />
-              <TextField label="VAT number (optional)" value={vatId} onChangeText={setVatId} placeholder="e.g. FR12345678901" />
+              <TextField label={t('tabs.settings.vat')} value={vatId} onChangeText={setVatId} placeholder={t('tabs.settings.vatPlaceholder')} />
               <TextField
-                label="Business ID (optional)"
+                label={t('tabs.settings.businessId')}
                 value={businessId}
                 onChangeText={setBusinessId}
-                placeholder="Your registration number"
+                placeholder={t('tabs.settings.businessIdPlaceholder')}
               />
               <Txt variant="caption" tone="textMuted">
-                These appear on the invoices you export.
+                {t('tabs.settings.invoiceInfo')}
               </Txt>
-              <Button title="Save" onPress={saveName} loading={savingProfile} disabled={!name.trim()} fullWidth={!isWide} />
+              <Button title={t('common.save')} onPress={saveName} loading={savingProfile} disabled={!name.trim()} fullWidth={!isWide} />
             </Card>
           </View>
 
           <View style={topColStyle}>
             <Card padding="lg" style={styles.card}>
-              <Txt variant="heading">Appearance</Txt>
+              <Txt variant="heading">{t('tabs.settings.appearance')}</Txt>
               <ThemeToggle />
               <Txt variant="caption" tone="textMuted">
-                Choose a light or dark theme, or follow your device.
+                {t('tabs.settings.appearanceHint')}
+              </Txt>
+              <LanguageToggle />
+              <Txt variant="caption" tone="textMuted">
+                {t('tabs.settings.languageHint')}
               </Txt>
             </Card>
           </View>
@@ -119,50 +126,50 @@ export default function SettingsScreen() {
 
         {hasCompanies ? (
           <Card padding="lg" style={styles.card}>
-            <Txt variant="heading">Active company</Txt>
+            <Txt variant="heading">{t('tabs.settings.activeCompany')}</Txt>
             <Picker
               value={companyId ?? ''}
               onValueChange={setCompanyId}
               options={companies.map((c) => ({ label: companyName(c), value: c.id }))}
             />
             <Txt variant="caption" tone="textMuted">
-              Switch between the teams you work with.
+              {t('tabs.settings.activeCompanyHint')}
             </Txt>
           </Card>
         ) : null}
 
         {company ? (
           <Card padding="lg" style={styles.card}>
-            <Txt variant="heading">Company</Txt>
+            <Txt variant="heading">{t('tabs.settings.company')}</Txt>
             {isAdmin ? (
               <EditCompanyForm company={company} onSaved={refresh} />
             ) : (
-              <Row label="Name" value={companyName(company)} />
+              <Row label={t('tabs.settings.name')} value={companyName(company)} />
             )}
           </Card>
         ) : null}
 
         {manager && company && user?.id ? (
           <Card padding="lg" style={styles.card}>
-            <Txt variant="heading">Invite teammates</Txt>
+            <Txt variant="heading">{t('tabs.settings.inviteTeammates')}</Txt>
             <InvitesCard companyId={company.id} invitedBy={user.id} canGrantElevated={isAdmin} />
           </Card>
         ) : null}
 
         <Card padding="lg" style={styles.card}>
-          <Txt variant="heading">Join a company</Txt>
+          <Txt variant="heading">{t('tabs.settings.joinCompany')}</Txt>
           <JoinCompanyForm userId={user?.id} onJoined={onJoined} />
           <Txt variant="caption" tone="textMuted">
-            Have a company code? Paste it here to join another team.
+            {t('tabs.settings.joinCompanyHint')}
           </Txt>
         </Card>
 
         <Card padding="lg" style={styles.card}>
-          <Txt variant="heading">Members</Txt>
+          <Txt variant="heading">{t('tabs.settings.members')}</Txt>
           {loadingMembers && members == null ? (
             <ScreenLoader fill={false} />
           ) : (members ?? []).length === 0 ? (
-            <EmptyState icon="people-outline" title="No members yet" subtitle="Invite teammates to this company to see them here." />
+            <EmptyState icon="people-outline" title={t('tabs.settings.noMembers')} subtitle={t('tabs.settings.noMembersSubtitle')} />
           ) : (
             (members ?? []).map((member) => (
               <MemberRow
@@ -176,7 +183,7 @@ export default function SettingsScreen() {
           )}
         </Card>
 
-        <Button title="Sign out" variant="danger" onPress={() => signOut()} fullWidth={!isWide} />
+        <Button title={t('common.signOut')} variant="danger" onPress={() => signOut()} fullWidth={!isWide} />
       </View>
     </StackScreen>
   );

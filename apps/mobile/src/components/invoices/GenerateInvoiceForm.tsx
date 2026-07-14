@@ -5,6 +5,7 @@ import { effectiveTjm } from '@chrono/sdk';
 import type { Project } from '@chrono/sdk';
 import { useProjectMembers } from '@/lib/hooks/use-project-members';
 import { FieldRow } from '@/components/common/FieldRow';
+import { useT } from '@/lib/i18n';
 
 export interface GenerateInvoiceParams {
   projectId: string;
@@ -39,6 +40,7 @@ export function GenerateInvoiceForm({
   onCancel,
   isSubmitting = false,
 }: GenerateInvoiceFormProps) {
+  const t = useT();
   const months = useMemo(() => monthOptions(), []);
   const [projectId, setProjectId] = useState(projects[0]?.id ?? '');
   const [month, setMonth] = useState(months[0]?.value ?? '');
@@ -62,25 +64,25 @@ export function GenerateInvoiceForm({
 
   return (
     <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">Generate invoice</Txt>
+      <Txt variant="heading">{t('comp.invoice.generate')}</Txt>
       <FieldRow>
         <Picker
-          label="Project"
+          label={t('comp.field.project')}
           value={projectId}
           onValueChange={setProjectId}
           options={projects.map((p) => ({ label: p.name, value: p.id }))}
-          placeholder="Select a project"
+          placeholder={t('comp.field.selectProject')}
         />
-        <Picker label="Month" value={month} onValueChange={setMonth} options={months} />
+        <Picker label={t('comp.invoice.month')} value={month} onValueChange={setMonth} options={months} />
       </FieldRow>
       <Button
-        title="Generate & submit"
+        title={t('comp.invoice.generateSubmit')}
         onPress={submit}
         loading={isSubmitting}
         disabled={projects.length === 0}
         fullWidth
       />
-      <Button title="Cancel" variant="ghost" onPress={onCancel} />
+      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
     </Card>
   );
 }

@@ -5,6 +5,7 @@ import { Card, EmptyState, StackScreen, TextField, Txt, spacing } from '@chrono/
 import { companyCurrency, searchAll } from '@chrono/sdk';
 import type { SearchResults } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { ProjectCard } from '@/components/projects/ProjectCard';
@@ -16,6 +17,7 @@ import { ScreenLoader } from '@/components/common/ScreenLoader';
 const EMPTY: SearchResults = { projects: [], entries: [], invoices: [] };
 
 export default function SearchScreen() {
+  const t = useT();
   const router = useRouter();
   const { companyId, company } = useActiveCompany();
   const currency = companyCurrency(company);
@@ -55,25 +57,25 @@ export default function SearchScreen() {
   const showEmpty = term.trim().length >= 2 && !loading && total === 0;
 
   return (
-    <StackScreen title="Search" onBack={() => router.back()}>
+    <StackScreen title={t('common.search')} onBack={() => router.back()}>
       <View style={styles.wrap}>
         <TextField
-          label="Search"
+          label={t('common.search')}
           value={term}
           onChangeText={setTerm}
-          placeholder="Projects, time entries, invoice #…"
+          placeholder={t('details.searchPlaceholder')}
           autoCapitalize="none"
         />
 
         {loading ? <ScreenLoader fill={false} /> : null}
 
         {showEmpty ? (
-          <EmptyState icon="search-outline" title="No matches" subtitle="Try a different term." />
+          <EmptyState icon="search-outline" title={t('details.noMatches')} subtitle={t('details.noMatchesSubtitle')} />
         ) : null}
 
         {results.projects.length > 0 ? (
           <View style={styles.section}>
-            <SectionHeader title="Projects" count={results.projects.length} />
+            <SectionHeader title={t('details.projects')} count={results.projects.length} />
             {results.projects.map((p) => (
               <ProjectCard key={p.id} project={p} currency={currency} onPress={() => router.push(`/project/${p.id}`)} />
             ))}
@@ -82,7 +84,7 @@ export default function SearchScreen() {
 
         {results.invoices.length > 0 ? (
           <View style={styles.section}>
-            <SectionHeader title="Invoices" count={results.invoices.length} />
+            <SectionHeader title={t('details.invoices')} count={results.invoices.length} />
             {results.invoices.map((i) => (
               <InvoiceCard key={i.id} invoice={i} currency={currency} onPress={() => router.push(`/invoice/${i.id}`)} />
             ))}
@@ -91,7 +93,7 @@ export default function SearchScreen() {
 
         {results.entries.length > 0 ? (
           <View style={styles.section}>
-            <SectionHeader title="Time entries" count={results.entries.length} />
+            <SectionHeader title={t('details.timeEntries')} count={results.entries.length} />
             <Card padding="lg" style={styles.entries}>
               {results.entries.map((e) => (
                 <TimeEntryRow key={e.id} entry={e} />
@@ -102,7 +104,7 @@ export default function SearchScreen() {
 
         {term.trim().length < 2 ? (
           <Txt variant="caption" tone="textMuted">
-            Type at least two characters to search.
+            {t('details.typeTwoChars')}
           </Txt>
         ) : null}
       </View>

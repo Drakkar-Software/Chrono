@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
 
+import { useT } from '@/lib/i18n';
 import { useInviteMutations } from '@/lib/hooks/use-invites';
 import { describeError } from '@/components/common/ErrorState';
 
@@ -20,6 +21,7 @@ export function tokenFromInput(value: string): string {
 
 /** Join a company by redeeming an invite token (or a pasted invite link). */
 export function JoinCompanyForm({ userId, onJoined }: JoinCompanyFormProps) {
+  const t = useT();
   const { isWide } = useResponsive();
   const { accept, isPending } = useInviteMutations();
   const [value, setValue] = useState('');
@@ -36,7 +38,7 @@ export function JoinCompanyForm({ userId, onJoined }: JoinCompanyFormProps) {
     } catch (e) {
       setMessage(
         describeError(e, {
-          fallback: 'Couldn’t join — the invite may be invalid, used or expired.',
+          fallback: t('compb.join.fallback'),
         }),
       );
     }
@@ -45,10 +47,10 @@ export function JoinCompanyForm({ userId, onJoined }: JoinCompanyFormProps) {
   return (
     <View style={styles.wrap}>
       <TextField
-        label="Invite code or link"
+        label={t('compb.join.codeLabel')}
         value={value}
         onChangeText={setValue}
-        placeholder="Paste your invite link or code"
+        placeholder={t('compb.join.codePlaceholder')}
         autoCapitalize="none"
       />
       {message ? (
@@ -57,7 +59,7 @@ export function JoinCompanyForm({ userId, onJoined }: JoinCompanyFormProps) {
         </Txt>
       ) : null}
       <Button
-        title="Join"
+        title={t('common.join')}
         onPress={join}
         loading={isPending}
         disabled={!tokenFromInput(value)}

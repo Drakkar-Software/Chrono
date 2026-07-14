@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { Button, Card, Picker, Txt, spacing } from '@chrono/ui';
 import type { Project } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
+import { useT } from '@/lib/i18n';
 
 export interface SettleMonthFormProps {
   projects: Project[];
@@ -22,31 +23,32 @@ function monthOptions(count = 6) {
 
 /** Manager action: recognize revenue + settle a project's month (FIFO). */
 export function SettleMonthForm({ projects, onSettle, onCancel, isSubmitting = false }: SettleMonthFormProps) {
+  const t = useT();
   const months = useMemo(() => monthOptions(), []);
   const [projectId, setProjectId] = useState(projects[0]?.id ?? '');
   const [month, setMonth] = useState(months[0]?.value ?? '');
 
   return (
     <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">Settle a month</Txt>
+      <Txt variant="heading">{t('comp.invoice.settleMonth')}</Txt>
       <FieldRow>
         <Picker
-          label="Project"
+          label={t('comp.field.project')}
           value={projectId}
           onValueChange={setProjectId}
           options={projects.map((p) => ({ label: p.name, value: p.id }))}
-          placeholder="Select a project"
+          placeholder={t('comp.field.selectProject')}
         />
-        <Picker label="Month" value={month} onValueChange={setMonth} options={months} />
+        <Picker label={t('comp.invoice.month')} value={month} onValueChange={setMonth} options={months} />
       </FieldRow>
       <Button
-        title="Settle month"
+        title={t('comp.invoice.settleMonthBtn')}
         onPress={() => projectId && month && onSettle(projectId, month)}
         loading={isSubmitting}
         disabled={projects.length === 0}
         fullWidth
       />
-      <Button title="Cancel" variant="ghost" onPress={onCancel} />
+      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
     </Card>
   );
 }

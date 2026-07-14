@@ -9,9 +9,9 @@ import {
   freelancerLegal,
   invoiceAmounts,
   invoiceLabel,
-  invoiceStatusLabel,
 } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useInvoice } from '@/lib/hooks/use-invoices';
@@ -27,6 +27,7 @@ import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 export default function InvoiceDetail() {
+  const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -76,7 +77,7 @@ export default function InvoiceDetail() {
       });
       await exportInvoice(html);
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : 'Could not export the invoice.');
+      setExportError(err instanceof Error ? err.message : t('details.exportFailed'));
     } finally {
       setExporting(false);
     }
@@ -104,17 +105,17 @@ export default function InvoiceDetail() {
 
   if (isLoading && !invoice) {
     return (
-      <StackScreen title="Invoice" onBack={() => router.back()}>
+      <StackScreen title={t('details.invoice')} onBack={() => router.back()}>
         <ScreenLoader />
       </StackScreen>
     );
   }
   if (error && !invoice) {
     return (
-      <StackScreen title="Invoice" onBack={() => router.back()}>
+      <StackScreen title={t('details.invoice')} onBack={() => router.back()}>
         <ErrorState
           error={error}
-          title="Couldn't load invoice"
+          title={t('details.invoiceLoadError')}
           onRetry={() => {
             void refetch();
           }}
@@ -124,8 +125,12 @@ export default function InvoiceDetail() {
   }
   if (!invoice) {
     return (
-      <StackScreen title="Invoice" onBack={() => router.back()}>
-        <EmptyState icon="receipt-outline" title="Invoice not found" subtitle="It may have been removed." />
+      <StackScreen title={t('details.invoice')} onBack={() => router.back()}>
+        <EmptyState
+          icon="receipt-outline"
+          title={t('details.invoiceNotFound')}
+          subtitle={t('details.mayHaveBeenRemoved')}
+        />
       </StackScreen>
     );
   }
@@ -138,31 +143,31 @@ export default function InvoiceDetail() {
         <Card padding="lg" style={styles.card}>
           <View style={styles.header}>
             <SectionHeader
-              title={invoice.project?.name ?? 'Invoice'}
-              action={<Badge label={invoiceStatusLabel(invoice.status)} status={invoiceBadge(invoice.status)} />}
+              title={invoice.project?.name ?? t('details.invoice')}
+              action={<Badge label={t('status.' + invoice.status)} status={invoiceBadge(invoice.status)} />}
             />
           </View>
           <StatRow>
-            <StatTile label="Earned">
+            <StatTile label={t('details.earned')}>
               <Money cents={a.earnedCents} currency={currency} variant="heading" />
             </StatTile>
-            <StatTile label="Paid">
+            <StatTile label={t('details.paid')}>
               <Money cents={a.amountPaidCents} currency={currency} variant="heading" tone="success" />
             </StatTile>
-            <StatTile label="Carried fwd">
+            <StatTile label={t('details.carriedForward')}>
               <Money cents={a.creditCarriedForwardCents} currency={currency} variant="heading" tone="textMuted" />
             </StatTile>
           </StatRow>
-          {invoice.invoice_number ? <Row label="Invoice #" value={invoice.invoice_number} /> : null}
-          <Row label="Period" value={invoice.period_month.slice(0, 7)} />
-          {invoice.issued_on ? <Row label="Issued" value={invoice.issued_on} /> : null}
+          {invoice.invoice_number ? <Row label={t('details.invoiceNumber')} value={invoice.invoice_number} /> : null}
+          <Row label={t('common.period')} value={invoice.period_month.slice(0, 7)} />
+          {invoice.issued_on ? <Row label={t('details.issued')} value={invoice.issued_on} /> : null}
           <AmountBreakdown invoice={invoice} currency={currency} />
         </Card>
 
         <View style={[styles.actions, isWide && styles.actionsWide]}>
           {invoice.status === 'draft' ? (
             <Button
-              title="Submit invoice"
+              title={t('details.submitInvoice')}
               onPress={onSubmit}
               loading={submit.isPending}
               fullWidth={!isWide}
@@ -171,7 +176,7 @@ export default function InvoiceDetail() {
 
           {manager ? (
             <Button
-              title="Settle project month"
+              title={t('details.settleProjectMonth')}
               variant="secondary"
               onPress={onSettle}
               loading={settle.isPending}
@@ -181,7 +186,7 @@ export default function InvoiceDetail() {
 
           {canExport ? (
             <Button
-              title="Export / Share"
+              title={t('details.exportShare')}
               variant="secondary"
               onPress={onExport}
               loading={exporting}

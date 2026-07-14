@@ -13,6 +13,7 @@ import {
 import type { PickerOption } from '@chrono/ui';
 import { parseTags } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
+import { useT } from '@/lib/i18n';
 
 export interface LogEntryValues {
   projectId: string;
@@ -30,11 +31,6 @@ export interface LogEntryFormProps {
   defaultBillable?: boolean;
 }
 
-const BILLABLE_OPTIONS = [
-  { label: 'Billable', value: 'billable' },
-  { label: 'Non-billable', value: 'nonbillable' },
-];
-
 /** Manual time-entry composer. Owns its field state; emits a normalized value. */
 export function LogEntryForm({
   projectOptions,
@@ -42,6 +38,11 @@ export function LogEntryForm({
   isSubmitting = false,
   defaultBillable = true,
 }: LogEntryFormProps) {
+  const t = useT();
+  const billableOptions = [
+    { label: t('comp.time.billable'), value: 'billable' },
+    { label: t('comp.time.nonBillable'), value: 'nonbillable' },
+  ];
   const [projectId, setProjectId] = useState(projectOptions[0]?.value ?? '');
   const [entryDate, setEntryDate] = useState(new Date());
   const [hours, setHours] = useState('');
@@ -57,11 +58,11 @@ export function LogEntryForm({
 
   const submit = () => {
     if (!projectId) {
-      setError('Pick a project');
+      setError(t('comp.time.errPickProject'));
       return;
     }
     if (durationMinutes <= 0) {
-      setError('Enter a duration in hours');
+      setError(t('comp.time.errEnterDuration'));
       return;
     }
     setError(undefined);
@@ -80,40 +81,40 @@ export function LogEntryForm({
 
   return (
     <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">Log time</Txt>
+      <Txt variant="heading">{t('comp.time.logTime')}</Txt>
       <Picker
-        label="Project"
+        label={t('comp.field.project')}
         value={projectId}
         onValueChange={setProjectId}
         options={projectOptions}
-        placeholder="Select a project"
+        placeholder={t('comp.field.selectProject')}
       />
       <FieldRow>
-        <DatePicker label="Date" value={entryDate} onChange={setEntryDate} maximumDate={new Date()} />
+        <DatePicker label={t('common.date')} value={entryDate} onChange={setEntryDate} maximumDate={new Date()} />
         <TextField
-          label="Hours"
+          label={t('comp.time.hours')}
           value={hours}
           onChangeText={setHours}
-          placeholder="e.g. 7.5"
+          placeholder={t('comp.time.hoursPlaceholder')}
           keyboardType="decimal-pad"
         />
       </FieldRow>
       <TextField
-        label="Description"
+        label={t('comp.time.description')}
         value={description}
         onChangeText={setDescription}
-        placeholder="What did you work on?"
+        placeholder={t('comp.time.descriptionPlaceholder')}
         multiline
       />
       <TextField
-        label="Tags (optional)"
+        label={t('comp.time.tagsOptional')}
         value={tags}
         onChangeText={setTags}
-        placeholder="dev, meeting, support"
+        placeholder={t('comp.time.tagsPlaceholder')}
         autoCapitalize="none"
       />
       <View style={styles.segment}>
-        <Segmented options={BILLABLE_OPTIONS} value={billable} onValueChange={setBillable} />
+        <Segmented options={billableOptions} value={billable} onValueChange={setBillable} />
       </View>
       {error ? (
         <Txt variant="caption" tone="danger">
@@ -121,7 +122,7 @@ export function LogEntryForm({
         </Txt>
       ) : null}
       <Button
-        title="Add entry"
+        title={t('comp.time.addEntry')}
         onPress={submit}
         loading={isSubmitting}
         disabled={projectOptions.length === 0}

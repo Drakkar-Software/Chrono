@@ -7,6 +7,7 @@ import { toISODate } from '@/lib/date';
 import { useInvoicePayments, useInvoicePaymentMutations } from '@/lib/hooks/use-invoice-payments';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { InlineError } from '@/components/common/ErrorState';
+import { useT } from '@/lib/i18n';
 
 export interface PaymentsSectionProps {
   invoiceId: string;
@@ -19,6 +20,7 @@ export interface PaymentsSectionProps {
 
 /** Manual payments recorded against an invoice (actual disbursements). */
 export function PaymentsSection({ invoiceId, companyId, currency, canManage, userId }: PaymentsSectionProps) {
+  const t = useT();
   const { data: payments } = useInvoicePayments(invoiceId);
   const { record, remove, isPending, error } = useInvoicePaymentMutations();
 
@@ -35,7 +37,7 @@ export function PaymentsSection({ invoiceId, companyId, currency, canManage, use
   const submit = async () => {
     const value = parseFloat(amount.replace(',', '.'));
     if (!Number.isFinite(value) || value <= 0) {
-      setFormError('Enter an amount greater than 0');
+      setFormError(t('comp.invoice.errAmount'));
       return;
     }
     if (!userId) return;
@@ -61,35 +63,35 @@ export function PaymentsSection({ invoiceId, companyId, currency, canManage, use
   return (
     <View style={styles.wrap}>
       <SectionHeader
-        eyebrow="Disbursed"
-        title="Payments"
+        eyebrow={t('comp.invoice.disbursed')}
+        title={t('comp.invoice.payments')}
         action={
-          canManage && !open ? <Button title="Record" size="sm" variant="secondary" onPress={() => setOpen(true)} /> : undefined
+          canManage && !open ? <Button title={t('comp.invoice.record')} size="sm" variant="secondary" onPress={() => setOpen(true)} /> : undefined
         }
       />
 
       {open ? (
         <Card padding="lg" style={styles.form}>
-          <TextField label="Amount" value={amount} onChangeText={setAmount} placeholder="e.g. 600" keyboardType="decimal-pad" />
-          <DatePicker label="Paid on" value={paidOn} onChange={setPaidOn} maximumDate={new Date()} />
-          <Picker label="Method" value={method} onValueChange={setMethod} options={[...PAYMENT_METHODS]} />
-          <TextField label="Note (optional)" value={note} onChangeText={setNote} placeholder="Reference…" />
+          <TextField label={t('common.amount')} value={amount} onChangeText={setAmount} placeholder={t('comp.invoice.amountPlaceholder')} keyboardType="decimal-pad" />
+          <DatePicker label={t('comp.invoice.paidOn')} value={paidOn} onChange={setPaidOn} maximumDate={new Date()} />
+          <Picker label={t('comp.invoice.method')} value={method} onValueChange={setMethod} options={[...PAYMENT_METHODS]} />
+          <TextField label={t('comp.invoice.noteOptional')} value={note} onChangeText={setNote} placeholder={t('comp.invoice.notePlaceholder')} />
           {formError ? (
             <Txt variant="caption" tone="danger">
               {formError}
             </Txt>
           ) : null}
-          {error ? <InlineError error={error} describe={{ fallback: 'Could not record the payment.' }} /> : null}
+          {error ? <InlineError error={error} describe={{ fallback: t('comp.invoice.recordFail') }} /> : null}
           <View style={styles.actions}>
-            <Button title="Cancel" variant="ghost" onPress={() => setOpen(false)} />
-            <Button title="Save payment" onPress={submit} loading={isPending} />
+            <Button title={t('common.cancel')} variant="ghost" onPress={() => setOpen(false)} />
+            <Button title={t('comp.invoice.savePayment')} onPress={submit} loading={isPending} />
           </View>
         </Card>
       ) : null}
 
       {list.length === 0 && !open ? (
         <Txt variant="caption" tone="textMuted">
-          No payments recorded yet.
+          {t('comp.invoice.noPayments')}
         </Txt>
       ) : (
         <Card padding="lg" style={styles.list}>
@@ -98,13 +100,13 @@ export function PaymentsSection({ invoiceId, companyId, currency, canManage, use
               <View style={styles.rowRight}>
                 <Money cents={p.amount_cents} currency={currency} />
                 {canManage ? (
-                  <IconButton name="trash-outline" size={18} tone="textMuted" onPress={() => void remove(p.id)} accessibilityLabel="Delete payment" />
+                  <IconButton name="trash-outline" size={18} tone="textMuted" onPress={() => void remove(p.id)} accessibilityLabel={t('comp.invoice.deletePayment')} />
                 ) : null}
               </View>
             </Row>
           ))}
           <View style={styles.total}>
-            <Row label="Total paid out">
+            <Row label={t('comp.invoice.totalPaidOut')}>
               <Money cents={total} currency={currency} tone="success" />
             </Row>
           </View>

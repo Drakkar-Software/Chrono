@@ -4,6 +4,7 @@ import { Link } from 'expo-router';
 import { Txt } from '@chrono/ui';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { globalSupabaseClient } from '@/lib/supabase';
+import { useT } from '@/lib/i18n';
 
 function redirectTo(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -13,6 +14,7 @@ function redirectTo(): string {
 }
 
 export default function ResetPassword() {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [sent, setSent] = useState(false);
@@ -30,9 +32,9 @@ export default function ResetPassword() {
 
   return (
     <AuthForm
-      title="Reset your password"
-      subtitle={sent ? 'If that email exists, a reset link is on its way.' : 'Enter your email to get a reset link'}
-      submitLabel="Send reset link"
+      title={t('auth.reset.title')}
+      subtitle={sent ? t('auth.reset.sent') : t('auth.reset.subtitle')}
+      submitLabel={t('auth.reset.submit')}
       onSubmit={(email) => requestReset(email)}
       withPassword={false}
       busy={busy}
@@ -40,7 +42,7 @@ export default function ResetPassword() {
       footer={
         <Link href="/(landing)/login">
           <Txt variant="caption" tone="accent">
-            Back to sign in
+            {t('auth.reset.backToSignIn')}
           </Txt>
         </Link>
       }

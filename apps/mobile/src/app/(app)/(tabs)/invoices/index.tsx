@@ -5,6 +5,7 @@ import { Button, Card, EmptyState, Money, Row, StackScreen, Txt, spacing, useRes
 import { canManage, companyCurrency } from '@chrono/sdk';
 import type { InvoiceWithRelations } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useInvoices } from '@/lib/hooks/use-invoices';
@@ -20,8 +21,6 @@ import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { LoadMore } from '@/components/common/LoadMore';
 
-const DUPLICATE_INVOICE_MESSAGE = 'An invoice already exists for this month.';
-
 function groupByMonth(invoices: InvoiceWithRelations[]) {
   const out: Record<string, InvoiceWithRelations[]> = {};
   for (const inv of invoices) {
@@ -34,6 +33,7 @@ function groupByMonth(invoices: InvoiceWithRelations[]) {
 }
 
 export default function InvoicesScreen() {
+  const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
   const { user } = useAppAuth();
@@ -102,14 +102,14 @@ export default function InvoicesScreen() {
   const headerRight =
     panel === 'none' ? (
       <Button
-        title={manager ? 'Settle' : 'Generate'}
+        title={manager ? t('tabs.invoices.settle') : t('tabs.invoices.generate')}
         size="sm"
         onPress={() => setPanel(manager ? 'settle' : 'generate')}
       />
     ) : undefined;
 
   return (
-    <StackScreen title="Invoices" headerRight={headerRight}>
+    <StackScreen title={t('tabs.nav.invoices')} headerRight={headerRight}>
       <View style={styles.wrap}>
         {panel === 'generate' && userId ? (
           <>
@@ -123,7 +123,7 @@ export default function InvoicesScreen() {
             {generate.error || submit.error ? (
               <InlineError
                 error={generate.error ?? submit.error}
-                describe={{ duplicateMessage: DUPLICATE_INVOICE_MESSAGE }}
+                describe={{ duplicateMessage: t('tabs.invoices.duplicateMessage') }}
               />
             ) : null}
           </>
@@ -146,7 +146,7 @@ export default function InvoicesScreen() {
         ) : invoicesError && invoices == null && panel === 'none' ? (
           <ErrorState
             error={invoicesError}
-            title="Couldn't load invoices"
+            title={t('tabs.invoices.loadError')}
             onRetry={() => {
               void refetchInvoices();
             }}
@@ -154,9 +154,9 @@ export default function InvoicesScreen() {
         ) : groups.length === 0 && panel === 'none' ? (
           <EmptyState
             icon="receipt-outline"
-            title="No invoices"
-            subtitle={manager ? 'Invoices appear here as freelancers submit them.' : 'Generate an invoice from your approved time.'}
-            action={!manager ? <Button title="Generate invoice" onPress={() => setPanel('generate')} /> : undefined}
+            title={t('tabs.invoices.empty')}
+            subtitle={manager ? t('tabs.invoices.emptyManager') : t('tabs.invoices.emptyFreelancer')}
+            action={!manager ? <Button title={t('tabs.invoices.generateInvoice')} onPress={() => setPanel('generate')} /> : undefined}
           />
         ) : (
           <>
@@ -189,7 +189,7 @@ export default function InvoicesScreen() {
 
         {!manager && (referralEarnings ?? []).length > 0 ? (
           <Card padding="lg" style={styles.referralCard}>
-            <Txt variant="heading">Referral earnings</Txt>
+            <Txt variant="heading">{t('tabs.invoices.referralEarnings')}</Txt>
             {(referralEarnings ?? []).map((earning) => (
               <Row key={earning.id} label={earning.period_month.slice(0, 7)}>
                 <Money cents={earning.amount_cents} currency={currency} />

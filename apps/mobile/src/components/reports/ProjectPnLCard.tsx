@@ -4,6 +4,7 @@ import { Card, Money, Row, Txt, spacing, useTheme } from '@chrono/ui';
 import { availableFunding, projectMargin, sumReferralEarnings } from '@chrono/sdk';
 import type { Invoice, Project, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 import { BudgetMeter } from '@/components/reports/BudgetMeter';
 
@@ -30,6 +31,7 @@ export function ProjectPnLCard({
   referralEarnings,
   invoices,
 }: ProjectPnLCardProps) {
+  const t = useT();
   const { colors } = useTheme();
 
   const revenueCents = useMemo(
@@ -63,21 +65,21 @@ export function ProjectPnLCard({
         {project.name}
       </Txt>
       <StatRow>
-        <StatTile label="Revenue">
+        <StatTile label={t('compb.pnl.revenue')}>
           <Money cents={revenueCents} currency={currency} variant="heading" />
         </StatTile>
-        <StatTile label="Referrals">
+        <StatTile label={t('compb.pnl.referrals')}>
           <Money cents={referralCents} currency={currency} variant="heading" tone="textMuted" />
         </StatTile>
-        <StatTile label="Cost">
+        <StatTile label={t('compb.pnl.cost')}>
           <Money cents={costCents} currency={currency} variant="heading" tone="textMuted" />
         </StatTile>
-        <StatTile label="Margin">
+        <StatTile label={t('compb.pnl.margin')}>
           <Money cents={margin} currency={currency} variant="heading" tone={margin >= 0 ? 'success' : 'danger'} />
         </StatTile>
       </StatRow>
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
-      <Row label="Available funding">
+      <Row label={t('compb.pnl.availableFunding')}>
         <Money cents={funding} currency={currency} tone="textMuted" />
       </Row>
       <BudgetMeter project={project} usedCents={costCents} currency={currency} />

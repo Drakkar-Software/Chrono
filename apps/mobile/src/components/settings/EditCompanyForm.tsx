@@ -4,20 +4,10 @@ import { Button, Picker, TextField, spacing, useResponsive } from '@chrono/ui';
 import { companyCurrency, companyName } from '@chrono/sdk';
 import type { CompanyMembership, Json } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useCompanyMutations } from '@/lib/hooks/use-companies';
 import { AvatarUpload } from '@/components/settings/AvatarUpload';
 import { InlineError } from '@/components/common/ErrorState';
-
-/** Currencies offered for a company. Codes drive money formatting elsewhere. */
-const CURRENCY_OPTIONS = [
-  { label: 'EUR — Euro', value: 'EUR' },
-  { label: 'USD — US Dollar', value: 'USD' },
-  { label: 'GBP — British Pound', value: 'GBP' },
-  { label: 'CHF — Swiss Franc', value: 'CHF' },
-  { label: 'CAD — Canadian Dollar', value: 'CAD' },
-  { label: 'AUD — Australian Dollar', value: 'AUD' },
-  { label: 'JPY — Japanese Yen', value: 'JPY' },
-];
 
 /** The `content` jsonb shape we read/merge — other keys are preserved on save. */
 type CompanyContent = { name?: string; logo_url?: string } & Record<string, unknown>;
@@ -30,8 +20,20 @@ export interface EditCompanyFormProps {
 
 /** Admin-only editor for a company's name, currency and logo. */
 export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
+  const t = useT();
   const { isWide } = useResponsive();
   const { update, isPending, error } = useCompanyMutations();
+
+  // Currencies offered for a company. Codes drive money formatting elsewhere.
+  const CURRENCY_OPTIONS = [
+    { label: t('compb.currency.eur'), value: 'EUR' },
+    { label: t('compb.currency.usd'), value: 'USD' },
+    { label: t('compb.currency.gbp'), value: 'GBP' },
+    { label: t('compb.currency.chf'), value: 'CHF' },
+    { label: t('compb.currency.cad'), value: 'CAD' },
+    { label: t('compb.currency.aud'), value: 'AUD' },
+    { label: t('compb.currency.jpy'), value: 'JPY' },
+  ];
 
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState('');
@@ -69,7 +71,7 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
     if (vatRate.trim() !== '') {
       const n = Number(vatRate.replace(',', '.'));
       if (!Number.isFinite(n) || n < 0 || n > 100) {
-        setVatError('VAT rate must be between 0 and 100');
+        setVatError(t('compb.company.vatRateError'));
         return;
       }
       parsedVat = n;
@@ -95,50 +97,60 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
         bucket="company-logos"
         folder={company.id}
         fileName="logo"
-        label="Change logo"
+        label={t('compb.company.changeLogo')}
         shape="rounded"
         onUploaded={setLogoUrl}
       />
-      <TextField label="Company name" value={name} onChangeText={setName} placeholder="Company name" />
+      <TextField
+        label={t('compb.company.nameLabel')}
+        value={name}
+        onChangeText={setName}
+        placeholder={t('compb.company.nameLabel')}
+      />
       <Picker
-        label="Currency"
+        label={t('compb.company.currencyLabel')}
         value={currency}
         onValueChange={setCurrency}
         options={CURRENCY_OPTIONS}
       />
       <TextField
-        label="Legal name (optional)"
+        label={t('compb.company.legalNameLabel')}
         value={legalName}
         onChangeText={setLegalName}
-        placeholder="Registered company name"
+        placeholder={t('compb.company.legalNamePlaceholder')}
       />
       <TextField
-        label="Address (optional)"
+        label={t('compb.company.addressLabel')}
         value={address}
         onChangeText={setAddress}
-        placeholder="Billing address"
+        placeholder={t('compb.company.addressPlaceholder')}
         multiline
       />
-      <TextField label="VAT number (optional)" value={vatId} onChangeText={setVatId} placeholder="e.g. FR12345678901" />
       <TextField
-        label="Registration ID (optional)"
-        value={registrationId}
-        onChangeText={setRegistrationId}
-        placeholder="e.g. SIRET"
+        label={t('compb.company.vatNumberLabel')}
+        value={vatId}
+        onChangeText={setVatId}
+        placeholder={t('compb.company.vatNumberPlaceholder')}
       />
       <TextField
-        label="Default VAT rate % (optional)"
+        label={t('compb.company.registrationLabel')}
+        value={registrationId}
+        onChangeText={setRegistrationId}
+        placeholder={t('compb.company.registrationPlaceholder')}
+      />
+      <TextField
+        label={t('compb.company.vatRateLabel')}
         value={vatRate}
         onChangeText={setVatRate}
-        placeholder="e.g. 20"
+        placeholder={t('compb.company.vatRatePlaceholder')}
         keyboardType="decimal-pad"
         error={vatError}
       />
       {error ? (
-        <InlineError error={error} describe={{ fallback: 'Could not save company settings.' }} />
+        <InlineError error={error} describe={{ fallback: t('compb.company.saveFail') }} />
       ) : null}
       <Button
-        title="Save company"
+        title={t('compb.company.save')}
         onPress={save}
         loading={isPending}
         disabled={!name.trim()}

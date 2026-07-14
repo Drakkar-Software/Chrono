@@ -14,6 +14,7 @@ import {
   weekBounds,
 } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { todayISO } from '@/lib/date';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
@@ -31,6 +32,7 @@ import { StatRow, StatTile } from '@/components/ui/StatTile';
 const RECENT_LIMIT = 5;
 
 export default function HomeScreen() {
+  const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
   const { user } = useAppAuth();
@@ -89,7 +91,7 @@ export default function HomeScreen() {
 
   if (initialLoading) {
     return (
-      <StackScreen title="Home">
+      <StackScreen title={t('tabs.nav.home')}>
         <ScreenLoader />
       </StackScreen>
     );
@@ -97,29 +99,29 @@ export default function HomeScreen() {
 
   return (
     <StackScreen
-      title="Home"
+      title={t('tabs.nav.home')}
       headerRight={
         <View style={styles.headerActions}>
-          <IconButton name="search-outline" onPress={() => router.push('/search')} accessibilityLabel="Search" />
+          <IconButton name="search-outline" onPress={() => router.push('/search')} accessibilityLabel={t('common.search')} />
           <NotificationBell unread={unread} />
         </View>
       }
     >
       <View style={styles.wrap}>
         <View style={styles.section}>
-          <SectionHeader eyebrow="Overview" title="Your activity" />
+          <SectionHeader eyebrow={t('tabs.home.overview')} title={t('tabs.home.yourActivity')} />
           <StatRow>
-            <StatTile label="This month" value={formatDuration(monthMinutes)} tone="accent" />
-            <StatTile label="This week" value={formatDuration(weekMinutes)} />
-            <StatTile label="Outstanding">
+            <StatTile label={t('tabs.home.thisMonth')} value={formatDuration(monthMinutes)} tone="accent" />
+            <StatTile label={t('tabs.home.thisWeek')} value={formatDuration(weekMinutes)} />
+            <StatTile label={t('tabs.home.outstanding')}>
               <Money cents={outstandingCents} currency={currency} variant="heading" />
             </StatTile>
-            <StatTile label="Active projects" value={String(activeProjects)} />
+            <StatTile label={t('tabs.home.activeProjects')} value={String(activeProjects)} />
           </StatRow>
           {manager ? (
             <StatRow>
               <StatTile
-                label="Pending approvals"
+                label={t('tabs.home.pendingApprovals')}
                 value={String(pendingCount)}
                 tone={pendingCount > 0 ? 'warning' : 'text'}
               />
@@ -129,11 +131,11 @@ export default function HomeScreen() {
 
         <View style={[styles.actions, isWide && styles.actionsWide]}>
           <View style={styles.action}>
-            <Button title="Log time" fullWidth onPress={() => router.push('/today')} />
+            <Button title={t('tabs.home.logTime')} fullWidth onPress={() => router.push('/today')} />
           </View>
           <View style={styles.action}>
             <Button
-              title="View history"
+              title={t('tabs.home.viewHistory')}
               variant="secondary"
               fullWidth
               onPress={() => router.push('/history')}
@@ -142,7 +144,7 @@ export default function HomeScreen() {
           {manager ? (
             <View style={styles.action}>
               <Button
-                title="Reports"
+                title={t('tabs.nav.reports')}
                 variant="secondary"
                 fullWidth
                 onPress={() => router.push('/reports')}
@@ -153,20 +155,20 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <SectionHeader
-            eyebrow="This week"
-            title="Recent entries"
+            eyebrow={t('tabs.home.thisWeek')}
+            title={t('tabs.home.recentEntries')}
             action={
               recentDays.length > 0 ? (
-                <Button title="View all" variant="ghost" size="sm" onPress={() => router.push('/history')} />
+                <Button title={t('tabs.home.viewAll')} variant="ghost" size="sm" onPress={() => router.push('/history')} />
               ) : undefined
             }
           />
           {recentDays.length === 0 ? (
             <EmptyState
               icon="time-outline"
-              title="No entries yet"
-              subtitle="Log your first hours to see them here."
-              action={<Button title="Log time" onPress={() => router.push('/today')} />}
+              title={t('tabs.home.noEntries')}
+              subtitle={t('tabs.home.noEntriesSubtitle')}
+              action={<Button title={t('tabs.home.logTime')} onPress={() => router.push('/today')} />}
             />
           ) : (
             <Card padding="lg" style={styles.recentCard}>

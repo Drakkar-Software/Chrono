@@ -5,6 +5,7 @@ import { Button, EmptyState, StackScreen, spacing } from '@chrono/ui';
 import { unreadCount } from '@chrono/sdk';
 import type { Notification } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useNotifications, useNotificationMutations } from '@/lib/hooks/use-notifications';
 import { usePagination } from '@/lib/hooks/use-pagination';
@@ -15,6 +16,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { LoadMore } from '@/components/common/LoadMore';
 
 export default function NotificationsScreen() {
+  const t = useT();
   const router = useRouter();
   const { user } = useAppAuth();
   const userId = user?.id;
@@ -40,16 +42,16 @@ export default function NotificationsScreen() {
   };
 
   const headerRight =
-    unread > 0 ? <Button title="Mark all read" size="sm" variant="ghost" onPress={onMarkAll} /> : undefined;
+    unread > 0 ? <Button title={t('details.markAllRead')} size="sm" variant="ghost" onPress={onMarkAll} /> : undefined;
 
   return (
-    <StackScreen title="Notifications" onBack={() => router.back()} headerRight={headerRight}>
+    <StackScreen title={t('details.notifications')} onBack={() => router.back()} headerRight={headerRight}>
       {isLoading && data == null ? (
         <ScreenLoader />
       ) : error && data == null ? (
         <ErrorState
           error={error}
-          title="Couldn't load notifications"
+          title={t('details.notificationsLoadError')}
           onRetry={() => {
             void refetch();
           }}
@@ -57,8 +59,8 @@ export default function NotificationsScreen() {
       ) : list.length === 0 ? (
         <EmptyState
           icon="notifications-off-outline"
-          title="No notifications"
-          subtitle="Approvals, payments and referral earnings will show up here."
+          title={t('details.noNotifications')}
+          subtitle={t('details.noNotificationsSubtitle')}
         />
       ) : (
         <View style={styles.list}>

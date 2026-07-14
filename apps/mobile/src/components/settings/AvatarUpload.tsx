@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { Button, Txt, radii, spacing, useTheme } from '@chrono/ui';
 
+import { useT } from '@/lib/i18n';
 import { InlineError } from '@/components/common/ErrorState';
 import { PermissionDeniedError, pickAndUploadImage } from '@/lib/image-upload';
 
@@ -44,12 +45,14 @@ export function AvatarUpload({
   bucket,
   folder,
   fileName = 'avatar',
-  label = 'Change photo',
+  label,
   size = 64,
   shape = 'circle',
   onUploaded,
 }: AvatarUploadProps) {
+  const t = useT();
   const { colors } = useTheme();
+  const buttonLabel = label ?? t('compb.avatar.changePhoto');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
@@ -89,13 +92,13 @@ export function AvatarUpload({
             </Txt>
           )}
         </View>
-        <Button title={label} variant="secondary" size="sm" onPress={onPress} loading={busy} />
+        <Button title={buttonLabel} variant="secondary" size="sm" onPress={onPress} loading={busy} />
       </View>
       {error ? (
         <InlineError
           error={error}
           message={error instanceof PermissionDeniedError ? error.message : undefined}
-          describe={{ fallback: 'Could not upload the image. Please try again.' }}
+          describe={{ fallback: t('compb.avatar.uploadFail') }}
         />
       ) : null}
     </View>

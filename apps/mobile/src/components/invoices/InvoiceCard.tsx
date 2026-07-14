@@ -1,8 +1,9 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Badge, Money, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
-import { invoiceAmounts, invoiceStatusLabel } from '@chrono/sdk';
+import { invoiceAmounts } from '@chrono/sdk';
 import type { InvoiceWithRelations } from '@chrono/sdk';
 import { invoiceBadge } from '@/lib/status';
+import { useT } from '@/lib/i18n';
 
 export interface InvoiceCardProps {
   invoice: InvoiceWithRelations;
@@ -12,6 +13,7 @@ export interface InvoiceCardProps {
 
 /** Compact invoice summary: period + project, amount due, status. */
 export function InvoiceCard({ invoice, currency, onPress }: InvoiceCardProps) {
+  const t = useT();
   const { colors } = useTheme();
   const amounts = invoiceAmounts(invoice);
   const period = invoice.period_month.slice(0, 7);
@@ -39,7 +41,7 @@ export function InvoiceCard({ invoice, currency, onPress }: InvoiceCardProps) {
       </View>
       <View style={styles.right}>
         <Money cents={amounts.amountDueCents} currency={currency} />
-        <Badge label={invoiceStatusLabel(invoice.status)} status={invoiceBadge(invoice.status)} />
+        <Badge label={t('status.' + invoice.status)} status={invoiceBadge(invoice.status)} />
       </View>
     </Pressable>
   );

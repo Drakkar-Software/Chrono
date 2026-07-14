@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Button, TextField, Txt } from '@chrono/ui';
+import { useT } from '@/lib/i18n';
 import { AuthCard } from '@/components/common/AuthCard';
 
 export interface AuthFormProps {
@@ -25,22 +26,23 @@ export function AuthForm({
   error,
   footer,
 }: AuthFormProps) {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   return (
     <AuthCard title={title} subtitle={subtitle} footer={footer}>
       <TextField
-        label="Email"
+        label={t('compb.auth.email')}
         value={email}
         onChangeText={setEmail}
-        placeholder="you@example.com"
+        placeholder={t('compb.auth.emailPlaceholder')}
         keyboardType="email-address"
         autoCapitalize="none"
       />
       {withPassword ? (
         <TextField
-          label="Password"
+          label={t('compb.auth.password')}
           value={password}
           onChangeText={setPassword}
           placeholder="••••••••"

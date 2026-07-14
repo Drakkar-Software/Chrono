@@ -1,18 +1,20 @@
 import { Link, Stack } from 'expo-router';
 import { Button, EmptyState, StackScreen } from '@chrono/ui';
+import { useT } from '@/lib/i18n';
 
 export default function NotFound() {
+  const t = useT();
   return (
     <>
-      <Stack.Screen options={{ title: 'Not found' }} />
-      <StackScreen title="Not found">
+      <Stack.Screen options={{ title: t('landing.notFound.title') }} />
+      <StackScreen title={t('landing.notFound.title')}>
         <EmptyState
           icon="help-circle-outline"
-          title="This page doesn't exist"
-          subtitle="The link may be broken or the page may have moved."
+          title={t('landing.notFound.emptyTitle')}
+          subtitle={t('landing.notFound.emptySubtitle')}
           action={
             <Link href="/" asChild>
-              <Button title="Go home" />
+              <Button title={t('landing.notFound.goHome')} />
             </Link>
           }
         />

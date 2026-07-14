@@ -8,6 +8,7 @@ import { useCompanyMutations } from '@/lib/hooks/use-companies';
 import { useJoinCompany } from '@/lib/hooks/use-company-members';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { AuthCard } from '@/components/common/AuthCard';
+import { useT } from '@/lib/i18n';
 
 type Mode = 'create' | 'join';
 
@@ -17,6 +18,7 @@ type Mode = 'create' | 'join';
  * existing one with its join code (id), landing them in as a freelancer.
  */
 export default function RoleSetup() {
+  const t = useT();
   const router = useRouter();
   const { user } = useAppAuth();
   const { completeOnboarding } = useProfileMutations();
@@ -34,15 +36,15 @@ export default function RoleSetup() {
   const submit = async () => {
     if (!user?.id) return;
     if (!fullName.trim()) {
-      setError('Enter your name');
+      setError(t('onboarding.role.errName'));
       return;
     }
     if (mode === 'create' && !companyName.trim()) {
-      setError('Enter a company name');
+      setError(t('onboarding.role.errCompanyName'));
       return;
     }
     if (mode === 'join' && !code.trim()) {
-      setError('Enter a company code');
+      setError(t('onboarding.role.errCompanyCode'));
       return;
     }
     setBusy(true);
@@ -58,7 +60,7 @@ export default function RoleSetup() {
           const msg = joinErr instanceof Error ? joinErr.message : String(joinErr);
           const alreadyMember = /duplicate|23505|already exists/i.test(msg);
           if (!alreadyMember) {
-            setError("Couldn't join — check the code and try again.");
+            setError(t('onboarding.role.errJoin'));
             setBusy(false);
             return;
           }
@@ -71,7 +73,7 @@ export default function RoleSetup() {
       await refresh();
       router.replace('/(app)');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong');
+      setError(e instanceof Error ? e.message : t('onboarding.role.errGeneric'));
       setBusy(false);
     }
   };
@@ -80,11 +82,11 @@ export default function RoleSetup() {
 
   return (
     <AuthCard
-      title="Set up Chrono"
+      title={t('onboarding.role.title')}
       subtitle={
         joining
-          ? 'Step 1 of 1 · Enter your name and the code your team shared to join.'
-          : 'Step 1 of 1 · Tell us who you are and name your company to get started.'
+          ? t('onboarding.role.subtitleJoin')
+          : t('onboarding.role.subtitleCreate')
       }
     >
       <Segmented
@@ -94,26 +96,31 @@ export default function RoleSetup() {
           setError(undefined);
         }}
         options={[
-          { label: 'Create a company', value: 'create' },
-          { label: 'Join with a code', value: 'join' },
+          { label: t('onboarding.role.optCreate'), value: 'create' },
+          { label: t('onboarding.role.optJoin'), value: 'join' },
         ]}
         disabled={busy}
       />
-      <TextField label="Your name" value={fullName} onChangeText={setFullName} placeholder="Jane Doe" />
+      <TextField
+        label={t('onboarding.role.nameLabel')}
+        value={fullName}
+        onChangeText={setFullName}
+        placeholder={t('onboarding.role.namePlaceholder')}
+      />
       {joining ? (
         <TextField
-          label="Company code"
+          label={t('onboarding.role.codeLabel')}
           value={code}
           onChangeText={setCode}
-          placeholder="Paste the code from your manager"
+          placeholder={t('onboarding.role.codePlaceholder')}
           autoCapitalize="none"
         />
       ) : (
         <TextField
-          label="Company name"
+          label={t('onboarding.role.companyLabel')}
           value={companyName}
           onChangeText={setCompanyName}
-          placeholder="Acme Studio"
+          placeholder={t('onboarding.role.companyPlaceholder')}
         />
       )}
       {error ? (
@@ -122,7 +129,7 @@ export default function RoleSetup() {
         </Txt>
       ) : null}
       <Button
-        title={joining ? 'Join company' : 'Create company'}
+        title={joining ? t('onboarding.role.joinBtn') : t('onboarding.role.createBtn')}
         onPress={submit}
         loading={busy}
         fullWidth

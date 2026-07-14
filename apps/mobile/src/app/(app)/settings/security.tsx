@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Button, Card, StackScreen, TextField, Txt, spacing } from '@chrono/ui';
 
 import { globalSupabaseClient } from '@/lib/supabase';
+import { useT } from '@/lib/i18n';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -12,6 +13,7 @@ const MIN_PASSWORD_LENGTH = 8;
  * `auth-callback` recovery route) or from settings to change the password.
  */
 export default function SecurityScreen() {
+  const t = useT();
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -21,11 +23,11 @@ export default function SecurityScreen() {
 
   const submit = async () => {
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      setError(t('tabs.security.tooShort', { n: MIN_PASSWORD_LENGTH }));
       return;
     }
     if (password !== confirm) {
-      setError('Passwords do not match');
+      setError(t('tabs.security.mismatch'));
       return;
     }
     setError(undefined);
@@ -42,15 +44,15 @@ export default function SecurityScreen() {
   };
 
   return (
-    <StackScreen title="Security">
+    <StackScreen title={t('tabs.security.title')}>
       <View style={styles.wrap}>
         <Card padding="lg" style={styles.card}>
-          <Txt variant="heading">Set a new password</Txt>
+          <Txt variant="heading">{t('tabs.security.heading')}</Txt>
           <Txt variant="caption" tone="textMuted">
-            Choose a new password for your account.
+            {t('tabs.security.subtitle')}
           </Txt>
           <TextField
-            label="New password"
+            label={t('tabs.security.newPassword')}
             value={password}
             onChangeText={setPassword}
             placeholder="••••••••"
@@ -58,7 +60,7 @@ export default function SecurityScreen() {
             autoCapitalize="none"
           />
           <TextField
-            label="Confirm password"
+            label={t('tabs.security.confirmPassword')}
             value={confirm}
             onChangeText={setConfirm}
             placeholder="••••••••"
@@ -72,12 +74,12 @@ export default function SecurityScreen() {
           ) : null}
           {done ? (
             <Txt variant="caption" tone="success">
-              Password updated.
+              {t('tabs.security.updated')}
             </Txt>
           ) : null}
-          <Button title="Update password" onPress={submit} loading={busy} fullWidth />
+          <Button title={t('tabs.security.updatePassword')} onPress={submit} loading={busy} fullWidth />
           {done ? (
-            <Button title="Back to settings" variant="ghost" onPress={() => router.replace('/settings')} />
+            <Button title={t('tabs.security.backToSettings')} variant="ghost" onPress={() => router.replace('/settings')} />
           ) : null}
         </Card>
       </View>

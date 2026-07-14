@@ -10,47 +10,48 @@ import {
   shadows,
   spacing,
 } from '@chrono/ui';
+import { useT } from '@/lib/i18n';
 
-type Feature = { icon: keyof typeof Ionicons.glyphMap; title: string; body: string };
+type Feature = { icon: keyof typeof Ionicons.glyphMap; titleKey: string; bodyKey: string };
 
 const FEATURES: Feature[] = [
   {
     icon: 'time-outline',
-    title: 'Log time your way',
-    body: 'Enter hours against the projects you are assigned to. Days and amounts are computed from each project rate.',
+    titleKey: 'landing.feature.logTime.title',
+    bodyKey: 'landing.feature.logTime.body',
   },
   {
     icon: 'checkmark-done-outline',
-    title: 'Approvals built in',
-    body: 'Managers review and approve logged time before a single euro is billed. Nothing slips through.',
+    titleKey: 'landing.feature.approvals.title',
+    bodyKey: 'landing.feature.approvals.body',
   },
   {
     icon: 'receipt-outline',
-    title: 'Invoices & carry-forward',
-    body: 'Turn approved time into monthly invoices. When funding is short, the balance is credited to the next period automatically.',
+    titleKey: 'landing.feature.invoices.title',
+    bodyKey: 'landing.feature.invoices.body',
   },
   {
     icon: 'trending-up-outline',
-    title: 'Revenue sources',
-    body: 'Fund projects from time & materials contracts, recurring retainers or self-billing — recognized month by month.',
+    titleKey: 'landing.feature.revenue.title',
+    bodyKey: 'landing.feature.revenue.body',
   },
   {
     icon: 'people-outline',
-    title: 'Referral earnings',
-    body: 'Bring a client and earn a share of project revenue every period — paid off the top before anyone else settles.',
+    titleKey: 'landing.feature.referral.title',
+    bodyKey: 'landing.feature.referral.body',
   },
   {
     icon: 'business-outline',
-    title: 'Multiple companies',
-    body: 'One account, many companies. Switch between the teams you work with and keep every project cleanly separated.',
+    titleKey: 'landing.feature.companies.title',
+    bodyKey: 'landing.feature.companies.body',
   },
 ];
 
-const STEPS: { n: string; title: string; body: string }[] = [
-  { n: '1', title: 'Log hours', body: 'Freelancers record time against their assigned projects.' },
-  { n: '2', title: 'Approve', body: 'Managers approve billable time for the month.' },
-  { n: '3', title: 'Invoice', body: 'Approved time becomes a monthly invoice at each freelancer’s rate.' },
-  { n: '4', title: 'Settle', body: 'Invoices are paid from recognized project revenue, FIFO.' },
+const STEPS: { n: string; titleKey: string; bodyKey: string }[] = [
+  { n: '1', titleKey: 'landing.step.log.title', bodyKey: 'landing.step.log.body' },
+  { n: '2', titleKey: 'landing.step.approve.title', bodyKey: 'landing.step.approve.body' },
+  { n: '3', titleKey: 'landing.step.invoice.title', bodyKey: 'landing.step.invoice.body' },
+  { n: '4', titleKey: 'landing.step.settle.title', bodyKey: 'landing.step.settle.body' },
 ];
 
 /** Apply CSS-only web properties (gradients) without breaking native. */
@@ -59,6 +60,7 @@ const webCss = (css: Record<string, string | number>) =>
 
 /** Marketing landing page — responsive hero, features, how-it-works, CTA, footer. */
 export default function Landing() {
+  const t = useT();
   const { colors } = useTheme();
   const { isWide } = useResponsive();
   const year = 2026;
@@ -92,27 +94,25 @@ export default function Landing() {
           center
           style={[styles.tagline, { maxWidth: isWide ? 620 : 420 }]}
         >
-          Track freelance time, recognize revenue, and get everyone paid.
+          {t('landing.hero.tagline')}
         </Txt>
         <Txt variant="body" tone="textMuted" center style={styles.blurb}>
-          Chrono is the time-tracking and invoicing workspace for companies running multiple
-          freelancers across multiple projects — with approvals, revenue sources, referrals and
-          funding-aware settlement handled end to end.
+          {t('landing.hero.blurb')}
         </Txt>
 
         <View style={[styles.ctaRow, !isWide && styles.ctaRowStacked]}>
           <Link href="/(landing)/register" asChild>
-            <Button title="Get started" size="lg" fullWidth={!isWide} />
+            <Button title={t('landing.hero.getStarted')} size="lg" fullWidth={!isWide} />
           </Link>
           <Link href="/(landing)/login" asChild>
-            <Button title="Sign in" variant="secondary" size="lg" fullWidth={!isWide} />
+            <Button title={t('auth.signIn')} variant="secondary" size="lg" fullWidth={!isWide} />
           </Link>
         </View>
 
         <View style={styles.trustRow}>
           <Ionicons name="lock-closed-outline" size={13} color={colors.textFaint} />
           <Txt variant="caption" tone="textFaint">
-            Multi-tenant · Offline-first · iOS · Android · Web
+            {t('landing.hero.trust')}
           </Txt>
         </View>
       </View>
@@ -125,16 +125,16 @@ export default function Landing() {
         ]}
       >
         <Txt variant="caption" mono uppercase tone="accent" center style={styles.eyebrow}>
-          Why Chrono
+          {t('landing.features.eyebrow')}
         </Txt>
         <Txt variant="display" weight="bold" center style={styles.sectionTitle}>
-          Everything from a logged hour{'\n'}to a settled invoice.
+          {t('landing.features.title')}
         </Txt>
 
         <View style={styles.grid}>
           {FEATURES.map((f) => (
             <View
-              key={f.title}
+              key={f.titleKey}
               style={[
                 styles.featureCard,
                 {
@@ -158,10 +158,10 @@ export default function Landing() {
                 <Ionicons name={f.icon} size={20} color={colors.accent} />
               </View>
               <Txt variant="heading" weight="semibold" style={styles.featureTitle}>
-                {f.title}
+                {t(f.titleKey)}
               </Txt>
               <Txt variant="body" tone="textMuted">
-                {f.body}
+                {t(f.bodyKey)}
               </Txt>
             </View>
           ))}
@@ -171,10 +171,10 @@ export default function Landing() {
       {/* ─── How it works ─── */}
       <View style={[styles.section, { paddingHorizontal: isWide ? 64 : spacing.xl }]}>
         <Txt variant="caption" mono uppercase tone="accent" center style={styles.eyebrow}>
-          How it works
+          {t('landing.how.eyebrow')}
         </Txt>
         <Txt variant="display" weight="bold" center style={styles.sectionTitle}>
-          Four steps, one clear flow.
+          {t('landing.how.title')}
         </Txt>
         <View style={[styles.steps, { flexDirection: isWide ? 'row' : 'column' }]}>
           {STEPS.map((s) => (
@@ -185,10 +185,10 @@ export default function Landing() {
                 </Txt>
               </View>
               <Txt variant="heading" weight="semibold" center style={styles.stepTitle}>
-                {s.title}
+                {t(s.titleKey)}
               </Txt>
               <Txt variant="caption" tone="textMuted" center>
-                {s.body}
+                {t(s.bodyKey)}
               </Txt>
             </View>
           ))}
@@ -210,13 +210,13 @@ export default function Landing() {
           ]}
         >
           <Txt variant="display" weight="bold" center>
-            Ready to bill your time?
+            {t('landing.cta.title')}
           </Txt>
           <Txt variant="body" tone="textMuted" center style={styles.ctaBlurb}>
-            Set up your company and first project in minutes.
+            {t('landing.cta.subtitle')}
           </Txt>
           <Link href="/(landing)/register" asChild>
-            <Button title="Create your account" size="lg" fullWidth={!isWide} />
+            <Button title={t('auth.createAccount')} size="lg" fullWidth={!isWide} />
           </Link>
         </View>
       </View>
@@ -235,7 +235,7 @@ export default function Landing() {
           </Txt>
         </View>
         <Txt variant="caption" tone="textFaint">
-          © {year} Drakkar Software
+          {t('landing.footer.copyright', { year })}
         </Txt>
       </View>
     </ScrollView>

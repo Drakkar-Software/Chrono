@@ -5,6 +5,7 @@ import { Button, EmptyState, StackScreen, Txt, spacing, useResponsive } from '@c
 import { buildCopiedEntries, groupByDay, shiftEntryDate, sumDurations, formatDuration, weekBounds } from '@chrono/sdk';
 import type { TablesInsert } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { toISODate, todayISO } from '@/lib/date';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
@@ -20,6 +21,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 export default function TodayScreen() {
+  const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
   const { user } = useAppAuth();
@@ -86,10 +88,10 @@ export default function TodayScreen() {
 
   const week = (
     <View style={styles.section}>
-      <SectionHeader eyebrow="This week" title="Logged time" count={entries?.length} />
+      <SectionHeader eyebrow={t('tabs.today.thisWeek')} title={t('tabs.today.loggedTime')} count={entries?.length} />
       <StatRow>
-        <StatTile label="Today" value={formatDuration(todayMinutes)} />
-        <StatTile label="This week" value={formatDuration(weekMinutes)} tone="accent" />
+        <StatTile label={t('tabs.today.today')} value={formatDuration(todayMinutes)} />
+        <StatTile label={t('tabs.today.thisWeek')} value={formatDuration(weekMinutes)} tone="accent" />
       </StatRow>
       <WeekGrid entries={entries ?? []} weekStart={weekStart} />
       {isLoading && entries == null ? (
@@ -97,13 +99,13 @@ export default function TodayScreen() {
       ) : error && entries == null ? (
         <ErrorState
           error={error}
-          title="Couldn't load your week"
+          title={t('tabs.today.loadError')}
           onRetry={() => {
             void refetch();
           }}
         />
       ) : days.length === 0 ? (
-        <EmptyState icon="time-outline" title="No entries yet" subtitle="Log your first hours above." />
+        <EmptyState icon="time-outline" title={t('tabs.today.noEntries')} subtitle={t('tabs.today.noEntriesSubtitle')} />
       ) : (
         days.map((day) => (
           <View key={day.date} style={styles.day}>
@@ -133,14 +135,14 @@ export default function TodayScreen() {
   );
 
   return (
-    <StackScreen title="Log time" onBack={() => router.back()}>
+    <StackScreen title={t('tabs.today.title')} onBack={() => router.back()}>
       <View style={[styles.wrap, isWide && styles.wrapWide]}>
         <View style={isWide ? styles.formCol : undefined}>
           <LogEntryForm projectOptions={projectOptions} onSubmit={onSubmit} isSubmitting={isPending} />
           {lastWeekCount > 0 ? (
             <View style={styles.copyBtn}>
               <Button
-                title={`Copy last week (${lastWeekCount})`}
+                title={t('tabs.today.copyLastWeek', { n: lastWeekCount })}
                 variant="secondary"
                 onPress={copyLastWeek}
                 loading={copying}

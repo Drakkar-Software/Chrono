@@ -1,13 +1,9 @@
 import { StyleSheet, View } from 'react-native';
 import { Badge, Picker, Txt, spacing } from '@chrono/ui';
-import { displayName, roleLabel } from '@chrono/sdk';
+import { displayName } from '@chrono/sdk';
 import type { AppRole, CompanyMemberWithProfile } from '@chrono/sdk';
 
-const BASE_ROLE_OPTIONS = [
-  { label: 'Freelancer', value: 'freelancer' },
-  { label: 'Manager', value: 'manager' },
-];
-const ADMIN_OPTION = { label: 'Admin', value: 'admin' };
+import { useT } from '@/lib/i18n';
 
 export interface MemberRowProps {
   member: CompanyMemberWithProfile;
@@ -19,9 +15,15 @@ export interface MemberRowProps {
 
 /** A company member: name + role, with an inline role Picker for managers. */
 export function MemberRow({ member, canEdit, canGrantAdmin = false, onRoleChange }: MemberRowProps) {
+  const t = useT();
+  const baseRoleOptions = [
+    { label: t('role.freelancer'), value: 'freelancer' },
+    { label: t('role.manager'), value: 'manager' },
+  ];
+  const adminOption = { label: t('role.admin'), value: 'admin' };
   // Show "Admin" only to admins; keep it visible if the member already is one.
   const options =
-    canGrantAdmin || member.role === 'admin' ? [...BASE_ROLE_OPTIONS, ADMIN_OPTION] : BASE_ROLE_OPTIONS;
+    canGrantAdmin || member.role === 'admin' ? [...baseRoleOptions, adminOption] : baseRoleOptions;
   return (
     <View style={styles.row}>
       <Txt variant="bodyMedium" numberOfLines={1} style={styles.name}>
@@ -36,7 +38,7 @@ export function MemberRow({ member, canEdit, canGrantAdmin = false, onRoleChange
           />
         </View>
       ) : (
-        <Badge label={roleLabel(member.role)} status="accent" />
+        <Badge label={t('role.' + member.role)} status="accent" />
       )}
     </View>
   );

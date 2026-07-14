@@ -2,6 +2,8 @@ import { StyleSheet, View } from 'react-native';
 import { Picker, Segmented, Txt, spacing, useResponsive } from '@chrono/ui';
 import type { Project, TimeEntryStatus } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
+
 /** Date-range preset keys resolved to `from`/`to` bounds by the screen. */
 export type HistoryRange = 'thisMonth' | 'lastMonth' | 'thisWeek' | 'all';
 /** Status filter — `'all'` means unfiltered. */
@@ -25,26 +27,6 @@ export const DEFAULT_HISTORY_FILTERS: HistoryFilterState = {
   billable: 'all',
 };
 
-const RANGE_OPTIONS = [
-  { label: 'This month', value: 'thisMonth' },
-  { label: 'Last month', value: 'lastMonth' },
-  { label: 'This week', value: 'thisWeek' },
-  { label: 'All', value: 'all' },
-];
-
-const STATUS_OPTIONS = [
-  { label: 'All', value: 'all' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Approved', value: 'approved' },
-  { label: 'Rejected', value: 'rejected' },
-];
-
-const BILLABLE_OPTIONS = [
-  { label: 'All', value: 'all' },
-  { label: 'Billable', value: 'billable' },
-  { label: 'Non-billable', value: 'nonBillable' },
-];
-
 export interface HistoryFiltersProps {
   /** Projects the user can filter by (an "All" option is prepended). */
   projects: Project[];
@@ -58,16 +40,38 @@ export interface HistoryFiltersProps {
  * pushes every change back through `onChange`.
  */
 export function HistoryFilters({ projects, value, onChange }: HistoryFiltersProps) {
+  const t = useT();
   const { isWide } = useResponsive();
+
+  const RANGE_OPTIONS = [
+    { label: t('compb.history.thisMonth'), value: 'thisMonth' },
+    { label: t('compb.history.lastMonth'), value: 'lastMonth' },
+    { label: t('compb.history.thisWeek'), value: 'thisWeek' },
+    { label: t('compb.history.all'), value: 'all' },
+  ];
+
+  const STATUS_OPTIONS = [
+    { label: t('compb.history.all'), value: 'all' },
+    { label: t('status.pending'), value: 'pending' },
+    { label: t('status.approved'), value: 'approved' },
+    { label: t('status.rejected'), value: 'rejected' },
+  ];
+
+  const BILLABLE_OPTIONS = [
+    { label: t('compb.history.all'), value: 'all' },
+    { label: t('compb.history.billable'), value: 'billable' },
+    { label: t('compb.history.nonBillable'), value: 'nonBillable' },
+  ];
+
   const projectOptions = [
-    { label: 'All projects', value: 'all' },
+    { label: t('compb.history.allProjects'), value: 'all' },
     ...projects.map((p) => ({ label: p.name, value: p.id })),
   ];
 
   return (
     <View style={styles.wrap}>
       <Picker
-        label="Project"
+        label={t('compb.history.project')}
         value={value.projectId}
         onValueChange={(projectId) => onChange({ ...value, projectId })}
         options={projectOptions}
@@ -76,7 +80,7 @@ export function HistoryFilters({ projects, value, onChange }: HistoryFiltersProp
       <View style={[styles.controls, isWide && styles.controlsWide]}>
         <View style={styles.field}>
           <Txt variant="micro" mono uppercase tone="textMuted" style={styles.label}>
-            Date range
+            {t('compb.history.dateRange')}
           </Txt>
           <Segmented
             options={RANGE_OPTIONS}
@@ -87,7 +91,7 @@ export function HistoryFilters({ projects, value, onChange }: HistoryFiltersProp
 
         <View style={styles.field}>
           <Txt variant="micro" mono uppercase tone="textMuted" style={styles.label}>
-            Status
+            {t('common.status')}
           </Txt>
           <Segmented
             options={STATUS_OPTIONS}
@@ -98,7 +102,7 @@ export function HistoryFilters({ projects, value, onChange }: HistoryFiltersProp
 
         <View style={styles.field}>
           <Txt variant="micro" mono uppercase tone="textMuted" style={styles.label}>
-            Billable
+            {t('compb.history.billable')}
           </Txt>
           <Segmented
             options={BILLABLE_OPTIONS}

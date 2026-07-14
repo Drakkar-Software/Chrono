@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, TextField, Txt, spacing } from '@chrono/ui';
 
+import { useT } from '@/lib/i18n';
+
 export interface RejectDialogProps {
   /** Called with the typed reason (non-empty). */
   onConfirm: (reason: string) => void;
@@ -11,13 +13,14 @@ export interface RejectDialogProps {
 
 /** Inline reason input for rejecting a time entry — requires a non-empty reason. */
 export function RejectDialog({ onConfirm, onCancel, isBusy = false }: RejectDialogProps) {
+  const t = useT();
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | undefined>();
 
   const confirm = () => {
     const trimmed = reason.trim();
     if (!trimmed) {
-      setError('Enter a reason for rejecting');
+      setError(t('compb.reject.reasonRequired'));
       return;
     }
     setError(undefined);
@@ -27,10 +30,10 @@ export function RejectDialog({ onConfirm, onCancel, isBusy = false }: RejectDial
   return (
     <View style={styles.wrap}>
       <TextField
-        label="Rejection reason"
+        label={t('compb.reject.reasonLabel')}
         value={reason}
         onChangeText={setReason}
-        placeholder="Why is this entry rejected?"
+        placeholder={t('compb.reject.reasonPlaceholder')}
         multiline
       />
       {error ? (
@@ -39,8 +42,8 @@ export function RejectDialog({ onConfirm, onCancel, isBusy = false }: RejectDial
         </Txt>
       ) : null}
       <View style={styles.actions}>
-        <Button title="Cancel" variant="ghost" size="sm" onPress={onCancel} disabled={isBusy} />
-        <Button title="Confirm reject" variant="danger" size="sm" onPress={confirm} loading={isBusy} />
+        <Button title={t('common.cancel')} variant="ghost" size="sm" onPress={onCancel} disabled={isBusy} />
+        <Button title={t('compb.reject.confirm')} variant="danger" size="sm" onPress={confirm} loading={isBusy} />
       </View>
     </View>
   );

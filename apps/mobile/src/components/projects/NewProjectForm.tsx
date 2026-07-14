@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { Button, Card, TextField, Txt, spacing } from '@chrono/ui';
 import { DEFAULT_HOURS_PER_DAY } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
+import { useT } from '@/lib/i18n';
 
 export interface NewProjectValues {
   name: string;
@@ -26,6 +27,7 @@ function toCents(input: string): number | null {
 
 /** Minimal create-project form (name, client, day rate, hours/day). */
 export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: NewProjectFormProps) {
+  const t = useT();
   const [name, setName] = useState('');
   const [clientName, setClientName] = useState('');
   const [description, setDescription] = useState('');
@@ -36,22 +38,22 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
 
   const submit = () => {
     if (!name.trim()) {
-      setError('Enter a project name');
+      setError(t('comp.project.errName'));
       return;
     }
     const tjmCents = toCents(tjm);
     if (tjmCents !== null && tjmCents < 0) {
-      setError('Day rate (TJM) cannot be negative');
+      setError(t('comp.project.errTjmNegative'));
       return;
     }
     const budgetCents = toCents(budget);
     if (budgetCents !== null && budgetCents < 0) {
-      setError('Budget cannot be negative');
+      setError(t('comp.project.errBudgetNegative'));
       return;
     }
     const hpd = parseFloat(hoursPerDay.replace(',', '.'));
     if (!Number.isFinite(hpd) || hpd <= 0) {
-      setError('Hours per day must be greater than 0');
+      setError(t('comp.project.errHoursPerDay'));
       return;
     }
     setError(undefined);
@@ -67,26 +69,26 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
 
   return (
     <Card padding="lg" style={styles.card}>
-      <Txt variant="heading">New project</Txt>
-      <TextField label="Name" value={name} onChangeText={setName} placeholder="Website redesign" />
-      <TextField label="Client" value={clientName} onChangeText={setClientName} placeholder="Acme Inc." />
+      <Txt variant="heading">{t('comp.project.newTitle')}</Txt>
+      <TextField label={t('comp.field.name')} value={name} onChangeText={setName} placeholder={t('comp.project.namePlaceholder')} />
+      <TextField label={t('comp.project.client')} value={clientName} onChangeText={setClientName} placeholder={t('comp.project.clientPlaceholder')} />
       <TextField
-        label="Description"
+        label={t('comp.project.description')}
         value={description}
         onChangeText={setDescription}
-        placeholder="What is this project about?"
+        placeholder={t('comp.project.descriptionPlaceholder')}
         multiline
       />
       <FieldRow>
         <TextField
-          label="Default day rate (TJM)"
+          label={t('comp.project.defaultTjm')}
           value={tjm}
           onChangeText={setTjm}
           placeholder="500"
           keyboardType="decimal-pad"
         />
         <TextField
-          label="Budget"
+          label={t('comp.project.budget')}
           value={budget}
           onChangeText={setBudget}
           placeholder="60000"
@@ -94,7 +96,7 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
         />
       </FieldRow>
       <TextField
-        label="Hours per day"
+        label={t('comp.project.hoursPerDay')}
         value={hoursPerDay}
         onChangeText={setHoursPerDay}
         keyboardType="decimal-pad"
@@ -104,8 +106,8 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
           {error}
         </Txt>
       ) : null}
-      <Button title="Create project" onPress={submit} loading={isSubmitting} fullWidth />
-      <Button title="Cancel" variant="ghost" onPress={onCancel} />
+      <Button title={t('comp.project.createBtn')} onPress={submit} loading={isSubmitting} fullWidth />
+      <Button title={t('common.cancel')} variant="ghost" onPress={onCancel} />
     </Card>
   );
 }

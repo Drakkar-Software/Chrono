@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Button, Card, IconButton, Txt, spacing } from '@chrono/ui';
 import { displayName, formatDuration } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';
+import { useT } from '@/lib/i18n';
 import { RejectDialog } from '@/components/approvals/RejectDialog';
 
 export interface ApprovalRowProps {
@@ -27,6 +28,7 @@ export function ApprovalRow({
   selected = false,
   onToggleSelect,
 }: ApprovalRowProps) {
+  const t = useT();
   const [rejecting, setRejecting] = useState(false);
 
   return (
@@ -39,12 +41,12 @@ export function ApprovalRow({
             size={22}
             onPress={onToggleSelect}
             disabled={isBusy}
-            accessibilityLabel={selected ? 'Deselect entry' : 'Select entry'}
+            accessibilityLabel={selected ? t('compb.approval.deselect') : t('compb.approval.select')}
           />
         ) : null}
         <View style={styles.info}>
           <Txt variant="bodyMedium" numberOfLines={1}>
-            {entry.project?.name ?? 'Project'}
+            {entry.project?.name ?? t('compb.approval.project')}
           </Txt>
           <Txt variant="caption" tone="textMuted" numberOfLines={1}>
             {displayName(entry.profile)} · {entry.entry_date.slice(0, 10)}
@@ -70,8 +72,8 @@ export function ApprovalRow({
         />
       ) : (
         <View style={styles.actions}>
-          <Button title="Reject" variant="danger" size="sm" onPress={() => setRejecting(true)} disabled={isBusy} />
-          <Button title="Approve" variant="primary" size="sm" onPress={onApprove} loading={isBusy} />
+          <Button title={t('compb.approval.reject')} variant="danger" size="sm" onPress={() => setRejecting(true)} disabled={isBusy} />
+          <Button title={t('compb.approval.approve')} variant="primary" size="sm" onPress={onApprove} loading={isBusy} />
         </View>
       )}
     </Card>

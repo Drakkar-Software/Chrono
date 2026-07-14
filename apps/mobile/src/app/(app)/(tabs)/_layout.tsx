@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@chrono/ui';
 import { canManage, unreadCount } from '@chrono/sdk';
+import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useNotifications } from '@/lib/hooks/use-notifications';
@@ -17,6 +18,7 @@ const icon = (name: IoniconName) =>
 
 /** Web tab bar. `reports` is manager-only (`href: null` hides it otherwise). */
 export default function TabsLayout() {
+  const t = useT();
   const { colors } = useTheme();
   const { role } = useActiveCompany();
   const { user } = useAppAuth();
@@ -36,30 +38,30 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home/index"
         options={{
-          title: 'Home',
+          title: t('tabs.nav.home'),
           tabBarIcon: icon('home-outline'),
           tabBarBadge: unread > 0 ? (unread > 99 ? '99+' : unread) : undefined,
         }}
       />
       <Tabs.Screen
         name="projects/index"
-        options={{ title: 'Projects', tabBarIcon: icon('folder-outline') }}
+        options={{ title: t('tabs.nav.projects'), tabBarIcon: icon('folder-outline') }}
       />
       <Tabs.Screen
         name="invoices/index"
-        options={{ title: 'Invoices', tabBarIcon: icon('receipt-outline') }}
+        options={{ title: t('tabs.nav.invoices'), tabBarIcon: icon('receipt-outline') }}
       />
       <Tabs.Screen
         name="reports/index"
         options={{
-          title: 'Reports',
+          title: t('tabs.nav.reports'),
           href: showReports ? undefined : null,
           tabBarIcon: icon('bar-chart-outline'),
         }}
       />
       <Tabs.Screen
         name="settings/index"
-        options={{ title: 'Settings', tabBarIcon: icon('settings-outline') }}
+        options={{ title: t('tabs.nav.settings'), tabBarIcon: icon('settings-outline') }}
       />
     </Tabs>
   );

@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { Card, EmptyState, Money, Txt, spacing, useResponsive } from '@chrono/ui';
 import { displayName, formatDuration } from '@chrono/sdk';
 import type { CompanyMemberWithProfile } from '@chrono/sdk';
+import { useT } from '@/lib/i18n';
 import type { FreelancerSummary } from '@/lib/reports';
 
 export interface FreelancerBreakdownProps {
@@ -12,14 +13,15 @@ export interface FreelancerBreakdownProps {
 
 /** Per-freelancer days/hours worked and invoiced earned/paid, as a table. */
 export function FreelancerBreakdown({ rows, members, currency }: FreelancerBreakdownProps) {
+  const t = useT();
   const { isWide } = useResponsive();
 
   if (rows.length === 0) {
     return (
       <EmptyState
         icon="people-outline"
-        title="No activity"
-        subtitle="No approved billable time or invoices in this range."
+        title={t('compb.reports.noActivity')}
+        subtitle={t('compb.reports.noActivitySubtitle')}
       />
     );
   }
@@ -38,19 +40,22 @@ export function FreelancerBreakdown({ rows, members, currency }: FreelancerBreak
               {nameFor(row.userId)}
             </Txt>
             <Txt variant="caption" tone="textMuted" numberOfLines={1}>
-              {row.days.toFixed(2)} days · {formatDuration(row.minutes)}
+              {t('compb.reports.daysAndDuration', {
+                days: row.days.toFixed(2),
+                duration: formatDuration(row.minutes),
+              })}
             </Txt>
           </View>
           <View style={styles.amounts}>
             <View style={styles.amount}>
               <Txt variant="micro" mono uppercase tone="textMuted">
-                Earned
+                {t('compb.reports.earned')}
               </Txt>
               <Money cents={row.earnedCents} currency={currency} variant="bodyMedium" />
             </View>
             <View style={styles.amount}>
               <Txt variant="micro" mono uppercase tone="textMuted">
-                Paid
+                {t('compb.reports.paid')}
               </Txt>
               <Money cents={row.paidCents} currency={currency} variant="bodyMedium" tone="success" />
             </View>

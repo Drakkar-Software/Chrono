@@ -1,6 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 import { Button, EmptyState, Txt, spacing } from '@chrono/ui';
 
+import { useT } from '@/lib/i18n';
+
 function extractMessage(error: unknown): string {
   if (!error) return '';
   if (typeof error === 'string') return error;
@@ -71,17 +73,18 @@ export interface ErrorStateProps {
  */
 export function ErrorState({
   error,
-  title = 'Something went wrong',
+  title,
   message,
   onRetry,
   describe,
 }: ErrorStateProps) {
+  const t = useT();
   return (
     <EmptyState
       icon="alert-circle-outline"
-      title={title}
+      title={title ?? t('compb.error.title')}
       subtitle={message ?? describeError(error, describe)}
-      action={onRetry ? <Button title="Try again" variant="secondary" onPress={onRetry} /> : undefined}
+      action={onRetry ? <Button title={t('common.retry')} variant="secondary" onPress={onRetry} /> : undefined}
     />
   );
 }

@@ -3,6 +3,8 @@ import { Badge, Txt, formatMoney, radii, spacing, useTheme } from '@chrono/ui';
 import { budgetUsage } from '@chrono/sdk';
 import type { Project } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
+
 export interface BudgetMeterProps {
   project: Pick<Project, 'budget_cents'>;
   /** Amount committed against the budget (e.g. invoiced freelancer cost). */
@@ -12,6 +14,7 @@ export interface BudgetMeterProps {
 
 /** A budget progress bar with an over/near-budget badge. Hidden when no cap. */
 export function BudgetMeter({ project, usedCents, currency }: BudgetMeterProps) {
+  const t = useT();
   const { colors } = useTheme();
   const usage = budgetUsage(project, usedCents);
   if (usage.status === 'none' || usage.budgetCents == null) return null;
@@ -24,12 +27,12 @@ export function BudgetMeter({ project, usedCents, currency }: BudgetMeterProps) 
     <View style={styles.wrap}>
       <View style={styles.headerRow}>
         <Txt variant="micro" mono uppercase tone="textMuted">
-          Budget
+          {t('compb.budget.budget')}
         </Txt>
         {usage.status === 'over' ? (
-          <Badge label="Over budget" status="danger" />
+          <Badge label={t('compb.budget.overBudget')} status="danger" />
         ) : usage.status === 'warning' ? (
-          <Badge label="Near budget" status="warning" />
+          <Badge label={t('compb.budget.nearBudget')} status="warning" />
         ) : null}
       </View>
       <View style={[styles.track, { backgroundColor: colors.fill }]}>
@@ -37,7 +40,10 @@ export function BudgetMeter({ project, usedCents, currency }: BudgetMeterProps) 
       </View>
       <View style={styles.labelRow}>
         <Txt variant="caption" tone="textMuted">
-          {`${formatMoney(usedCents, currency)} of ${formatMoney(usage.budgetCents, currency)}`}
+          {t('compb.budget.usedOf', {
+            used: formatMoney(usedCents, currency),
+            total: formatMoney(usage.budgetCents, currency),
+          })}
         </Txt>
         <Txt variant="caption" tone="textMuted">
           {`${Math.round(usage.ratio * 100)}%`}

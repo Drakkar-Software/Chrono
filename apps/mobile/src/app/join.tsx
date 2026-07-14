@@ -8,6 +8,7 @@ import { setPendingInvite } from '@/lib/pending-invite';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { tokenFromInput } from '@/components/settings/JoinCompanyForm';
+import { useT } from '@/lib/i18n';
 
 /**
  * Deep-link target for invite links (`/join?token=…`). Redeems the token for a
@@ -16,6 +17,7 @@ import { tokenFromInput } from '@/components/settings/JoinCompanyForm';
  * (see `usePendingInviteRedemption`).
  */
 export default function JoinScreen() {
+  const t = useT();
   const router = useRouter();
   const { token: rawToken } = useLocalSearchParams<{ token?: string }>();
   const token = tokenFromInput(rawToken ?? '');
@@ -53,13 +55,13 @@ export default function JoinScreen() {
   if (isLoading) return <ScreenLoader />;
 
   return (
-    <StackScreen title="Joining…" onBack={() => router.replace('/(app)')}>
+    <StackScreen title={t('auth.join.title')} onBack={() => router.replace('/(app)')}>
       {!token ? (
-        <Txt tone="textMuted">This invite link is missing its code.</Txt>
+        <Txt tone="textMuted">{t('auth.join.missingCode')}</Txt>
       ) : error ? (
         <ErrorState
           error={error}
-          title="Couldn't join"
+          title={t('auth.join.error')}
           onRetry={() => {
             setError(null);
             setAttempt((n) => n + 1);

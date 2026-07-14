@@ -3,17 +3,12 @@ import { StyleSheet } from 'react-native';
 import { Card, Segmented, Txt, formatMoney, spacing, useTheme } from '@chrono/ui';
 import { DEFAULT_LOCALE } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import type { MonthlyPoint } from '@/lib/reports';
 import { shortMonthLabel } from '@/lib/date';
 import { TrendChart } from '@/components/reports/TrendChart';
 
 type Metric = 'revenue' | 'cost' | 'margin';
-
-const METRIC_OPTIONS = [
-  { label: 'Revenue', value: 'revenue' },
-  { label: 'Cost', value: 'cost' },
-  { label: 'Margin', value: 'margin' },
-];
 
 /**
  * Compact currency for axis captions ("1,2 k €"). Pinned to the app locale, and
@@ -40,8 +35,15 @@ export interface TrendsCardProps {
 
 /** Monthly revenue / cost / margin trend with a metric switcher. */
 export function TrendsCard({ points, currency }: TrendsCardProps) {
+  const t = useT();
   const { colors } = useTheme();
   const [metric, setMetric] = useState<Metric>('revenue');
+
+  const metricOptions = [
+    { label: t('compb.pnl.revenue'), value: 'revenue' },
+    { label: t('compb.pnl.cost'), value: 'cost' },
+    { label: t('compb.pnl.margin'), value: 'margin' },
+  ];
 
   const chartPoints = useMemo(
     () =>
@@ -58,7 +60,7 @@ export function TrendsCard({ points, currency }: TrendsCardProps) {
 
   return (
     <Card padding="lg" style={styles.card}>
-      <Segmented options={METRIC_OPTIONS} value={metric} onValueChange={(v) => setMetric(v as Metric)} />
+      <Segmented options={metricOptions} value={metric} onValueChange={(v) => setMetric(v as Metric)} />
       {hasData ? (
         <TrendChart
           points={chartPoints}
@@ -68,7 +70,7 @@ export function TrendsCard({ points, currency }: TrendsCardProps) {
         />
       ) : (
         <Txt variant="caption" tone="textMuted" style={styles.empty}>
-          No activity in the last few months yet.
+          {t('compb.trends.empty')}
         </Txt>
       )}
     </Card>

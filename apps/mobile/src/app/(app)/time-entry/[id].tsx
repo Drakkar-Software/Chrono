@@ -3,12 +3,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Card, EmptyState, StackScreen, spacing } from '@chrono/ui';
 import type { TablesUpdate } from '@chrono/sdk';
 
+import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useTimeEntry, useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { EditEntryForm } from '@/components/time/EditEntryForm';
 
 export default function TimeEntryDetail() {
+  const t = useT();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { companyId } = useActiveCompany();
@@ -18,15 +20,19 @@ export default function TimeEntryDetail() {
 
   if (isLoading && !entry) {
     return (
-      <StackScreen title="Time entry" onBack={() => router.back()}>
+      <StackScreen title={t('details.timeEntry')} onBack={() => router.back()}>
         <ScreenLoader />
       </StackScreen>
     );
   }
   if (!entry) {
     return (
-      <StackScreen title="Time entry" onBack={() => router.back()}>
-        <EmptyState icon="time-outline" title="Entry not found" subtitle="It may have been removed." />
+      <StackScreen title={t('details.timeEntry')} onBack={() => router.back()}>
+        <EmptyState
+          icon="time-outline"
+          title={t('details.entryNotFound')}
+          subtitle={t('details.mayHaveBeenRemoved')}
+        />
       </StackScreen>
     );
   }
@@ -43,7 +49,7 @@ export default function TimeEntryDetail() {
   };
 
   return (
-    <StackScreen title="Time entry" onBack={() => router.back()}>
+    <StackScreen title={t('details.timeEntry')} onBack={() => router.back()}>
       <View style={styles.wrap}>
         {editable ? (
           <EditEntryForm entry={entry} onSave={save} onDelete={del} isSaving={isPending} />
@@ -51,8 +57,8 @@ export default function TimeEntryDetail() {
           <Card padding="lg">
             <EmptyState
               icon="lock-closed-outline"
-              title="Locked"
-              subtitle="Only pending, uninvoiced entries can be edited."
+              title={t('details.locked')}
+              subtitle={t('details.lockedSubtitle')}
             />
           </Card>
         )}
