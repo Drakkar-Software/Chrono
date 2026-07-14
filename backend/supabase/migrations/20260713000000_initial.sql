@@ -221,7 +221,7 @@ create table public.company_members (
   company_id               uuid not null references public.companies (id) on delete cascade,
   user_id                  uuid not null references auth.users (id) on delete cascade,
   role                     public.app_role not null default 'freelancer',
-  default_hourly_rate_cents integer,
+  default_hourly_rate_cents integer check (default_hourly_rate_cents is null or default_hourly_rate_cents >= 0),
   created_at               timestamptz not null default now(),
   updated_at               timestamptz not null default now(),
   deleted                  boolean not null default false,
@@ -335,9 +335,9 @@ create table public.projects (
   color             text,
   client_name       text,
   status            public.project_status not null default 'active',
-  budget_cents      bigint,                 -- contracted cap (informational)
-  default_tjm_cents integer,                -- fallback day rate for members
-  hours_per_day     numeric not null default 7,
+  budget_cents      bigint check (budget_cents is null or budget_cents >= 0),
+  default_tjm_cents integer check (default_tjm_cents is null or default_tjm_cents >= 0),  -- fallback day rate
+  hours_per_day     numeric not null default 7 check (hours_per_day > 0),  -- divisor: must be > 0
   billable_default  boolean not null default true,
   starts_on         date,
   ends_on           date,
@@ -380,7 +380,7 @@ create table public.project_members (
   id              uuid primary key default gen_random_uuid(),
   project_id      uuid not null references public.projects (id) on delete cascade,
   user_id         uuid not null references auth.users (id) on delete cascade,
-  tjm_cents       integer,                 -- this freelancer's day rate (null => project default)
+  tjm_cents       integer check (tjm_cents is null or tjm_cents >= 0),  -- this freelancer's day rate (null => project default)
   role_on_project text not null default 'member',
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
@@ -568,6 +568,33 @@ $$;
 create trigger stamp_time_entry_status
   before update of status on public.time_entries
   for each row execute function public.on_time_entry_status_change();
+
+-- Once an entry has been invoiced (tagged with invoice_id by settlement), its
+-- money-affecting fields are frozen — otherwise a manager could re-approve/edit
+-- duration on an already-paid entry and desync the settled invoice. Settlement
+-- (tag: null->id) and cancellation (untag: id->null) still work because they
+-- change invoice_id itself, which we allow.
+create or replace function public.prevent_invoiced_entry_edit()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if old.invoice_id is not null and new.invoice_id is not null
+     and (new.duration_minutes is distinct from old.duration_minutes
+          or new.billable is distinct from old.billable
+          or new.status is distinct from old.status
+          or new.entry_date is distinct from old.entry_date) then
+    raise exception 'Cannot edit a time entry that has already been invoiced';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger prevent_invoiced_entry_edit_trigger
+  before update on public.time_entries
+  for each row execute function public.prevent_invoiced_entry_edit();
 -- End Time Entries
 
 -- ----------------------------------------------------------------------------
@@ -625,7 +652,7 @@ create table public.revenue_entries (
   revenue_source_id uuid not null references public.revenue_sources (id) on delete cascade,
   type              public.revenue_source_type not null,
   period_month      date not null,          -- first day of the month
-  amount_cents      bigint not null,
+  amount_cents      bigint not null check (amount_cents >= 0),
   auto_generated    boolean not null default true,
   notes             text,
   created_at        timestamptz not null default now(),
@@ -896,6 +923,13 @@ begin
     if new.status not in ('draft', 'submitted', 'cancelled') then
       raise exception 'Settlement statuses are set only by settle_project_month';
     end if;
+    -- A settled invoice may only be cancelled, never reverted to draft/submitted —
+    -- otherwise it keeps its payment/tagging but drops out of the pool math.
+    if tg_op = 'UPDATE'
+       and old.status in ('paid', 'partially_paid')
+       and new.status in ('draft', 'submitted') then
+      raise exception 'A settled invoice can only be cancelled, not reverted';
+    end if;
   end if;
 
   -- Recompute the earned side from approved billable time + stored rates.
@@ -912,7 +946,8 @@ begin
     and user_id = new.freelancer_id
     and status = 'approved' and billable = true and deleted = false
     and (invoice_id is null or invoice_id = new.id)
-    and date_trunc('month', entry_date)::date = date_trunc('month', new.period_month)::date;
+    and entry_date >= date_trunc('month', new.period_month)::date
+    and entry_date < (date_trunc('month', new.period_month) + interval '1 month')::date;
 
   select coalesce(credit_carried_forward_cents, 0) into v_credit
   from public.invoices
@@ -1019,6 +1054,7 @@ begin
       v_amount := coalesce((v_src.content ->> 'monthly_amount_cents')::bigint, 0);
     else
       -- time_based / self_billing: bill approved billable time at the client day rate.
+      -- Sargable range (not date_trunc(...) = X) so time_entries_project_date_idx applies.
       select coalesce(sum(duration_minutes), 0) into v_billable_minutes
       from public.time_entries
       where project_id = p_project_id
@@ -1026,7 +1062,8 @@ begin
         and billable = true
         and status = 'approved'
         and deleted = false
-        and date_trunc('month', entry_date)::date = v_period;
+        and entry_date >= v_period
+        and entry_date < (v_period + interval '1 month')::date;
 
       v_billable_days := v_billable_minutes::numeric / (v_hours_per_day * 60);
       v_client_tjm := coalesce((v_src.content ->> 'client_tjm_cents')::integer, 0);
@@ -1037,6 +1074,10 @@ begin
         v_amount := round(v_amount * (1 + v_markup / 100));
       end if;
     end if;
+
+    -- Never recognize negative revenue (e.g. a bad markup_pct < -100 or a negative
+    -- configured amount); floor at 0.
+    if v_amount < 0 then v_amount := 0; end if;
 
     insert into public.revenue_entries
       (project_id, company_id, revenue_source_id, type, period_month, amount_cents, auto_generated)
@@ -1089,6 +1130,11 @@ begin
   if not public.is_company_manager(v_company_id) then
     raise exception 'Only a manager can settle a project month';
   end if;
+
+  -- Serialize settlement per project: collapse concurrent/double-clicked settles
+  -- into one and give this global read-then-write pass a stable point (auto-released
+  -- at transaction end).
+  perform pg_advisory_xact_lock(hashtext(p_project_id::text));
 
   -- Tell enforce_invoice_integrity that settlement (not a user) is writing the
   -- money columns. Transaction-local; resets automatically at transaction end.
@@ -1200,9 +1246,14 @@ begin
         and user_id = v_inv.freelancer_id
         and status = 'approved' and billable = true and deleted = false
         and invoice_id is null
-        and date_trunc('month', entry_date)::date = v_m;
+        and entry_date >= v_m
+        and entry_date < (v_m + interval '1 month')::date;
     end loop;
   end loop;
+
+  -- Clear the flag within the transaction so any later invoice write (same txn)
+  -- goes through enforce_invoice_integrity normally.
+  perform set_config('chrono.settling', 'off', true);
 end;
 $$;
 
