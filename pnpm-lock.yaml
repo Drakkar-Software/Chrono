@@ -68,6 +68,9 @@ importers:
       expo-linking:
         specifier: ~57.0.2
         version: 57.0.2(expo@57.0.4)(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)
+      expo-localization:
+        specifier: ~57.0.0
+        version: 57.0.0(expo@57.0.4)(react@19.2.7)
       expo-notifications:
         specifier: ~57.0.3
         version: 57.0.3(expo@57.0.4)(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
@@ -2812,6 +2815,12 @@ packages:
       react: '*'
       react-native: '*'
 
+  expo-localization@57.0.0:
+    resolution: {integrity: sha512-6/o4SE4p1K8f0vXrm5oqt7SxyRPLomdhsANsZOwAqduTC/rzkLsqh5FidgppoTR6lPKT58z+jfk5R3grmbjQtA==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+
   expo-modules-autolinking@57.0.5:
     resolution: {integrity: sha512-Vv2PVeEUN0/VW19ItkVA8LxAuH8SV8cjui0MKhJxCKrNyCAGGZU6sRsBJciYXR4uVxuXWKiepGW6E3k/c+Ytdg==}
     hasBin: true
@@ -4163,6 +4172,9 @@ packages:
     resolution: {integrity: sha512-RFnrW4lhXA3s3eqHDZvN654g8OTjzRfqpIRJYczCGB6HzphckVAi/Qh4tbPUbRuDi7s1Llv8g/NspLkttY3gTA==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
+
+  rtl-detect@1.1.2:
+    resolution: {integrity: sha512-PGMBq03+TTG/p/cRB7HCLKJ1MgDIi07+QU1faSjiYRfmY5UsAttV9Hs08jDAHVwcOwmVLcSJkpwyfXszVjWfIQ==}
 
   safe-array-concat@1.1.4:
     resolution: {integrity: sha512-wtZlHyOje6OZTGqAoaDKxFkgRtkF9CnHAVnCHKfuj200wAgL+bSJhdsCD2l0Qx/2ekEXjPWcyKkfGb5CPboslg==}
@@ -8279,6 +8291,12 @@ snapshots:
       - expo
       - supports-color
 
+  expo-localization@57.0.0(expo@57.0.4)(react@19.2.7):
+    dependencies:
+      expo: 57.0.4(@babel/core@7.29.7)(@expo/dom-webview@57.0.0)(@expo/metro-runtime@57.0.3)(expo-router@57.0.4)(react-dom@19.2.7(react@19.2.7))(react-native-web@0.21.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-native-worklets@0.10.2(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.7))(react@19.2.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
+      react: 19.2.7
+      rtl-detect: 1.1.2
+
   expo-modules-autolinking@57.0.5(typescript@5.9.3):
     dependencies:
       '@expo/require-utils': 57.0.1(typescript@5.9.3)
@@ -10107,6 +10125,8 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.62.2
       '@rollup/rollup-win32-x64-msvc': 4.62.2
       fsevents: 2.3.3
+
+  rtl-detect@1.1.2: {}
 
   safe-array-concat@1.1.4:
     dependencies:

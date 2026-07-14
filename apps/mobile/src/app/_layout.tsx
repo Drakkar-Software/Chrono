@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Button, ThemeProvider, Txt, spacing, useTheme } from '@chrono/ui';
 import { ActiveCompanyProvider, useActiveCompany } from '@/lib/active-company-context';
 import { ThemePrefProvider, useThemePref } from '@/lib/theme-pref';
+import { I18nProvider } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { usePushRegistration } from '@/lib/hooks/use-push';
 import { useInviteMutations } from '@/lib/hooks/use-invites';
@@ -79,10 +80,12 @@ function ThemedApp() {
   return (
     <ThemeProvider scheme={scheme}>
       <StatusBar style="auto" />
-      <ActiveCompanyProvider>
-        <PendingInviteRedeemer />
-        <Stack screenOptions={{ headerShown: false }} />
-      </ActiveCompanyProvider>
+      <I18nProvider>
+        <ActiveCompanyProvider>
+          <PendingInviteRedeemer />
+          <Stack screenOptions={{ headerShown: false }} />
+        </ActiveCompanyProvider>
+      </I18nProvider>
     </ThemeProvider>
   );
 }
