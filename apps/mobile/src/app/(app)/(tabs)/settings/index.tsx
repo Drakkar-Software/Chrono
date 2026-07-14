@@ -9,13 +9,18 @@ import { useActiveCompany } from '@/lib/active-company-context';
 import { useProfile, useProfileMutations } from '@/lib/hooks/use-profile';
 import { useCompanyMembers, useCompanyMemberMutations } from '@/lib/hooks/use-company-members';
 import { MemberRow } from '@/components/settings/MemberRow';
+import { AvatarUpload } from '@/components/settings/AvatarUpload';
+import { ThemeToggle } from '@/components/settings/ThemeToggle';
+import { EditCompanyForm } from '@/components/settings/EditCompanyForm';
+import { JoinCompanyForm } from '@/components/settings/JoinCompanyForm';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 
 export default function SettingsScreen() {
   const { isWide } = useResponsive();
   const { user, signOut } = useAppAuth();
-  const { companyId, company, companies, role, setCompanyId } = useActiveCompany();
+  const { companyId, company, companies, role, setCompanyId, refresh } = useActiveCompany();
   const manager = canManage(role);
+  const isAdmin = role === 'admin';
 
   const { data: profile } = useProfile();
   const { updateProfile, isPending: savingProfile } = useProfileMutations();
@@ -35,6 +40,15 @@ export default function SettingsScreen() {
     if (user?.id && name.trim()) updateProfile(user.id, { full_name: name.trim() });
   };
 
+  const onAvatarUploaded = async (url: string) => {
+    if (user?.id) await updateProfile(user.id, { avatar_url: url });
+  };
+
+  const onJoined = async (joinedId: string) => {
+    await refresh();
+    setCompanyId(joinedId);
+  };
+
   const hasCompanies = companies.length > 0;
   const topColStyle = isWide ? styles.colWide : styles.colFull;
 
@@ -45,6 +59,13 @@ export default function SettingsScreen() {
           <View style={topColStyle}>
             <Card padding="lg" style={styles.card}>
               <Txt variant="heading">Profile</Txt>
+              <AvatarUpload
+                imageUrl={profile?.avatar_url}
+                name={name || profile?.full_name}
+                bucket="avatars"
+                folder={user?.id ?? ''}
+                onUploaded={onAvatarUploaded}
+              />
               <TextField label="Name" value={name} onChangeText={setName} placeholder="Your name" />
               {user?.email ? (
                 <Txt variant="caption" tone="textMuted">
@@ -55,22 +76,41 @@ export default function SettingsScreen() {
             </Card>
           </View>
 
-          {hasCompanies ? (
-            <View style={topColStyle}>
-              <Card padding="lg" style={styles.card}>
-                <Txt variant="heading">Active company</Txt>
-                <Picker
-                  value={companyId ?? ''}
-                  onValueChange={setCompanyId}
-                  options={companies.map((c) => ({ label: companyName(c), value: c.id }))}
-                />
-                <Txt variant="caption" tone="textMuted">
-                  Switch between the teams you work with.
-                </Txt>
-              </Card>
-            </View>
-          ) : null}
+          <View style={topColStyle}>
+            <Card padding="lg" style={styles.card}>
+              <Txt variant="heading">Appearance</Txt>
+              <ThemeToggle />
+              <Txt variant="caption" tone="textMuted">
+                Choose a light or dark theme, or follow your device.
+              </Txt>
+            </Card>
+          </View>
         </View>
+
+        {hasCompanies ? (
+          <Card padding="lg" style={styles.card}>
+            <Txt variant="heading">Active company</Txt>
+            <Picker
+              value={companyId ?? ''}
+              onValueChange={setCompanyId}
+              options={companies.map((c) => ({ label: companyName(c), value: c.id }))}
+            />
+            <Txt variant="caption" tone="textMuted">
+              Switch between the teams you work with.
+            </Txt>
+          </Card>
+        ) : null}
+
+        {company ? (
+          <Card padding="lg" style={styles.card}>
+            <Txt variant="heading">Company</Txt>
+            {isAdmin ? (
+              <EditCompanyForm company={company} onSaved={refresh} />
+            ) : (
+              <Row label="Name" value={companyName(company)} />
+            )}
+          </Card>
+        ) : null}
 
         {manager && company ? (
           <Card padding="lg" style={styles.card}>
@@ -86,6 +126,14 @@ export default function SettingsScreen() {
             </Txt>
           </Card>
         ) : null}
+
+        <Card padding="lg" style={styles.card}>
+          <Txt variant="heading">Join a company</Txt>
+          <JoinCompanyForm userId={user?.id} onJoined={onJoined} />
+          <Txt variant="caption" tone="textMuted">
+            Have a company code? Paste it here to join another team.
+          </Txt>
+        </Card>
 
         <Card padding="lg" style={styles.card}>
           <Txt variant="heading">Members</Txt>

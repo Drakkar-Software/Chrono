@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Badge, Button, Card, EmptyState, Money, Row, StackScreen, spacing, useResponsive } from '@chrono/ui';
-import { canManage, companyCurrency, invoiceAmounts, invoiceStatusLabel } from '@chrono/sdk';
+import { canManage, companyCurrency, companyName, displayName, invoiceAmounts, invoiceStatusLabel } from '@chrono/sdk';
 
 import { useActiveCompany } from '@/lib/active-company-context';
+import { useAppAuth } from '@/lib/supabase-stores';
 import { useInvoice } from '@/lib/hooks/use-invoices';
 import { useSettleProjectMonth, useSubmitInvoice } from '@/lib/hooks/use-invoice-mutations';
+import { buildInvoiceHtml, exportInvoice } from '@/lib/invoice-document';
 import { invoiceBadge } from '@/lib/status';
 import { AmountBreakdown } from '@/components/invoices/AmountBreakdown';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -18,12 +21,39 @@ export default function InvoiceDetail() {
   const { isWide } = useResponsive();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { company, role } = useActiveCompany();
+  const { user } = useAppAuth();
   const manager = canManage(role);
   const currency = companyCurrency(company);
 
   const { data: invoice, isLoading, error, refetch } = useInvoice(id);
   const submit = useSubmitInvoice();
   const settle = useSettleProjectMonth();
+
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | undefined>();
+
+  // The invoice's own freelancer can export it; managers can export any.
+  const canExport = manager || invoice?.freelancer_id === user?.id;
+
+  const onExport = async () => {
+    if (!invoice) return;
+    setExportError(undefined);
+    setExporting(true);
+    try {
+      const html = buildInvoiceHtml({
+        invoice,
+        projectName: invoice.project?.name ?? 'Project',
+        freelancerName: displayName(invoice.freelancer),
+        companyName: companyName(company),
+        currency,
+      });
+      await exportInvoice(html);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Could not export the invoice.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const onSubmit = async () => {
     if (!invoice) return;
@@ -119,10 +149,21 @@ export default function InvoiceDetail() {
               fullWidth={!isWide}
             />
           ) : null}
+
+          {canExport ? (
+            <Button
+              title="Export / Share"
+              variant="secondary"
+              onPress={onExport}
+              loading={exporting}
+              fullWidth={!isWide}
+            />
+          ) : null}
         </View>
 
         {submit.error ? <InlineError error={submit.error} /> : null}
         {settle.error ? <InlineError error={settle.error} /> : null}
+        {exportError ? <InlineError error={exportError} /> : null}
       </View>
     </StackScreen>
   );

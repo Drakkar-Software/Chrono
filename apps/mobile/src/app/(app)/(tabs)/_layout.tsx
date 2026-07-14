@@ -28,6 +28,7 @@ export default function TabsLayout() {
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
       }}
     >
+      <Tabs.Screen name="home/index" options={{ title: 'Home', tabBarIcon: icon('home-outline') }} />
       <Tabs.Screen name="today/index" options={{ title: 'Log', tabBarIcon: icon('time-outline') }} />
       <Tabs.Screen
         name="projects/index"

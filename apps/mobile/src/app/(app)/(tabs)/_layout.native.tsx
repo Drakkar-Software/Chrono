@@ -15,6 +15,10 @@ export default function NativeTabsLayout() {
 
   return (
     <NativeTabs>
+      <NativeTabs.Trigger name="home/index">
+        <Label>Home</Label>
+        <Icon sf="house" />
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="today/index">
         <Label>Log</Label>
         <Icon sf="clock" />

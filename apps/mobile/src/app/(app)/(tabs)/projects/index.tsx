@@ -9,10 +9,12 @@ import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useMyProjects, useProjects } from '@/lib/hooks/use-projects';
 import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
+import { usePagination } from '@/lib/hooks/use-pagination';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { NewProjectForm, type NewProjectValues } from '@/components/projects/NewProjectForm';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
+import { LoadMore } from '@/components/common/LoadMore';
 
 export default function ProjectsScreen() {
   const router = useRouter();
@@ -57,6 +59,7 @@ export default function ProjectsScreen() {
   );
 
   const list = projects ?? [];
+  const { page, hasMore, loadMore } = usePagination(list, manager ? 'managed' : 'mine');
 
   return (
     <StackScreen title="Projects" headerRight={headerRight}>
@@ -83,17 +86,20 @@ export default function ProjectsScreen() {
             action={manager ? <Button title="New project" onPress={() => setCreating(true)} /> : undefined}
           />
         ) : (
-          <View style={styles.grid}>
-            {list.map((project) => (
-              <View key={project.id} style={[styles.cell, isWide ? styles.cellWide : styles.cellFull]}>
-                <ProjectCard
-                  project={project}
-                  currency={currency}
-                  onPress={() => router.push(`/project/${project.id}`)}
-                />
-              </View>
-            ))}
-          </View>
+          <>
+            <View style={styles.grid}>
+              {page.map((project) => (
+                <View key={project.id} style={[styles.cell, isWide ? styles.cellWide : styles.cellFull]}>
+                  <ProjectCard
+                    project={project}
+                    currency={currency}
+                    onPress={() => router.push(`/project/${project.id}`)}
+                  />
+                </View>
+              ))}
+            </View>
+            <LoadMore hasMore={hasMore} onLoadMore={loadMore} remaining={list.length - page.length} />
+          </>
         )}
       </View>
     </StackScreen>

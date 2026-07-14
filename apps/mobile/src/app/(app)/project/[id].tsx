@@ -12,6 +12,7 @@ import {
 
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useProject } from '@/lib/hooks/use-projects';
+import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
 import { useProjectMembers, useProjectMemberMutations } from '@/lib/hooks/use-project-members';
 import { useCompanyMembers } from '@/lib/hooks/use-company-members';
 import { useRevenueSources, useRevenueSourceMutations } from '@/lib/hooks/use-revenue-sources';
@@ -26,13 +27,14 @@ import { ReferrerRow } from '@/components/projects/ReferrerRow';
 import { AddProjectMemberForm } from '@/components/projects/AddProjectMemberForm';
 import { AddRevenueSourceForm, type AddRevenueSourceValues } from '@/components/projects/AddRevenueSourceForm';
 import { AddReferrerForm } from '@/components/projects/AddReferrerForm';
+import { EditProjectForm, type EditProjectValues } from '@/components/projects/EditProjectForm';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
-import { ErrorState } from '@/components/common/ErrorState';
+import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
-type Panel = 'none' | 'member' | 'source' | 'referrer';
+type Panel = 'none' | 'edit' | 'member' | 'source' | 'referrer';
 
 export default function ProjectDetail() {
   const router = useRouter();
@@ -63,6 +65,7 @@ export default function ProjectDetail() {
   const memberMut = useProjectMemberMutations();
   const sourceMut = useRevenueSourceMutations();
   const referralMut = useProjectReferralMutations();
+  const projectMut = useProjectMutations();
 
   const [panel, setPanel] = useState<Panel>('none');
 
@@ -130,35 +133,76 @@ export default function ProjectDetail() {
     await referralMut.add({ project_id: project.id, company_id: companyId, user_id: userId, percent });
     setPanel('none');
   };
+  const saveEdits = async (values: EditProjectValues) => {
+    await projectMut.update(project.id, {
+      name: values.name,
+      client_name: values.clientName || null,
+      description: values.description || null,
+      default_tjm_cents: values.defaultTjmCents,
+      budget_cents: values.budgetCents,
+      hours_per_day: values.hoursPerDay,
+      status: values.status,
+    });
+    await refetchProject();
+    setPanel('none');
+  };
+  const toggleArchive = async () => {
+    await projectMut.update(project.id, {
+      status: project.status === 'archived' ? 'active' : 'archived',
+    });
+    await refetchProject();
+  };
 
   return (
     <StackScreen title={project.name} onBack={() => router.back()}>
       <View style={styles.wrap}>
-        <Card padding="lg" style={styles.card}>
-          <View style={styles.header}>
-            <View style={styles.titleWrap}>
-              <Txt variant="title" numberOfLines={2}>
-                {project.name}
-              </Txt>
-              {project.client_name ? (
-                <Txt variant="body" tone="textMuted">
-                  {project.client_name}
+        {manager && panel === 'edit' ? (
+          <EditProjectForm
+            project={project}
+            onSave={saveEdits}
+            onCancel={() => setPanel('none')}
+            isSubmitting={projectMut.isPending}
+          />
+        ) : (
+          <Card padding="lg" style={styles.card}>
+            <View style={styles.header}>
+              <View style={styles.titleWrap}>
+                <Txt variant="title" numberOfLines={2}>
+                  {project.name}
                 </Txt>
-              ) : null}
+                {project.client_name ? (
+                  <Txt variant="body" tone="textMuted">
+                    {project.client_name}
+                  </Txt>
+                ) : null}
+              </View>
+              <Badge label={projectStatusLabel(project.status)} status={projectBadge(project.status)} />
             </View>
-            <Badge label={projectStatusLabel(project.status)} status={projectBadge(project.status)} />
-          </View>
-          <StatRow>
-            <StatTile
-              label="Default TJM"
-              value={project.default_tjm_cents != null ? formatMoney(project.default_tjm_cents, currency) : '—'}
-            />
-            <StatTile label="Hours / day" value={String(project.hours_per_day)} />
-            {project.budget_cents != null ? (
-              <StatTile label="Budget" value={formatMoney(project.budget_cents, currency)} />
+            <StatRow>
+              <StatTile
+                label="Default TJM"
+                value={project.default_tjm_cents != null ? formatMoney(project.default_tjm_cents, currency) : '—'}
+              />
+              <StatTile label="Hours / day" value={String(project.hours_per_day)} />
+              {project.budget_cents != null ? (
+                <StatTile label="Budget" value={formatMoney(project.budget_cents, currency)} />
+              ) : null}
+            </StatRow>
+            {manager ? (
+              <View style={styles.headerActions}>
+                <Button title="Edit" size="sm" variant="secondary" onPress={() => setPanel('edit')} />
+                <Button
+                  title={project.status === 'archived' ? 'Unarchive' : 'Archive'}
+                  size="sm"
+                  variant="ghost"
+                  onPress={toggleArchive}
+                  loading={projectMut.isPending}
+                />
+              </View>
             ) : null}
-          </StatRow>
-        </Card>
+            {projectMut.error ? <InlineError error={projectMut.error} /> : null}
+          </Card>
+        )}
 
         <Section
           title="Members"
@@ -269,6 +313,7 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.xl },
   card: { gap: spacing.md },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
   titleWrap: { flex: 1, gap: 2 },
   section: { gap: spacing.sm },
 });

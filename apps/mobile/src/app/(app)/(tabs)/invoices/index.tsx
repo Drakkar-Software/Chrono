@@ -14,9 +14,11 @@ import { useMyReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { InvoiceCard } from '@/components/invoices/InvoiceCard';
 import { GenerateInvoiceForm, type GenerateInvoiceParams } from '@/components/invoices/GenerateInvoiceForm';
 import { SettleMonthForm } from '@/components/invoices/SettleMonthForm';
+import { usePagination } from '@/lib/hooks/use-pagination';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState, InlineError } from '@/components/common/ErrorState';
+import { LoadMore } from '@/components/common/LoadMore';
 
 const DUPLICATE_INVOICE_MESSAGE = 'An invoice already exists for this month.';
 
@@ -49,7 +51,9 @@ export default function InvoicesScreen() {
     companyId: companyId ?? '',
     freelancerId: manager ? undefined : userId,
   });
-  const groups = useMemo(() => groupByMonth(invoices ?? []), [invoices]);
+  const allInvoices = useMemo(() => invoices ?? [], [invoices]);
+  const { page, hasMore, loadMore } = usePagination(allInvoices, manager ? 'managed' : 'mine');
+  const groups = useMemo(() => groupByMonth(page), [page]);
 
   const mine = useMyProjects(!manager ? userId : undefined, !manager ? companyId ?? undefined : undefined);
   const managed = useProjects(manager ? companyId ?? undefined : undefined);
@@ -152,25 +156,32 @@ export default function InvoicesScreen() {
             action={!manager ? <Button title="Generate invoice" onPress={() => setPanel('generate')} /> : undefined}
           />
         ) : (
-          groups.map((group) => (
-            <View key={group.month} style={styles.group}>
-              <SectionHeader title={group.month} count={group.items.length} />
-              <View style={styles.grid}>
-                {group.items.map((invoice) => (
-                  <View
-                    key={invoice.id}
-                    style={[styles.cell, isWide ? styles.cellWide : styles.cellFull]}
-                  >
-                    <InvoiceCard
-                      invoice={invoice}
-                      currency={currency}
-                      onPress={() => router.push(`/invoice/${invoice.id}`)}
-                    />
-                  </View>
-                ))}
+          <>
+            {groups.map((group) => (
+              <View key={group.month} style={styles.group}>
+                <SectionHeader title={group.month} count={group.items.length} />
+                <View style={styles.grid}>
+                  {group.items.map((invoice) => (
+                    <View
+                      key={invoice.id}
+                      style={[styles.cell, isWide ? styles.cellWide : styles.cellFull]}
+                    >
+                      <InvoiceCard
+                        invoice={invoice}
+                        currency={currency}
+                        onPress={() => router.push(`/invoice/${invoice.id}`)}
+                      />
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
-          ))
+            ))}
+            <LoadMore
+              hasMore={hasMore}
+              onLoadMore={loadMore}
+              remaining={allInvoices.length - page.length}
+            />
+          </>
         )}
 
         {!manager && (referralEarnings ?? []).length > 0 ? (

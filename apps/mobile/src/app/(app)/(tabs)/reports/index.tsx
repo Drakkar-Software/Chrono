@@ -1,17 +1,28 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { EmptyState, StackScreen, spacing, useResponsive } from '@chrono/ui';
+import { Button, EmptyState, Segmented, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
 import { companyCurrency } from '@chrono/sdk';
 import type { InvoiceWithRelations, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useActiveCompany } from '@/lib/active-company-context';
+import { todayISO } from '@/lib/date';
 import { usePendingApprovals, useApproveEntry, useRejectEntry } from '@/lib/hooks/use-approvals';
 import { useProjects } from '@/lib/hooks/use-projects';
 import { useCompanyRevenueEntries } from '@/lib/hooks/use-revenue-entries';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
+import { useTimeEntries } from '@/lib/hooks/use-time-entries';
+import { useCompanyMembers } from '@/lib/hooks/use-company-members';
+import {
+  RANGE_OPTIONS,
+  inRange,
+  rangeBounds,
+  summarizeFreelancers,
+  type RangePreset,
+} from '@/lib/reports';
 import { ApprovalRow } from '@/components/approvals/ApprovalRow';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
+import { FreelancerBreakdown } from '@/components/reports/FreelancerBreakdown';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
@@ -31,6 +42,11 @@ export default function ReportsScreen() {
   const { isWide } = useResponsive();
   const { companyId, company } = useActiveCompany();
   const currency = companyCurrency(company);
+
+  const [preset, setPreset] = useState<RangePreset>('this_month');
+  const range = useMemo(() => rangeBounds(preset, todayISO()), [preset]);
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const {
     data: pending,
@@ -53,6 +69,16 @@ export default function ReportsScreen() {
   const { data: referralEarnings } = useReferralEarnings(companyId ? { companyId } : {});
   const { data: invoices } = useInvoices({ companyId: companyId ?? '' });
 
+  // Approved billable time in-range — one company-scoped query, sliced per user.
+  const { data: approvedEntries } = useTimeEntries({
+    companyId: companyId ?? '',
+    status: 'approved',
+    billable: true,
+    from: range.from,
+    to: range.to,
+  });
+  const { data: members } = useCompanyMembers(companyId ?? undefined);
+
   const revenueByProject = useMemo(
     () => groupByProject<RevenueEntry>(revenueEntries ?? []),
     [revenueEntries],
@@ -66,15 +92,73 @@ export default function ReportsScreen() {
     [invoices],
   );
 
+  const freelancerRows = useMemo(() => {
+    const invoicesInRange = (invoices ?? []).filter((inv) => inRange(inv.period_month, range));
+    return summarizeFreelancers(approvedEntries ?? [], invoicesInRange);
+  }, [approvedEntries, invoices, range]);
+
   const pendingList = pending ?? [];
   const projectList = projects ?? [];
   const cellStyle = [styles.cell, isWide ? styles.cellWide : styles.cellFull];
+
+  const busy = approve.isPending || reject.isPending;
+  const allSelected = pendingList.length > 0 && selected.size === pendingList.length;
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    setSelected(allSelected ? new Set() : new Set(pendingList.map((e) => e.id)));
+  };
+  const approveSelected = async () => {
+    const ids = [...selected];
+    for (const id of ids) {
+      await approve.mutateAsync(id);
+    }
+    setSelected(new Set());
+    await refetchPending();
+  };
 
   return (
     <StackScreen title="Reports">
       <View style={styles.wrap}>
         <View style={styles.section}>
-          <SectionHeader eyebrow="Review" title="Pending approvals" count={pendingList.length} />
+          <SectionHeader eyebrow="Scope" title="Date range" />
+          <Segmented options={RANGE_OPTIONS} value={preset} onValueChange={(v) => setPreset(v as RangePreset)} />
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader
+            eyebrow="Review"
+            title="Pending approvals"
+            count={pendingList.length}
+            action={
+              pendingList.length > 0 ? (
+                <View style={styles.bulkActions}>
+                  <Button
+                    title={allSelected ? 'Clear' : 'Select all'}
+                    size="sm"
+                    variant="ghost"
+                    onPress={toggleSelectAll}
+                    disabled={busy}
+                  />
+                  <Button
+                    title={`Approve selected (${selected.size})`}
+                    size="sm"
+                    variant="primary"
+                    onPress={approveSelected}
+                    loading={approve.isPending}
+                    disabled={selected.size === 0}
+                  />
+                </View>
+              ) : undefined
+            }
+          />
           {loadingPending && pending == null ? (
             <ScreenLoader />
           ) : pendingError && pending == null ? (
@@ -93,14 +177,25 @@ export default function ReportsScreen() {
                 <View key={entry.id} style={cellStyle}>
                   <ApprovalRow
                     entry={entry}
+                    selectable
+                    selected={selected.has(entry.id)}
+                    onToggleSelect={() => toggleSelect(entry.id)}
                     onApprove={() => approve.mutate(entry.id)}
-                    onReject={() => reject.mutate(entry.id, 'Rejected')}
-                    isBusy={approve.isPending || reject.isPending}
+                    onReject={(reason) => reject.mutate(entry.id, reason)}
+                    isBusy={busy}
                   />
                 </View>
               ))}
             </View>
           )}
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader eyebrow="People" title="Per-freelancer breakdown" count={freelancerRows.length} />
+          <Txt variant="caption" tone="textMuted">
+            Approved billable time and invoiced amounts in the selected range.
+          </Txt>
+          <FreelancerBreakdown rows={freelancerRows} members={members ?? []} currency={currency} />
         </View>
 
         <View style={styles.section}>
@@ -141,6 +236,7 @@ export default function ReportsScreen() {
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xl },
   section: { gap: spacing.md },
+  bulkActions: { flexDirection: 'row', gap: spacing.sm, flexShrink: 1, flexWrap: 'wrap', justifyContent: 'flex-end' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   cell: { flexGrow: 1 },
   cellWide: { flexBasis: '48%', minWidth: 280 },
