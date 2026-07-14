@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Card, EmptyState, Money, Row, StackScreen, Txt, spacing } from '@chrono/ui';
+import { Button, Card, EmptyState, Money, Row, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
 import { canManage, companyCurrency } from '@chrono/sdk';
 import type { InvoiceWithRelations } from '@chrono/sdk';
 
@@ -14,6 +14,8 @@ import { useMyReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { InvoiceCard } from '@/components/invoices/InvoiceCard';
 import { GenerateInvoiceForm, type GenerateInvoiceParams } from '@/components/invoices/GenerateInvoiceForm';
 import { SettleMonthForm } from '@/components/invoices/SettleMonthForm';
+import { SectionHeader } from '@/components/common/SectionHeader';
+import { ScreenLoader } from '@/components/common/ScreenLoader';
 
 function groupByMonth(invoices: InvoiceWithRelations[]) {
   const out: Record<string, InvoiceWithRelations[]> = {};
@@ -28,13 +30,14 @@ function groupByMonth(invoices: InvoiceWithRelations[]) {
 
 export default function InvoicesScreen() {
   const router = useRouter();
+  const { isWide } = useResponsive();
   const { user } = useAppAuth();
   const { companyId, company, role } = useActiveCompany();
   const manager = canManage(role);
   const currency = companyCurrency(company);
   const userId = user?.id;
 
-  const { data: invoices } = useInvoices({
+  const { data: invoices, isLoading } = useInvoices({
     companyId: companyId ?? '',
     freelancerId: manager ? undefined : userId,
   });
@@ -99,32 +102,39 @@ export default function InvoicesScreen() {
           />
         ) : null}
 
-        {groups.length === 0 && panel === 'none' ? (
+        {isLoading && invoices == null && panel === 'none' ? (
+          <ScreenLoader />
+        ) : groups.length === 0 && panel === 'none' ? (
           <EmptyState
             icon="receipt-outline"
             title="No invoices"
             subtitle={manager ? 'Invoices appear here as freelancers submit them.' : 'Generate an invoice from your approved time.'}
+            action={!manager ? <Button title="Generate invoice" onPress={() => setPanel('generate')} /> : undefined}
           />
         ) : (
           groups.map((group) => (
             <View key={group.month} style={styles.group}>
-              <Txt variant="label" tone="textMuted" uppercase>
-                {group.month}
-              </Txt>
-              {group.items.map((invoice) => (
-                <InvoiceCard
-                  key={invoice.id}
-                  invoice={invoice}
-                  currency={currency}
-                  onPress={() => router.push(`/invoice/${invoice.id}`)}
-                />
-              ))}
+              <SectionHeader title={group.month} count={group.items.length} />
+              <View style={styles.grid}>
+                {group.items.map((invoice) => (
+                  <View
+                    key={invoice.id}
+                    style={[styles.cell, isWide ? styles.cellWide : styles.cellFull]}
+                  >
+                    <InvoiceCard
+                      invoice={invoice}
+                      currency={currency}
+                      onPress={() => router.push(`/invoice/${invoice.id}`)}
+                    />
+                  </View>
+                ))}
+              </View>
             </View>
           ))
         )}
 
         {!manager && (referralEarnings ?? []).length > 0 ? (
-          <Card padding="lg" style={styles.group}>
+          <Card padding="lg" style={styles.referralCard}>
             <Txt variant="heading">Referral earnings</Txt>
             {(referralEarnings ?? []).map((earning) => (
               <Row key={earning.id} label={earning.period_month.slice(0, 7)}>
@@ -141,4 +151,9 @@ export default function InvoicesScreen() {
 const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
   group: { gap: spacing.sm },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  cell: { flexGrow: 1 },
+  cellWide: { flexBasis: '48%', minWidth: 260 },
+  cellFull: { flexBasis: '100%' },
+  referralCard: { gap: spacing.sm },
 });

@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Badge, Button, Card, Money, Row, StackScreen, Txt, spacing } from '@chrono/ui';
+import { Badge, Button, Card, EmptyState, StackScreen, Txt, formatMoney, spacing } from '@chrono/ui';
 import {
   canManage,
   companyCurrency,
@@ -17,7 +17,6 @@ import { useCompanyMembers } from '@/lib/hooks/use-company-members';
 import { useRevenueSources, useRevenueSourceMutations } from '@/lib/hooks/use-revenue-sources';
 import { useProjectReferrals, useProjectReferralMutations } from '@/lib/hooks/use-project-referrals';
 import { projectBadge } from '@/lib/status';
-import { Loading } from '@/components/Loading';
 import { ProjectMemberRow } from '@/components/projects/ProjectMemberRow';
 import { RevenueSourceRow } from '@/components/projects/RevenueSourceRow';
 import { ReferrerRow } from '@/components/projects/ReferrerRow';
@@ -25,6 +24,9 @@ import { AddProjectMemberForm } from '@/components/projects/AddProjectMemberForm
 import { AddRevenueSourceForm, type AddRevenueSourceValues } from '@/components/projects/AddRevenueSourceForm';
 import { AddReferrerForm } from '@/components/projects/AddReferrerForm';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
+import { SectionHeader } from '@/components/common/SectionHeader';
+import { ScreenLoader } from '@/components/common/ScreenLoader';
+import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 type Panel = 'none' | 'member' | 'source' | 'referrer';
 
@@ -65,13 +67,17 @@ export default function ProjectDetail() {
 
   const remainingPct = remainingReferralPct(referrals ?? []);
 
-  if (isLoading && !project) return <Loading />;
+  if (isLoading && !project) {
+    return (
+      <StackScreen title="Project" onBack={() => router.back()}>
+        <ScreenLoader />
+      </StackScreen>
+    );
+  }
   if (!project) {
     return (
       <StackScreen title="Project" onBack={() => router.back()}>
-        <Txt variant="body" tone="textMuted">
-          Project not found.
-        </Txt>
+        <EmptyState icon="folder-outline" title="Project not found" subtitle="It may have been removed." />
       </StackScreen>
     );
   }
@@ -114,17 +120,16 @@ export default function ProjectDetail() {
             </View>
             <Badge label={projectStatusLabel(project.status)} status={projectBadge(project.status)} />
           </View>
-          {project.default_tjm_cents != null ? (
-            <Row label="Default TJM">
-              <Money cents={project.default_tjm_cents} currency={currency} />
-            </Row>
-          ) : null}
-          <Row label="Hours per day" value={String(project.hours_per_day)} />
-          {project.budget_cents != null ? (
-            <Row label="Budget">
-              <Money cents={project.budget_cents} currency={currency} />
-            </Row>
-          ) : null}
+          <StatRow>
+            <StatTile
+              label="Default TJM"
+              value={project.default_tjm_cents != null ? formatMoney(project.default_tjm_cents, currency) : '—'}
+            />
+            <StatTile label="Hours / day" value={String(project.hours_per_day)} />
+            {project.budget_cents != null ? (
+              <StatTile label="Budget" value={formatMoney(project.budget_cents, currency)} />
+            ) : null}
+          </StatRow>
         </Card>
 
         <Section
@@ -197,10 +202,10 @@ function Section({
 }) {
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Txt variant="heading">{title}</Txt>
-        {action ? <Button title="Add" size="sm" variant="secondary" onPress={action} /> : null}
-      </View>
+      <SectionHeader
+        title={title}
+        action={action ? <Button title="Add" size="sm" variant="secondary" onPress={action} /> : undefined}
+      />
       {children}
     </View>
   );
@@ -208,9 +213,8 @@ function Section({
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xl },
-  card: { gap: spacing.sm },
+  card: { gap: spacing.md },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   titleWrap: { flex: 1, gap: 2 },
   section: { gap: spacing.sm },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });

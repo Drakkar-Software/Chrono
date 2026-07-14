@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, Picker, StackScreen, TextField, Txt, spacing } from '@chrono/ui';
+import { Button, Card, EmptyState, Picker, StackScreen, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
 import { canManage, companyName } from '@chrono/sdk';
 import type { AppRole } from '@chrono/sdk';
 
@@ -11,6 +11,7 @@ import { useCompanyMembers, useCompanyMemberMutations } from '@/lib/hooks/use-co
 import { MemberRow } from '@/components/settings/MemberRow';
 
 export default function SettingsScreen() {
+  const { isWide } = useResponsive();
   const { user, signOut } = useAppAuth();
   const { companyId, company, companies, role, setCompanyId } = useActiveCompany();
   const manager = canManage(role);
@@ -29,32 +30,47 @@ export default function SettingsScreen() {
     if (user?.id && name.trim()) updateProfile(user.id, { full_name: name.trim() });
   };
 
+  const hasCompanies = companies.length > 0;
+  const topColStyle = isWide ? styles.colWide : styles.colFull;
+
   return (
     <StackScreen title="Settings">
       <View style={styles.wrap}>
-        <Card padding="lg" style={styles.card}>
-          <Txt variant="heading">Profile</Txt>
-          <TextField label="Name" value={name} onChangeText={setName} placeholder="Your name" />
-          <Button title="Save" onPress={saveName} loading={savingProfile} disabled={!name.trim()} />
-        </Card>
+        <View style={[styles.grid, isWide && styles.gridRow]}>
+          <View style={topColStyle}>
+            <Card padding="lg" style={styles.card}>
+              <Txt variant="heading">Profile</Txt>
+              <TextField label="Name" value={name} onChangeText={setName} placeholder="Your name" />
+              {user?.email ? (
+                <Txt variant="caption" tone="textMuted">
+                  {user.email}
+                </Txt>
+              ) : null}
+              <Button title="Save" onPress={saveName} loading={savingProfile} disabled={!name.trim()} fullWidth={!isWide} />
+            </Card>
+          </View>
 
-        {companies.length > 0 ? (
-          <Card padding="lg" style={styles.card}>
-            <Txt variant="heading">Active company</Txt>
-            <Picker
-              value={companyId ?? ''}
-              onValueChange={setCompanyId}
-              options={companies.map((c) => ({ label: companyName(c), value: c.id }))}
-            />
-          </Card>
-        ) : null}
+          {hasCompanies ? (
+            <View style={topColStyle}>
+              <Card padding="lg" style={styles.card}>
+                <Txt variant="heading">Active company</Txt>
+                <Picker
+                  value={companyId ?? ''}
+                  onValueChange={setCompanyId}
+                  options={companies.map((c) => ({ label: companyName(c), value: c.id }))}
+                />
+                <Txt variant="caption" tone="textMuted">
+                  Switch between the teams you work with.
+                </Txt>
+              </Card>
+            </View>
+          ) : null}
+        </View>
 
         <Card padding="lg" style={styles.card}>
           <Txt variant="heading">Members</Txt>
           {(members ?? []).length === 0 ? (
-            <Txt variant="body" tone="textMuted">
-              No members yet.
-            </Txt>
+            <EmptyState icon="people-outline" title="No members yet" subtitle="Invite teammates to this company to see them here." />
           ) : (
             (members ?? []).map((member) => (
               <MemberRow
@@ -67,7 +83,7 @@ export default function SettingsScreen() {
           )}
         </Card>
 
-        <Button title="Sign out" variant="danger" onPress={() => signOut()} fullWidth />
+        <Button title="Sign out" variant="danger" onPress={() => signOut()} fullWidth={!isWide} />
       </View>
     </StackScreen>
   );
@@ -75,5 +91,9 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
+  grid: { gap: spacing.lg },
+  gridRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  colWide: { flex: 1 },
+  colFull: { width: '100%' },
   card: { gap: spacing.md },
 });

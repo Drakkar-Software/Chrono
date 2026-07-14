@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, Card, Screen, TextField, Txt, spacing } from '@chrono/ui';
+import { Button, TextField, Txt } from '@chrono/ui';
+import { AuthCard } from '@/components/common/AuthCard';
 
 export interface AuthFormProps {
   title: string;
@@ -29,55 +29,36 @@ export function AuthForm({
   const [password, setPassword] = useState('');
 
   return (
-    <Screen>
-      <View style={styles.wrap}>
-        <Card padding="xl" style={styles.card}>
-          <Txt variant="title" center>
-            {title}
-          </Txt>
-          {subtitle ? (
-            <Txt variant="body" tone="textMuted" center>
-              {subtitle}
-            </Txt>
-          ) : null}
-          <TextField
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          {withPassword ? (
-            <TextField
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              secureTextEntry
-              autoCapitalize="none"
-            />
-          ) : null}
-          {error ? (
-            <Txt variant="caption" tone="danger" center>
-              {error}
-            </Txt>
-          ) : null}
-          <Button
-            title={submitLabel}
-            onPress={() => onSubmit(email.trim(), password)}
-            loading={busy}
-            fullWidth
-          />
-          {footer ? <View style={styles.footer}>{footer}</View> : null}
-        </Card>
-      </View>
-    </Screen>
+    <AuthCard title={title} subtitle={subtitle} footer={footer}>
+      <TextField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        placeholder="you@example.com"
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      {withPassword ? (
+        <TextField
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          placeholder="••••••••"
+          secureTextEntry
+          autoCapitalize="none"
+        />
+      ) : null}
+      {error ? (
+        <Txt variant="caption" tone="danger" center>
+          {error}
+        </Txt>
+      ) : null}
+      <Button
+        title={submitLabel}
+        onPress={() => onSubmit(email.trim(), password)}
+        loading={busy}
+        fullWidth
+      />
+    </AuthCard>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { flex: 1, justifyContent: 'center', padding: spacing.lg },
-  card: { gap: spacing.md, width: '100%', maxWidth: 400, alignSelf: 'center' },
-  footer: { alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs },
-});

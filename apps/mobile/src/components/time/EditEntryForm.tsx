@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Card, DatePicker, Segmented, TextField, Txt, spacing } from '@chrono/ui';
 import type { TablesUpdate, TimeEntry } from '@chrono/sdk';
+import { FieldRow } from '@/components/common/FieldRow';
 
 export interface EditEntryFormProps {
   entry: Pick<TimeEntry, 'entry_date' | 'duration_minutes' | 'description' | 'billable'>;

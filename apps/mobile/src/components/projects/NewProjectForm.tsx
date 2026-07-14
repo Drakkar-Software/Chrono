@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Button, Card, TextField, Txt, spacing } from '@chrono/ui';
 import { DEFAULT_HOURS_PER_DAY } from '@chrono/sdk';
+import { FieldRow } from '@/components/common/FieldRow';
 
 export interface NewProjectValues {
   name: string;
@@ -49,19 +50,21 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
       <Txt variant="heading">New project</Txt>
       <TextField label="Name" value={name} onChangeText={setName} placeholder="Website redesign" error={error} />
       <TextField label="Client" value={clientName} onChangeText={setClientName} placeholder="Acme Inc." />
-      <TextField
-        label="Default day rate (TJM)"
-        value={tjm}
-        onChangeText={setTjm}
-        placeholder="500"
-        keyboardType="decimal-pad"
-      />
-      <TextField
-        label="Hours per day"
-        value={hoursPerDay}
-        onChangeText={setHoursPerDay}
-        keyboardType="decimal-pad"
-      />
+      <FieldRow>
+        <TextField
+          label="Default day rate (TJM)"
+          value={tjm}
+          onChangeText={setTjm}
+          placeholder="500"
+          keyboardType="decimal-pad"
+        />
+        <TextField
+          label="Hours per day"
+          value={hoursPerDay}
+          onChangeText={setHoursPerDay}
+          keyboardType="decimal-pad"
+        />
+      </FieldRow>
       <Button title="Create project" onPress={submit} loading={isSubmitting} fullWidth />
       <Button title="Cancel" variant="ghost" onPress={onCancel} />
     </Card>

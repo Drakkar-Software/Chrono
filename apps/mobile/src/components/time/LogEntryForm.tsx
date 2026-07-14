@@ -11,6 +11,7 @@ import {
   spacing,
 } from '@chrono/ui';
 import type { PickerOption } from '@chrono/ui';
+import { FieldRow } from '@/components/common/FieldRow';
 
 export interface LogEntryValues {
   projectId: string;
@@ -82,15 +83,17 @@ export function LogEntryForm({
         options={projectOptions}
         placeholder="Select a project"
       />
-      <DatePicker label="Date" value={entryDate} onChange={setEntryDate} maximumDate={new Date()} />
-      <TextField
-        label="Hours"
-        value={hours}
-        onChangeText={setHours}
-        placeholder="e.g. 7.5"
-        keyboardType="decimal-pad"
-        error={error}
-      />
+      <FieldRow>
+        <DatePicker label="Date" value={entryDate} onChange={setEntryDate} maximumDate={new Date()} />
+        <TextField
+          label="Hours"
+          value={hours}
+          onChangeText={setHours}
+          placeholder="e.g. 7.5"
+          keyboardType="decimal-pad"
+          error={error}
+        />
+      </FieldRow>
       <TextField
         label="Description"
         value={description}

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Card, Screen, TextField, Txt, spacing } from '@chrono/ui';
+import { Button, TextField, Txt } from '@chrono/ui';
 
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useProfileMutations } from '@/lib/hooks/use-profile';
 import { useCompanyMutations } from '@/lib/hooks/use-companies';
 import { useActiveCompany } from '@/lib/active-company-context';
+import { AuthCard } from '@/components/common/AuthCard';
 
 /**
  * First-run setup: capture the user's name and create their first company. The
@@ -48,35 +48,23 @@ export default function RoleSetup() {
   };
 
   return (
-    <Screen>
-      <View style={styles.wrap}>
-        <Card padding="xl" style={styles.card}>
-          <Txt variant="title" center>
-            Set up Chrono
-          </Txt>
-          <Txt variant="body" tone="textMuted" center>
-            Tell us who you are and name your company to get started.
-          </Txt>
-          <TextField label="Your name" value={fullName} onChangeText={setFullName} placeholder="Jane Doe" />
-          <TextField
-            label="Company name"
-            value={companyName}
-            onChangeText={setCompanyName}
-            placeholder="Acme Studio"
-          />
-          {error ? (
-            <Txt variant="caption" tone="danger" center>
-              {error}
-            </Txt>
-          ) : null}
-          <Button title="Create company" onPress={submit} loading={busy} fullWidth />
-        </Card>
-      </View>
-    </Screen>
+    <AuthCard
+      title="Set up Chrono"
+      subtitle="Step 1 of 1 · Tell us who you are and name your company to get started."
+    >
+      <TextField label="Your name" value={fullName} onChangeText={setFullName} placeholder="Jane Doe" />
+      <TextField
+        label="Company name"
+        value={companyName}
+        onChangeText={setCompanyName}
+        placeholder="Acme Studio"
+      />
+      {error ? (
+        <Txt variant="caption" tone="danger" center>
+          {error}
+        </Txt>
+      ) : null}
+      <Button title="Create company" onPress={submit} loading={busy} fullWidth />
+    </AuthCard>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { flex: 1, justifyContent: 'center', padding: spacing.lg },
-  card: { gap: spacing.md, width: '100%', maxWidth: 420, alignSelf: 'center' },
-});

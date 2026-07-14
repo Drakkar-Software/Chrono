@@ -1,11 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Card, EmptyState, StackScreen, Txt, spacing } from '@chrono/ui';
+import { Card, EmptyState, StackScreen, spacing } from '@chrono/ui';
 import type { TablesUpdate } from '@chrono/sdk';
 
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useTimeEntry, useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
-import { Loading } from '@/components/Loading';
+import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { EditEntryForm } from '@/components/time/EditEntryForm';
 
 export default function TimeEntryDetail() {
@@ -16,13 +16,17 @@ export default function TimeEntryDetail() {
   const { data: entry, isLoading } = useTimeEntry(id, companyId ?? undefined);
   const { update, remove, isPending } = useTimeEntryMutations();
 
-  if (isLoading && !entry) return <Loading />;
+  if (isLoading && !entry) {
+    return (
+      <StackScreen title="Time entry" onBack={() => router.back()}>
+        <ScreenLoader />
+      </StackScreen>
+    );
+  }
   if (!entry) {
     return (
       <StackScreen title="Time entry" onBack={() => router.back()}>
-        <Txt variant="body" tone="textMuted">
-          Entry not found.
-        </Txt>
+        <EmptyState icon="time-outline" title="Entry not found" subtitle="It may have been removed." />
       </StackScreen>
     );
   }

@@ -7,6 +7,7 @@ import type { Project } from '@chrono/sdk';
 import { useRevenueEntries } from '@/lib/hooks/use-revenue-entries';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
+import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 export interface ProjectPnLCardProps {
   project: Project;
@@ -46,19 +47,21 @@ export function ProjectPnLCard({ project, companyId, currency }: ProjectPnLCardP
       <Txt variant="heading" numberOfLines={1}>
         {project.name}
       </Txt>
-      <Row label="Revenue">
-        <Money cents={revenueCents} currency={currency} />
-      </Row>
-      <Row label="Referrals">
-        <Money cents={referralCents} currency={currency} tone="textMuted" />
-      </Row>
-      <Row label="Freelancer cost">
-        <Money cents={costCents} currency={currency} tone="textMuted" />
-      </Row>
+      <StatRow>
+        <StatTile label="Revenue">
+          <Money cents={revenueCents} currency={currency} variant="heading" />
+        </StatTile>
+        <StatTile label="Referrals">
+          <Money cents={referralCents} currency={currency} variant="heading" tone="textMuted" />
+        </StatTile>
+        <StatTile label="Cost">
+          <Money cents={costCents} currency={currency} variant="heading" tone="textMuted" />
+        </StatTile>
+        <StatTile label="Margin">
+          <Money cents={margin} currency={currency} variant="heading" tone={margin >= 0 ? 'success' : 'danger'} />
+        </StatTile>
+      </StatRow>
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
-      <Row label="Margin">
-        <Money cents={margin} currency={currency} variant="heading" tone={margin >= 0 ? 'success' : 'danger'} />
-      </Row>
       <Row label="Available funding">
         <Money cents={funding} currency={currency} tone="textMuted" />
       </Row>
@@ -67,6 +70,6 @@ export function ProjectPnLCard({ project, companyId, currency }: ProjectPnLCardP
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.xs },
-  divider: { height: 1, marginVertical: spacing.xs },
+  card: { gap: spacing.md },
+  divider: { height: 1, marginTop: spacing.xs },
 });
