@@ -2,11 +2,19 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Badge, Button, Card, EmptyState, Money, Row, StackScreen, spacing, useResponsive } from '@chrono/ui';
-import { canManage, companyCurrency, companyName, displayName, invoiceAmounts, invoiceStatusLabel } from '@chrono/sdk';
+import {
+  canManage,
+  companyCurrency,
+  companyLegal,
+  freelancerLegal,
+  invoiceAmounts,
+  invoiceStatusLabel,
+} from '@chrono/sdk';
 
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useInvoice } from '@/lib/hooks/use-invoices';
+import { useProfile } from '@/lib/hooks/use-profile';
 import { useSettleProjectMonth, useSubmitInvoice } from '@/lib/hooks/use-invoice-mutations';
 import { buildInvoiceHtml, exportInvoice } from '@/lib/invoice-document';
 import { invoiceBadge } from '@/lib/status';
@@ -26,6 +34,9 @@ export default function InvoiceDetail() {
   const currency = companyCurrency(company);
 
   const { data: invoice, isLoading, error, refetch } = useInvoice(id);
+  // The issuing freelancer's profile carries the legal details for the document.
+  // RLS lets the freelancer read their own and managers read company peers.
+  const { data: freelancerProfile } = useProfile(invoice?.freelancer_id);
   const submit = useSubmitInvoice();
   const settle = useSettleProjectMonth();
 
@@ -40,12 +51,26 @@ export default function InvoiceDetail() {
     setExportError(undefined);
     setExporting(true);
     try {
+      const legal = companyLegal(company);
+      const freelancer = freelancerLegal(freelancerProfile);
+      const logoUrl = (company?.content as { logo_url?: string } | null)?.logo_url ?? null;
       const html = buildInvoiceHtml({
         invoice,
         projectName: invoice.project?.name ?? 'Project',
-        freelancerName: displayName(invoice.freelancer),
-        companyName: companyName(company),
+        from: {
+          name: freelancer.name,
+          address: freelancer.address,
+          vatId: freelancer.vatId,
+          registrationId: freelancer.businessId,
+        },
+        to: {
+          name: legal.name,
+          address: legal.address,
+          vatId: legal.vatId,
+          registrationId: legal.registrationId,
+        },
         currency,
+        logoUrl,
       });
       await exportInvoice(html);
     } catch (err) {

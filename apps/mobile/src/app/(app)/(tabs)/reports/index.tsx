@@ -16,12 +16,14 @@ import { useCompanyMembers } from '@/lib/hooks/use-company-members';
 import {
   RANGE_OPTIONS,
   inRange,
+  monthlyTrend,
   rangeBounds,
   summarizeFreelancers,
   type RangePreset,
 } from '@/lib/reports';
 import { ApprovalRow } from '@/components/approvals/ApprovalRow';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
+import { TrendsCard } from '@/components/reports/TrendsCard';
 import { FreelancerBreakdown } from '@/components/reports/FreelancerBreakdown';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
@@ -96,6 +98,13 @@ export default function ReportsScreen() {
     const invoicesInRange = (invoices ?? []).filter((inv) => inRange(inv.period_month, range));
     return summarizeFreelancers(approvedEntries ?? [], invoicesInRange);
   }, [approvedEntries, invoices, range]);
+
+  // Six-month revenue/cost/margin trend — independent of the range preset above,
+  // built from the company-wide data already fetched (no extra queries).
+  const trend = useMemo(
+    () => monthlyTrend(revenueEntries ?? [], referralEarnings ?? [], invoices ?? [], todayISO(), 6),
+    [revenueEntries, referralEarnings, invoices],
+  );
 
   const pendingList = pending ?? [];
   const projectList = projects ?? [];
@@ -206,6 +215,11 @@ export default function ReportsScreen() {
               ))}
             </View>
           )}
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader eyebrow="Trends" title="Last 6 months" />
+          <TrendsCard points={trend} currency={currency} />
         </View>
 
         <View style={styles.section}>

@@ -142,6 +142,7 @@ export default function ProjectDetail() {
       budget_cents: values.budgetCents,
       hours_per_day: values.hoursPerDay,
       status: values.status,
+      vat_rate: values.vatRate,
     });
     await refetchProject();
     setPanel('none');

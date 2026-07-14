@@ -20,6 +20,9 @@ import { useMyProjects, useProjects } from '@/lib/hooks/use-projects';
 import { useTimeEntries, useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { usePendingApprovals } from '@/lib/hooks/use-approvals';
+import { useNotifications } from '@/lib/hooks/use-notifications';
+import { unreadCount } from '@chrono/sdk';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
@@ -55,6 +58,8 @@ export default function HomeScreen() {
   const { data: myProjects } = useMyProjects(!manager ? userId : undefined, !manager ? companyId ?? undefined : undefined);
   const { data: companyProjects } = useProjects(manager ? companyId ?? undefined : undefined);
   const { data: pending } = usePendingApprovals(manager ? companyId ?? undefined : undefined);
+  const { data: notifications } = useNotifications(userId);
+  const unread = useMemo(() => unreadCount(notifications ?? []), [notifications]);
 
   const monthMinutes = useMemo(() => sumDurations(monthEntries.data ?? []), [monthEntries.data]);
   const weekMinutes = useMemo(() => sumDurations(week.data ?? []), [week.data]);
@@ -91,7 +96,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <StackScreen title="Home">
+    <StackScreen title="Home" headerRight={<NotificationBell unread={unread} />}>
       <View style={styles.wrap}>
         <View style={styles.section}>
           <SectionHeader eyebrow="Overview" title="Your activity" />

@@ -10,6 +10,7 @@ import { Button, ThemeProvider, Txt, spacing, useTheme } from '@chrono/ui';
 import { ActiveCompanyProvider } from '@/lib/active-company-context';
 import { ThemePrefProvider, useThemePref } from '@/lib/theme-pref';
 import { useAppAuth } from '@/lib/supabase-stores';
+import { usePushRegistration } from '@/lib/hooks/use-push';
 
 // Keep the splash up until auth resolves (see the effect below).
 void SplashScreen.preventAutoHideAsync();
@@ -50,7 +51,8 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 }
 
 export default function RootLayout() {
-  const { isLoading } = useAppAuth();
+  const { isLoading, user } = useAppAuth();
+  usePushRegistration(user?.id);
 
   useEffect(() => {
     if (!isLoading) {

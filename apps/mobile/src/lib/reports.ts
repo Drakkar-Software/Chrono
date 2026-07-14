@@ -52,6 +52,64 @@ export function inRange(dateISO: string, range: DateRange): boolean {
   return true;
 }
 
+export interface MonthlyPoint {
+  /** 'YYYY-MM'. */
+  month: string;
+  revenueCents: number;
+  costCents: number;
+  marginCents: number;
+}
+
+type TrendRevenue = { period_month: string; amount_cents: number };
+type TrendReferral = { period_month: string; amount_cents: number };
+type TrendInvoice = { period_month: string; earned_cents: number; status: string };
+
+/** The last `count` month keys ('YYYY-MM') ending at (and including) `todayISO`. */
+export function lastMonths(todayISO: string, count: number): string[] {
+  const today = new Date(`${todayISO.slice(0, 10)}T00:00:00.000Z`);
+  const out: string[] = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - i, 1));
+    out.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
+  }
+  return out;
+}
+
+/**
+ * Monthly revenue / cost / margin series over the last `count` months. Revenue
+ * is recognized revenue; cost is earned on real (submitted+) invoices; margin =
+ * revenue − referrals − cost. Buckets by `period_month`, so it's independent of
+ * the screen's date-range preset.
+ */
+export function monthlyTrend(
+  revenueEntries: TrendRevenue[],
+  referralEarnings: TrendReferral[],
+  invoices: TrendInvoice[],
+  todayISO: string,
+  count = 6,
+): MonthlyPoint[] {
+  const months = lastMonths(todayISO, count);
+  const revenue = new Map<string, number>();
+  const referral = new Map<string, number>();
+  const cost = new Map<string, number>();
+  const bump = (m: Map<string, number>, key: string, v: number) => m.set(key, (m.get(key) ?? 0) + v);
+
+  for (const r of revenueEntries) bump(revenue, r.period_month.slice(0, 7), r.amount_cents ?? 0);
+  for (const r of referralEarnings) bump(referral, r.period_month.slice(0, 7), r.amount_cents ?? 0);
+  for (const i of invoices) {
+    if (i.status === 'submitted' || i.status === 'partially_paid' || i.status === 'paid') {
+      bump(cost, i.period_month.slice(0, 7), i.earned_cents ?? 0);
+    }
+  }
+
+  return months.map((month) => {
+    const revenueCents = revenue.get(month) ?? 0;
+    const costCents = cost.get(month) ?? 0;
+    const marginCents = revenueCents - (referral.get(month) ?? 0) - costCents;
+    return { month, revenueCents, costCents, marginCents };
+  });
+}
+
 export interface FreelancerSummary {
   userId: string;
   minutes: number;

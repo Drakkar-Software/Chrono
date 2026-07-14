@@ -25,6 +25,13 @@ export type InvoiceStatus =
   | 'partially_paid'
   | 'paid'
   | 'cancelled';
+export type NotificationType =
+  | 'time_submitted'
+  | 'time_approved'
+  | 'time_rejected'
+  | 'invoice_paid'
+  | 'invoice_partially_paid'
+  | 'referral_earned';
 
 type Timestamps = {
   created_at: string;
@@ -42,6 +49,9 @@ export type Database = {
           avatar_url: string | null;
           content: Json;
           onboarded: boolean;
+          address: string | null;
+          vat_id: string | null;
+          business_id: string | null;
         } & Timestamps;
         Insert: {
           user_id: string;
@@ -49,6 +59,9 @@ export type Database = {
           avatar_url?: string | null;
           content?: Json;
           onboarded?: boolean;
+          address?: string | null;
+          vat_id?: string | null;
+          business_id?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -63,6 +76,11 @@ export type Database = {
           content: Json;
           currency: string;
           created_by: string | null;
+          legal_name: string | null;
+          address: string | null;
+          vat_id: string | null;
+          registration_id: string | null;
+          vat_rate: number | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -70,6 +88,11 @@ export type Database = {
           content?: Json;
           currency?: string;
           created_by?: string | null;
+          legal_name?: string | null;
+          address?: string | null;
+          vat_id?: string | null;
+          registration_id?: string | null;
+          vat_rate?: number | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -121,6 +144,7 @@ export type Database = {
           starts_on: string | null;
           ends_on: string | null;
           created_by: string | null;
+          vat_rate: number | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -137,6 +161,7 @@ export type Database = {
           starts_on?: string | null;
           ends_on?: string | null;
           created_by?: string | null;
+          vat_rate?: number | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -385,6 +410,7 @@ export type Database = {
           submitted_at: string | null;
           submission_seq: number;
           settled_at: string | null;
+          vat_rate: number | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -405,6 +431,7 @@ export type Database = {
           submitted_at?: string | null;
           submission_seq?: number;
           settled_at?: string | null;
+          vat_rate?: number | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -415,6 +442,99 @@ export type Database = {
             foreignKeyName: 'invoices_project_id_fkey';
             columns: ['project_id'];
             referencedRelation: 'projects';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          company_id: string;
+          user_id: string;
+          type: NotificationType;
+          title: string;
+          body: string | null;
+          data: Json;
+          read_at: string | null;
+        } & Timestamps;
+        Insert: {
+          id?: string;
+          company_id: string;
+          user_id: string;
+          type: NotificationType;
+          title: string;
+          body?: string | null;
+          data?: Json;
+          read_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['notifications']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_company_id_fkey';
+            columns: ['company_id'];
+            referencedRelation: 'companies';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      device_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          token: string;
+          platform: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          token: string;
+          platform?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['device_tokens']['Insert']>;
+        Relationships: [];
+      };
+      company_invites: {
+        Row: {
+          id: string;
+          company_id: string;
+          email: string;
+          role: AppRole;
+          token: string;
+          invited_by: string | null;
+          expires_at: string;
+          accepted_at: string | null;
+          accepted_by: string | null;
+          revoked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          email: string;
+          role?: AppRole;
+          token?: string;
+          invited_by?: string | null;
+          expires_at?: string;
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          revoked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['company_invites']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'company_invites_company_id_fkey';
+            columns: ['company_id'];
+            referencedRelation: 'companies';
             referencedColumns: ['id'];
           },
         ];
@@ -433,6 +553,7 @@ export type Database = {
       is_company_member: { Args: { cid: string }; Returns: boolean };
       is_company_manager: { Args: { cid: string }; Returns: boolean };
       is_company_admin: { Args: { cid: string }; Returns: boolean };
+      accept_company_invite: { Args: { p_token: string }; Returns: string };
     };
     Enums: {
       app_role: AppRole;
@@ -440,6 +561,7 @@ export type Database = {
       time_entry_status: TimeEntryStatus;
       revenue_source_type: RevenueSourceType;
       invoice_status: InvoiceStatus;
+      notification_type: NotificationType;
     };
     CompositeTypes: Record<string, never>;
   };

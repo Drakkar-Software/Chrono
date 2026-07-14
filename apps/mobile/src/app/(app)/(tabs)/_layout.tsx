@@ -29,7 +29,6 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="home/index" options={{ title: 'Home', tabBarIcon: icon('home-outline') }} />
-      <Tabs.Screen name="today/index" options={{ title: 'Log', tabBarIcon: icon('time-outline') }} />
       <Tabs.Screen
         name="projects/index"
         options={{ title: 'Projects', tabBarIcon: icon('folder-outline') }}

@@ -111,7 +111,7 @@ export default function TodayScreen() {
   );
 
   return (
-    <StackScreen title="Log">
+    <StackScreen title="Log time" onBack={() => router.back()}>
       <View style={[styles.wrap, isWide && styles.wrapWide]}>
         <View style={isWide ? styles.formCol : undefined}>
           <LogEntryForm projectOptions={projectOptions} onSubmit={onSubmit} isSubmitting={isPending} />

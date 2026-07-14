@@ -12,6 +12,7 @@ export interface EditProjectValues {
   budgetCents: number | null;
   hoursPerDay: number;
   status: ProjectStatus;
+  vatRate: number | null;
 }
 
 export interface EditProjectFormProps {
@@ -45,6 +46,7 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
   const [tjm, setTjm] = useState(fromCents(project.default_tjm_cents));
   const [budget, setBudget] = useState(fromCents(project.budget_cents));
   const [hoursPerDay, setHoursPerDay] = useState(String(project.hours_per_day));
+  const [vatRate, setVatRate] = useState(project.vat_rate != null ? String(project.vat_rate) : '');
   const [status, setStatus] = useState<ProjectStatus>(project.status);
   const [error, setError] = useState<string | undefined>();
 
@@ -68,6 +70,15 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
       setError('Hours per day must be greater than 0');
       return;
     }
+    let vat: number | null = null;
+    if (vatRate.trim()) {
+      const parsed = parseFloat(vatRate.replace(',', '.'));
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+        setError('VAT rate must be between 0 and 100');
+        return;
+      }
+      vat = parsed;
+    }
     setError(undefined);
     onSave({
       name: name.trim(),
@@ -77,6 +88,7 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
       budgetCents,
       hoursPerDay: hpd,
       status,
+      vatRate: vat,
     });
   };
 
@@ -108,12 +120,21 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
           keyboardType="decimal-pad"
         />
       </FieldRow>
-      <TextField
-        label="Hours per day"
-        value={hoursPerDay}
-        onChangeText={setHoursPerDay}
-        keyboardType="decimal-pad"
-      />
+      <FieldRow>
+        <TextField
+          label="Hours per day"
+          value={hoursPerDay}
+          onChangeText={setHoursPerDay}
+          keyboardType="decimal-pad"
+        />
+        <TextField
+          label="VAT rate % (optional)"
+          value={vatRate}
+          onChangeText={setVatRate}
+          placeholder="Inherit company"
+          keyboardType="decimal-pad"
+        />
+      </FieldRow>
       <Txt variant="micro" mono uppercase tone="textMuted">
         Status
       </Txt>

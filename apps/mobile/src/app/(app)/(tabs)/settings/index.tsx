@@ -13,6 +13,7 @@ import { AvatarUpload } from '@/components/settings/AvatarUpload';
 import { ThemeToggle } from '@/components/settings/ThemeToggle';
 import { EditCompanyForm } from '@/components/settings/EditCompanyForm';
 import { JoinCompanyForm } from '@/components/settings/JoinCompanyForm';
+import { InvitesCard } from '@/components/settings/InvitesCard';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 
 export default function SettingsScreen() {
@@ -31,13 +32,25 @@ export default function SettingsScreen() {
   // still letting the user type over it. This intentional prop->state sync is a
   // legitimate effect (the value arrives after first render).
   const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [vatId, setVatId] = useState('');
+  const [businessId, setBusinessId] = useState('');
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- prop->state sync of an async-loaded value
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prop->state sync of async-loaded values
     setName(profile?.full_name ?? '');
-  }, [profile?.full_name]);
+    setAddress(profile?.address ?? '');
+    setVatId(profile?.vat_id ?? '');
+    setBusinessId(profile?.business_id ?? '');
+  }, [profile?.full_name, profile?.address, profile?.vat_id, profile?.business_id]);
 
   const saveName = () => {
-    if (user?.id && name.trim()) updateProfile(user.id, { full_name: name.trim() });
+    if (!user?.id || !name.trim()) return;
+    updateProfile(user.id, {
+      full_name: name.trim(),
+      address: address.trim() || null,
+      vat_id: vatId.trim() || null,
+      business_id: businessId.trim() || null,
+    });
   };
 
   const onAvatarUploaded = async (url: string) => {
@@ -72,6 +85,23 @@ export default function SettingsScreen() {
                   {user.email}
                 </Txt>
               ) : null}
+              <TextField
+                label="Address (optional)"
+                value={address}
+                onChangeText={setAddress}
+                placeholder="Billing address for your invoices"
+                multiline
+              />
+              <TextField label="VAT number (optional)" value={vatId} onChangeText={setVatId} placeholder="e.g. FR12345678901" />
+              <TextField
+                label="Business ID (optional)"
+                value={businessId}
+                onChangeText={setBusinessId}
+                placeholder="Your registration number"
+              />
+              <Txt variant="caption" tone="textMuted">
+                These appear on the invoices you export.
+              </Txt>
               <Button title="Save" onPress={saveName} loading={savingProfile} disabled={!name.trim()} fullWidth={!isWide} />
             </Card>
           </View>
@@ -112,18 +142,10 @@ export default function SettingsScreen() {
           </Card>
         ) : null}
 
-        {manager && company ? (
+        {manager && company && user?.id ? (
           <Card padding="lg" style={styles.card}>
             <Txt variant="heading">Invite teammates</Txt>
-            <Row label="Join code">
-              <Txt variant="bodyMedium" mono>
-                {company.id}
-              </Txt>
-            </Row>
-            <Txt variant="caption" tone="textMuted">
-              Share this code — teammates enter it at sign-up to join as freelancers, then you can
-              promote them here.
-            </Txt>
+            <InvitesCard companyId={company.id} invitedBy={user.id} canGrantElevated={isAdmin} />
           </Card>
         ) : null}
 

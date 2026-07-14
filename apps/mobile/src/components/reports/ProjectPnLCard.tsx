@@ -5,6 +5,7 @@ import { availableFunding, projectMargin, sumReferralEarnings } from '@chrono/sd
 import type { Invoice, Project, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { StatRow, StatTile } from '@/components/ui/StatTile';
+import { BudgetMeter } from '@/components/reports/BudgetMeter';
 
 export interface ProjectPnLCardProps {
   project: Project;
@@ -79,6 +80,7 @@ export function ProjectPnLCard({
       <Row label="Available funding">
         <Money cents={funding} currency={currency} tone="textMuted" />
       </Row>
+      <BudgetMeter project={project} usedCents={costCents} currency={currency} />
     </Card>
   );
 }

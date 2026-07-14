@@ -26,6 +26,32 @@ export function formatMoney(
   }).format(cents / 100);
 }
 
+export type VatBreakdown = {
+  /** Applied VAT rate as a percentage (0 when none). */
+  rate: number;
+  netCents: number;
+  taxCents: number;
+  grossCents: number;
+};
+
+/**
+ * VAT breakdown for a net amount. A null/zero rate yields zero tax (gross = net),
+ * so callers can render the same structure whether or not VAT applies.
+ */
+export function vatBreakdown(
+  netCents: number,
+  rate: number | null | undefined,
+): VatBreakdown {
+  const r = rate != null && rate > 0 ? rate : 0;
+  const taxCents = Math.round((netCents * r) / 100);
+  return { rate: r, netCents, taxCents, grossCents: netCents + taxCents };
+}
+
+/** Whether an invoice carries a VAT rate worth rendering. */
+export function hasVat(invoice: Pick<Invoice, 'vat_rate'>): boolean {
+  return invoice.vat_rate != null && invoice.vat_rate > 0;
+}
+
 export type InvoiceAmounts = {
   earnedCents: number;
   creditBroughtForwardCents: number;

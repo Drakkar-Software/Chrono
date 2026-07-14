@@ -36,6 +36,11 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [legalName, setLegalName] = useState('');
+  const [address, setAddress] = useState('');
+  const [vatId, setVatId] = useState('');
+  const [registrationId, setRegistrationId] = useState('');
+  const [vatRate, setVatRate] = useState('');
 
   // Seed the editable fields when the active company loads/changes. Legitimate
   // prop->state sync of async-loaded values (mirrors the profile-name pattern).
@@ -45,6 +50,11 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
     setCurrency(companyCurrency(company));
     const content = (company.content ?? {}) as CompanyContent;
     setLogoUrl(content.logo_url ?? null);
+    setLegalName(company.legal_name ?? '');
+    setAddress(company.address ?? '');
+    setVatId(company.vat_id ?? '');
+    setRegistrationId(company.registration_id ?? '');
+    setVatRate(company.vat_rate != null ? String(company.vat_rate) : '');
   }, [company]);
 
   const save = async () => {
@@ -54,7 +64,16 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
       name: name.trim(),
       logo_url: logoUrl ?? undefined,
     };
-    await update(company.id, { content: mergedContent as Json, currency });
+    const parsedVat = vatRate.trim() === '' ? null : Number(vatRate);
+    await update(company.id, {
+      content: mergedContent as Json,
+      currency,
+      legal_name: legalName.trim() || null,
+      address: address.trim() || null,
+      vat_id: vatId.trim() || null,
+      registration_id: registrationId.trim() || null,
+      vat_rate: parsedVat != null && Number.isFinite(parsedVat) ? parsedVat : null,
+    });
     await onSaved();
   };
 
@@ -76,6 +95,33 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
         value={currency}
         onValueChange={setCurrency}
         options={CURRENCY_OPTIONS}
+      />
+      <TextField
+        label="Legal name (optional)"
+        value={legalName}
+        onChangeText={setLegalName}
+        placeholder="Registered company name"
+      />
+      <TextField
+        label="Address (optional)"
+        value={address}
+        onChangeText={setAddress}
+        placeholder="Billing address"
+        multiline
+      />
+      <TextField label="VAT number (optional)" value={vatId} onChangeText={setVatId} placeholder="e.g. FR12345678901" />
+      <TextField
+        label="Registration ID (optional)"
+        value={registrationId}
+        onChangeText={setRegistrationId}
+        placeholder="e.g. SIRET"
+      />
+      <TextField
+        label="Default VAT rate % (optional)"
+        value={vatRate}
+        onChangeText={setVatRate}
+        placeholder="e.g. 20"
+        keyboardType="decimal-pad"
       />
       {error ? (
         <InlineError error={error} describe={{ fallback: 'Could not save company settings.' }} />
