@@ -1,0 +1,21 @@
+{
+  "name": "@chrono/supabase",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "supabase start",
+    "stop": "supabase stop",
+    "status": "supabase status",
+    "reset": "supabase db reset",
+    "reset:linked": "supabase db reset --linked",
+    "diff": "supabase db diff",
+    "diff:linked": "supabase db diff --linked",
+    "migrate": "supabase db diff --use-migra -s auth,extensions,public,storage -f",
+    "push": "supabase db push",
+    "test": "supabase test db",
+    "types": "supabase gen types typescript --local > ../../packages/sdk/src/schema.ts"
+  },
+  "devDependencies": {
+    "supabase": "2.109.1"
+  }
+}
