@@ -872,21 +872,33 @@ begin
     raise exception 'invoice company_id must match its project';
   end if;
 
-  if public.is_company_manager(new.company_id) then
+  -- Only settle_project_month may write the settlement columns; it announces
+  -- itself with this transaction-local flag. Every OTHER writer — freelancers AND
+  -- managers — gets the money recomputed from source and settlement outputs
+  -- frozen, so a manager cannot hand-write a paid invoice to themselves off-pool.
+  if current_setting('chrono.settling', true) = 'on' then
     return new;
   end if;
 
-  if new.freelancer_id <> (select auth.uid()) then
-    raise exception 'Cannot write an invoice for another user';
-  end if;
-  if new.status not in ('draft', 'submitted') then
-    raise exception 'Freelancers may only draft or submit invoices';
-  end if;
-  if public.project_company_id(new.project_id) is distinct from new.company_id
-     or not public.is_project_member(new.project_id) then
-    raise exception 'Invalid project for this invoice';
+  if not public.is_company_manager(new.company_id) then
+    -- Freelancers: only their own draft/submitted invoices on a project they belong to.
+    if new.freelancer_id <> (select auth.uid()) then
+      raise exception 'Cannot write an invoice for another user';
+    end if;
+    if not public.is_project_member(new.project_id) then
+      raise exception 'Invalid project for this invoice';
+    end if;
+    if new.status not in ('draft', 'submitted') then
+      raise exception 'Freelancers may only draft or submit invoices';
+    end if;
+  else
+    -- Managers may draft/submit/cancel directly, but never set a settlement status.
+    if new.status not in ('draft', 'submitted', 'cancelled') then
+      raise exception 'Settlement statuses are set only by settle_project_month';
+    end if;
   end if;
 
+  -- Recompute the earned side from approved billable time + stored rates.
   select p.hours_per_day, coalesce(pm.tjm_cents, p.default_tjm_cents, 0)
     into v_hpd, v_tjm
   from public.projects p
@@ -918,11 +930,31 @@ begin
   new.earned_cents := round(v_minutes::numeric / (v_hpd * 60) * v_tjm);
   new.credit_brought_forward_cents := coalesce(v_credit, 0);
   new.amount_due_cents := new.earned_cents + new.credit_brought_forward_cents;
-  -- Freelancers never write settlement outputs.
-  new.amount_paid_cents := 0;
-  new.credit_carried_forward_cents := 0;
-  new.funding_snapshot_cents := null;
-  new.settled_at := null;
+
+  -- Settlement outputs are owned by the RPC: preserve prior settled values
+  -- (zero/null on insert); a direct writer can never set them.
+  if tg_op = 'INSERT' then
+    new.amount_paid_cents := 0;
+    new.credit_carried_forward_cents := 0;
+    new.funding_snapshot_cents := null;
+    new.settled_at := null;
+  else
+    new.amount_paid_cents := old.amount_paid_cents;
+    new.credit_carried_forward_cents := old.credit_carried_forward_cents;
+    new.funding_snapshot_cents := old.funding_snapshot_cents;
+    new.settled_at := old.settled_at;
+  end if;
+
+  -- Cancelling frees the tagged entries and drops any recorded payment so the
+  -- funding pool is not double-charged on the next settle.
+  if new.status = 'cancelled' then
+    new.amount_paid_cents := 0;
+    new.credit_carried_forward_cents := 0;
+    new.settled_at := null;
+    update public.time_entries set invoice_id = null, updated_at = now()
+    where invoice_id = new.id;
+  end if;
+
   return new;
 end;
 $$;
@@ -1016,8 +1048,14 @@ begin
 end;
 $$;
 
--- Settle a project's month: recognize revenue, pay referrals off the top,
--- then settle submitted invoices FIFO against the remaining funding pool.
+-- Settle a project. Despite the name/signature (kept for the manager's "settle
+-- this month" action), this runs a GLOBAL, order-independent, idempotent pass
+-- over the WHOLE project: it recognizes revenue for every active month, recomputes
+-- the referral first-claim per month, then walks every month ascending and, within
+-- a month, invoices FIFO by submission_seq, allocating from the cumulative pool.
+-- Surplus rolls forward via the cumulative term; per-freelancer shortfalls roll
+-- forward via the carry map. Re-running (any month) always yields the same result,
+-- so it can neither double-spend nor un-pay a previously settled month.
 create or replace function public.settle_project_month(
   p_project_id uuid,
   p_period date
@@ -1029,15 +1067,16 @@ set search_path = ''
 as $$
 declare
   v_company_id uuid;
-  v_period date := date_trunc('month', p_period)::date;
-  v_month_revenue bigint;
+  v_m date;
+  v_month_rev bigint;
   v_ref record;
-  v_ref_amount bigint;
-  v_cumulative_revenue bigint;
-  v_cumulative_referral bigint;
-  v_prior_paid bigint;
+  v_running_paid bigint := 0;   -- total paid to invoices in strictly-earlier months
+  v_carry jsonb := '{}'::jsonb;  -- freelancer_id -> carried-forward cents
+  v_cum_rev bigint;
+  v_cum_ref bigint;
   v_available bigint;
   v_inv record;
+  v_brought bigint;
   v_due bigint;
   v_paid bigint;
   v_carried bigint;
@@ -1051,112 +1090,118 @@ begin
     raise exception 'Only a manager can settle a project month';
   end if;
 
-  -- (1) recognize this month's revenue
-  perform public.recognize_project_revenue(p_project_id, v_period);
+  -- Tell enforce_invoice_integrity that settlement (not a user) is writing the
+  -- money columns. Transaction-local; resets automatically at transaction end.
+  perform set_config('chrono.settling', 'on', true);
 
-  -- (2) referrals: first claim, always fully funded (a fraction of this month's revenue)
-  select coalesce(sum(amount_cents), 0) into v_month_revenue
-  from public.revenue_entries
-  where project_id = p_project_id and company_id = v_company_id
-    and period_month = v_period and deleted = false;
-
-  for v_ref in
-    select * from public.project_referrals
-    where project_id = p_project_id
-      and company_id = v_company_id
-      and deleted = false
-      and (starts_on is null or starts_on <= (v_period + interval '1 month - 1 day')::date)
-      and (ends_on is null or ends_on >= v_period)
+  -- (1) Recognize revenue for every month that has any activity.
+  for v_m in
+    select date_trunc('month', entry_date)::date from public.time_entries
+      where project_id = p_project_id and deleted = false
+    union
+    select period_month from public.revenue_entries
+      where project_id = p_project_id and deleted = false
+    union
+    select period_month from public.invoices
+      where project_id = p_project_id and deleted = false
+    union
+    select date_trunc('month', p_period)::date
   loop
-    v_ref_amount := round(v_month_revenue * v_ref.percent / 100);
-    insert into public.referral_earnings
-      (project_id, company_id, referrer_id, period_month, percent, revenue_base_cents, amount_cents, settled_at)
-    values
-      (p_project_id, v_company_id, v_ref.user_id, v_period, v_ref.percent, v_month_revenue, v_ref_amount, now())
-    on conflict (project_id, referrer_id, period_month)
-      do update set percent = excluded.percent,
-                    revenue_base_cents = excluded.revenue_base_cents,
-                    amount_cents = excluded.amount_cents,
-                    settled_at = now(),
-                    updated_at = now();
+    perform public.recognize_project_revenue(p_project_id, v_m);
   end loop;
 
-  -- (3) available funding = cumulative revenue - cumulative referral - payments
-  -- already made for ANY other month. Using `period_month <> v_period` (not
-  -- `< v_period`) makes settlement order-independent: settling months out of
-  -- order can no longer double-spend the same recognized revenue.
-  select coalesce(sum(amount_cents), 0) into v_cumulative_revenue
-  from public.revenue_entries
-  where project_id = p_project_id and company_id = v_company_id
-    and period_month <= v_period and deleted = false;
-
-  select coalesce(sum(amount_cents), 0) into v_cumulative_referral
-  from public.referral_earnings
-  where project_id = p_project_id and company_id = v_company_id
-    and period_month <= v_period and deleted = false;
-
-  -- Payments already made for OTHER months are fixed. This month's invoices are
-  -- fully recomputed by the loop below (which reprocesses submitted / partially_paid
-  -- / paid), so their prior payments must NOT be counted here — otherwise a
-  -- re-settlement would both exclude and re-pay them, double-spending revenue.
-  select coalesce(sum(amount_paid_cents), 0) into v_prior_paid
-  from public.invoices
-  where project_id = p_project_id and company_id = v_company_id
-    and period_month <> v_period and deleted = false;
-
-  v_available := v_cumulative_revenue - v_cumulative_referral - v_prior_paid;
-  if v_available < 0 then
-    v_available := 0;
-  end if;
-
-  -- Settle this month's invoices FIFO. Reprocess submitted AND already
-  -- (partially/fully) paid invoices so re-runs are idempotent and partially-paid
-  -- invoices resume once more revenue lands; drafts and cancelled are excluded.
-  for v_inv in
-    select * from public.invoices
-    where project_id = p_project_id
-      and company_id = v_company_id
-      and period_month = v_period
-      and status in ('submitted', 'partially_paid', 'paid')
-      and deleted = false
-    order by submission_seq asc
+  -- (2) Referral first-claim: recompute per month for every month with revenue.
+  for v_m in
+    select distinct period_month from public.revenue_entries
+    where project_id = p_project_id and deleted = false
   loop
-    v_due := v_inv.earned_cents + v_inv.credit_brought_forward_cents;
-    v_paid := least(v_available, v_due);
-    if v_paid < 0 then
-      v_paid := 0;
-    end if;
-    v_available := v_available - v_paid;
-    v_carried := v_due - v_paid;
+    select coalesce(sum(amount_cents), 0) into v_month_rev
+    from public.revenue_entries
+    where project_id = p_project_id and company_id = v_company_id
+      and period_month = v_m and deleted = false;
 
-    if v_paid >= v_due then
-      v_new_status := 'paid';
-    elsif v_paid > 0 then
-      v_new_status := 'partially_paid';
-    else
-      v_new_status := 'submitted';
-    end if;
+    for v_ref in
+      select * from public.project_referrals
+      where project_id = p_project_id and company_id = v_company_id and deleted = false
+        and (starts_on is null or starts_on <= (v_m + interval '1 month - 1 day')::date)
+        and (ends_on is null or ends_on >= v_m)
+    loop
+      insert into public.referral_earnings
+        (project_id, company_id, referrer_id, period_month, percent, revenue_base_cents, amount_cents, settled_at)
+      values
+        (p_project_id, v_company_id, v_ref.user_id, v_m, v_ref.percent, v_month_rev,
+         round(v_month_rev * v_ref.percent / 100), now())
+      on conflict (project_id, referrer_id, period_month)
+        do update set percent = excluded.percent,
+                      revenue_base_cents = excluded.revenue_base_cents,
+                      amount_cents = excluded.amount_cents,
+                      settled_at = now(), updated_at = now();
+    end loop;
+  end loop;
 
-    update public.invoices
-    set amount_due_cents = v_due,
-        amount_paid_cents = v_paid,
-        credit_carried_forward_cents = v_carried,
-        funding_snapshot_cents = v_cumulative_revenue - v_cumulative_referral,
-        status = v_new_status,
-        settled_at = now(),
-        updated_at = now()
-    where id = v_inv.id;
+  -- (3) Global settlement, months ascending; invoices FIFO within a month.
+  for v_m in
+    select distinct period_month from public.invoices
+    where project_id = p_project_id and company_id = v_company_id and deleted = false
+      and status in ('submitted', 'partially_paid', 'paid')
+    order by 1 asc
+  loop
+    select coalesce(sum(amount_cents), 0) into v_cum_rev
+    from public.revenue_entries
+    where project_id = p_project_id and company_id = v_company_id
+      and period_month <= v_m and deleted = false;
 
-    -- tag this month's approved billable entries for this freelancer as invoiced
-    update public.time_entries
-    set invoice_id = v_inv.id, updated_at = now()
-    where project_id = p_project_id
-      and user_id = v_inv.freelancer_id
-      and status = 'approved'
-      and billable = true
-      and deleted = false
-      and invoice_id is null
-      and date_trunc('month', entry_date)::date = v_period;
+    select coalesce(sum(amount_cents), 0) into v_cum_ref
+    from public.referral_earnings
+    where project_id = p_project_id and company_id = v_company_id
+      and period_month <= v_m and deleted = false;
+
+    v_available := v_cum_rev - v_cum_ref - v_running_paid;
+    if v_available < 0 then v_available := 0; end if;
+
+    for v_inv in
+      select * from public.invoices
+      where project_id = p_project_id and company_id = v_company_id
+        and period_month = v_m and deleted = false
+        and status in ('submitted', 'partially_paid', 'paid')
+      order by submission_seq asc
+    loop
+      v_brought := coalesce((v_carry ->> v_inv.freelancer_id::text)::bigint, 0);
+      v_due := v_inv.earned_cents + v_brought;
+      v_paid := least(v_available, v_due);
+      if v_paid < 0 then v_paid := 0; end if;
+      v_available := v_available - v_paid;
+      v_running_paid := v_running_paid + v_paid;
+      v_carried := v_due - v_paid;
+      v_carry := jsonb_set(v_carry, array[v_inv.freelancer_id::text], to_jsonb(v_carried));
+
+      if v_paid >= v_due then
+        v_new_status := 'paid';
+      elsif v_paid > 0 then
+        v_new_status := 'partially_paid';
+      else
+        v_new_status := 'submitted';
+      end if;
+
+      update public.invoices
+      set credit_brought_forward_cents = v_brought,
+          amount_due_cents = v_due,
+          amount_paid_cents = v_paid,
+          credit_carried_forward_cents = v_carried,
+          funding_snapshot_cents = v_cum_rev - v_cum_ref,
+          status = v_new_status,
+          settled_at = now(),
+          updated_at = now()
+      where id = v_inv.id;
+
+      update public.time_entries
+      set invoice_id = v_inv.id, updated_at = now()
+      where project_id = p_project_id
+        and user_id = v_inv.freelancer_id
+        and status = 'approved' and billable = true and deleted = false
+        and invoice_id is null
+        and date_trunc('month', entry_date)::date = v_m;
+    end loop;
   end loop;
 end;
 $$;
