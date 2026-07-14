@@ -10,6 +10,8 @@ export interface AuthFormProps {
   onSubmit: (email: string, password: string) => Promise<void> | void;
   /** Render a password field. Default true. */
   withPassword?: boolean;
+  /** Render a confirm-password field and require a match (register). Default false. */
+  withConfirm?: boolean;
   busy?: boolean;
   error?: string;
   footer?: ReactNode;
@@ -22,6 +24,7 @@ export function AuthForm({
   submitLabel,
   onSubmit,
   withPassword = true,
+  withConfirm = false,
   busy = false,
   error,
   footer,
@@ -29,6 +32,10 @@ export function AuthForm({
   const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+
+  const mismatch = withConfirm && confirm.length > 0 && password !== confirm;
+  const canSubmit = email.trim().length > 0 && (!withPassword || password.length > 0) && !mismatch;
 
   return (
     <AuthCard title={title} subtitle={subtitle} footer={footer}>
@@ -50,6 +57,17 @@ export function AuthForm({
           autoCapitalize="none"
         />
       ) : null}
+      {withConfirm ? (
+        <TextField
+          label={t('auth.confirmPassword')}
+          value={confirm}
+          onChangeText={setConfirm}
+          placeholder="••••••••"
+          secureTextEntry
+          autoCapitalize="none"
+          error={mismatch ? t('auth.errors.passwordMismatch') : undefined}
+        />
+      ) : null}
       {error ? (
         <Txt variant="caption" tone="danger" center>
           {error}
@@ -59,6 +77,7 @@ export function AuthForm({
         title={submitLabel}
         onPress={() => onSubmit(email.trim(), password)}
         loading={busy}
+        disabled={!canSubmit}
         fullWidth
       />
     </AuthCard>

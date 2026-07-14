@@ -3,6 +3,7 @@ import { Link } from 'expo-router';
 import { Txt } from '@chrono/ui';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { globalSupabaseClient } from '@/lib/supabase';
+import { authErrorKey } from '@/lib/auth-utils';
 import { useT } from '@/lib/i18n';
 
 export default function Login() {
@@ -18,7 +19,7 @@ export default function Login() {
       password,
     });
     setBusy(false);
-    if (authError) setError(authError.message);
+    if (authError) setError(t(authErrorKey(authError)));
   };
 
   return (

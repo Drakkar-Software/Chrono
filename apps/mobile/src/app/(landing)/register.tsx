@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { Platform } from 'react-native';
 import { Link } from 'expo-router';
 import { Txt } from '@chrono/ui';
 import { AuthForm } from '@/components/auth/AuthForm';
-import { globalSupabaseClient } from '@/lib/supabase';
+import { authErrorKey, signUpWithOptions } from '@/lib/auth-utils';
 import { useT } from '@/lib/i18n';
 
 export default function Register() {
@@ -14,10 +15,25 @@ export default function Register() {
   const signUp = async (email: string, password: string) => {
     setBusy(true);
     setError(undefined);
-    const { error: authError } = await globalSupabaseClient.auth.signUp({ email, password });
+    const { data, error: authError } = await signUpWithOptions(email, password, {
+      data: { registeredFrom: Platform.OS },
+    });
     setBusy(false);
-    if (authError) setError(authError.message);
-    else setDone(true);
+    if (authError) {
+      setError(t(authErrorKey(authError)));
+      return;
+    }
+    // With email confirmations ON, Supabase returns a user with an EMPTY
+    // `identities` array when the email already exists (to avoid leaking which
+    // emails are registered). Treat that as "already registered".
+    if (data?.user && (data.user.identities?.length ?? 0) === 0) {
+      setError(t('auth.errors.user_already_exists'));
+      return;
+    }
+    // When confirmations are ON, no session comes back and the user must confirm
+    // via email. When they're OFF, a session is returned and the auth-state
+    // listener redirects into the app — no inbox prompt needed.
+    if (!data?.session) setDone(true);
   };
 
   return (
@@ -26,6 +42,7 @@ export default function Register() {
       subtitle={done ? t('auth.register.checkInbox') : t('auth.register.subtitle')}
       submitLabel={t('auth.signUp')}
       onSubmit={signUp}
+      withConfirm
       busy={busy}
       error={error}
       footer={
