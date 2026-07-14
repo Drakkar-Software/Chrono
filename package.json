@@ -8,6 +8,7 @@
   "scripts": {
     "start": "pnpm --filter @chrono/mobile start",
     "web": "pnpm --filter @chrono/mobile web",
+  "build:web": "pnpm --filter @chrono/mobile export:web",
     "ios": "pnpm --filter @chrono/mobile ios",
     "android": "pnpm --filter @chrono/mobile android",
     "build": "turbo build",
