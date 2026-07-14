@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Chrono",
+    "slug": "chrono",
+    "version": "1.0.0",
+    "scheme": "chrono",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#0B1020",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "software.drakkar.chrono"
+    },
+    "android": {
+      "package": "software.drakkar.chrono"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0B1020",
+          "imageWidth": 160
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
