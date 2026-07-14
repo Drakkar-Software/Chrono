@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Button, ThemeProvider, Txt, spacing, useTheme } from '@chrono/ui';
 import { ActiveCompanyProvider } from '@/lib/active-company-context';
+import { ThemePrefProvider, useThemePref } from '@/lib/theme-pref';
 import { useAppAuth } from '@/lib/supabase-stores';
 
 // Keep the splash up until auth resolves (see the effect below).
@@ -60,14 +61,24 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <ThemeProvider>
-          <StatusBar style="auto" />
-          <ActiveCompanyProvider>
-            <Stack screenOptions={{ headerShown: false }} />
-          </ActiveCompanyProvider>
-        </ThemeProvider>
+        <ThemePrefProvider>
+          <ThemedApp />
+        </ThemePrefProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
+  );
+}
+
+/** Applies the persisted theme preference to the UI ThemeProvider. */
+function ThemedApp() {
+  const { scheme } = useThemePref();
+  return (
+    <ThemeProvider scheme={scheme}>
+      <StatusBar style="auto" />
+      <ActiveCompanyProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </ActiveCompanyProvider>
+    </ThemeProvider>
   );
 }
 
