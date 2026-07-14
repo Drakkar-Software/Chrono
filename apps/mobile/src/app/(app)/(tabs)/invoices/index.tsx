@@ -1,0 +1,144 @@
+import { useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Button, Card, EmptyState, Money, Row, StackScreen, Txt, spacing } from '@chrono/ui';
+import { canManage, companyCurrency } from '@chrono/sdk';
+import type { InvoiceWithRelations } from '@chrono/sdk';
+
+import { useAppAuth } from '@/lib/supabase-stores';
+import { useActiveCompany } from '@/lib/active-company-context';
+import { useInvoices } from '@/lib/hooks/use-invoices';
+import { useGenerateInvoice, useSettleProjectMonth, useSubmitInvoice } from '@/lib/hooks/use-invoice-mutations';
+import { useMyProjects, useProjects } from '@/lib/hooks/use-projects';
+import { useMyReferralEarnings } from '@/lib/hooks/use-referral-earnings';
+import { InvoiceCard } from '@/components/invoices/InvoiceCard';
+import { GenerateInvoiceForm, type GenerateInvoiceParams } from '@/components/invoices/GenerateInvoiceForm';
+import { SettleMonthForm } from '@/components/invoices/SettleMonthForm';
+
+function groupByMonth(invoices: InvoiceWithRelations[]) {
+  const out: Record<string, InvoiceWithRelations[]> = {};
+  for (const inv of invoices) {
+    const key = inv.period_month.slice(0, 7);
+    (out[key] ??= []).push(inv);
+  }
+  return Object.keys(out)
+    .sort((a, b) => (a < b ? 1 : -1))
+    .map((month) => ({ month, items: out[month] }));
+}
+
+export default function InvoicesScreen() {
+  const router = useRouter();
+  const { user } = useAppAuth();
+  const { companyId, company, role } = useActiveCompany();
+  const manager = canManage(role);
+  const currency = companyCurrency(company);
+  const userId = user?.id;
+
+  const { data: invoices } = useInvoices({
+    companyId: companyId ?? '',
+    freelancerId: manager ? undefined : userId,
+  });
+  const groups = useMemo(() => groupByMonth(invoices ?? []), [invoices]);
+
+  const mine = useMyProjects(!manager ? userId : undefined, !manager ? companyId ?? undefined : undefined);
+  const managed = useProjects(manager ? companyId ?? undefined : undefined);
+  const { data: referralEarnings } = useMyReferralEarnings(!manager ? userId : undefined, companyId ?? undefined);
+
+  const generate = useGenerateInvoice();
+  const submit = useSubmitInvoice();
+  const settle = useSettleProjectMonth();
+  const [panel, setPanel] = useState<'none' | 'generate' | 'settle'>('none');
+
+  const onGenerate = async (params: GenerateInvoiceParams) => {
+    if (!companyId || !userId) return;
+    const invoice = await generate.mutateAsync({
+      projectId: params.projectId,
+      freelancerId: userId,
+      companyId,
+      month: params.month,
+      tjmCents: params.tjmCents,
+      hoursPerDay: params.hoursPerDay,
+    });
+    await submit.mutateAsync(invoice.id);
+    setPanel('none');
+  };
+
+  const onSettle = async (projectId: string, month: string) => {
+    await settle.mutateAsync(projectId, month);
+    setPanel('none');
+  };
+
+  const headerRight =
+    panel === 'none' ? (
+      <Button
+        title={manager ? 'Settle' : 'Generate'}
+        size="sm"
+        onPress={() => setPanel(manager ? 'settle' : 'generate')}
+      />
+    ) : undefined;
+
+  return (
+    <StackScreen title="Invoices" headerRight={headerRight}>
+      <View style={styles.wrap}>
+        {panel === 'generate' && userId ? (
+          <GenerateInvoiceForm
+            projects={mine.data ?? []}
+            freelancerId={userId}
+            onGenerate={onGenerate}
+            onCancel={() => setPanel('none')}
+            isSubmitting={generate.isPending || submit.isPending}
+          />
+        ) : null}
+
+        {panel === 'settle' ? (
+          <SettleMonthForm
+            projects={managed.data ?? []}
+            onSettle={onSettle}
+            onCancel={() => setPanel('none')}
+            isSubmitting={settle.isPending}
+          />
+        ) : null}
+
+        {groups.length === 0 && panel === 'none' ? (
+          <EmptyState
+            icon="receipt-outline"
+            title="No invoices"
+            subtitle={manager ? 'Invoices appear here as freelancers submit them.' : 'Generate an invoice from your approved time.'}
+          />
+        ) : (
+          groups.map((group) => (
+            <View key={group.month} style={styles.group}>
+              <Txt variant="label" tone="textMuted" uppercase>
+                {group.month}
+              </Txt>
+              {group.items.map((invoice) => (
+                <InvoiceCard
+                  key={invoice.id}
+                  invoice={invoice}
+                  currency={currency}
+                  onPress={() => router.push(`/invoice/${invoice.id}`)}
+                />
+              ))}
+            </View>
+          ))
+        )}
+
+        {!manager && (referralEarnings ?? []).length > 0 ? (
+          <Card padding="lg" style={styles.group}>
+            <Txt variant="heading">Referral earnings</Txt>
+            {(referralEarnings ?? []).map((earning) => (
+              <Row key={earning.id} label={earning.period_month.slice(0, 7)}>
+                <Money cents={earning.amount_cents} currency={currency} />
+              </Row>
+            ))}
+          </Card>
+        ) : null}
+      </View>
+    </StackScreen>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { gap: spacing.lg },
+  group: { gap: spacing.sm },
+});

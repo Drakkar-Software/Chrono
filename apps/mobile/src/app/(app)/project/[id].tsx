@@ -1,0 +1,216 @@
+import { useMemo, useState, type ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Badge, Button, Card, Money, Row, StackScreen, Txt, spacing } from '@chrono/ui';
+import {
+  canManage,
+  companyCurrency,
+  displayName,
+  projectStatusLabel,
+  remainingReferralPct,
+} from '@chrono/sdk';
+
+import { useActiveCompany } from '@/lib/active-company-context';
+import { useProject } from '@/lib/hooks/use-projects';
+import { useProjectMembers, useProjectMemberMutations } from '@/lib/hooks/use-project-members';
+import { useCompanyMembers } from '@/lib/hooks/use-company-members';
+import { useRevenueSources, useRevenueSourceMutations } from '@/lib/hooks/use-revenue-sources';
+import { useProjectReferrals, useProjectReferralMutations } from '@/lib/hooks/use-project-referrals';
+import { projectBadge } from '@/lib/status';
+import { Loading } from '@/components/Loading';
+import { ProjectMemberRow } from '@/components/projects/ProjectMemberRow';
+import { RevenueSourceRow } from '@/components/projects/RevenueSourceRow';
+import { ReferrerRow } from '@/components/projects/ReferrerRow';
+import { AddProjectMemberForm } from '@/components/projects/AddProjectMemberForm';
+import { AddRevenueSourceForm, type AddRevenueSourceValues } from '@/components/projects/AddRevenueSourceForm';
+import { AddReferrerForm } from '@/components/projects/AddReferrerForm';
+import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
+
+type Panel = 'none' | 'member' | 'source' | 'referrer';
+
+export default function ProjectDetail() {
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { company, role } = useActiveCompany();
+  const manager = canManage(role);
+  const currency = companyCurrency(company);
+
+  const { data: project, isLoading } = useProject(id);
+  const companyId = project?.company_id;
+
+  const { data: members } = useProjectMembers(id);
+  const { data: companyMembers } = useCompanyMembers(companyId);
+  const { data: sources } = useRevenueSources(id);
+  const { data: referrals } = useProjectReferrals(id);
+
+  const memberMut = useProjectMemberMutations();
+  const sourceMut = useRevenueSourceMutations();
+  const referralMut = useProjectReferralMutations();
+
+  const [panel, setPanel] = useState<Panel>('none');
+
+  const memberCandidates = useMemo(() => {
+    const assigned = new Set((members ?? []).map((m) => m.user_id));
+    return (companyMembers ?? [])
+      .filter((m) => !assigned.has(m.user_id))
+      .map((m) => ({ label: displayName(m.profile), value: m.user_id }));
+  }, [companyMembers, members]);
+
+  const referrerCandidates = useMemo(() => {
+    const existing = new Set((referrals ?? []).map((r) => r.user_id));
+    return (companyMembers ?? [])
+      .filter((m) => !existing.has(m.user_id))
+      .map((m) => ({ label: displayName(m.profile), value: m.user_id }));
+  }, [companyMembers, referrals]);
+
+  const remainingPct = remainingReferralPct(referrals ?? []);
+
+  if (isLoading && !project) return <Loading />;
+  if (!project) {
+    return (
+      <StackScreen title="Project" onBack={() => router.back()}>
+        <Txt variant="body" tone="textMuted">
+          Project not found.
+        </Txt>
+      </StackScreen>
+    );
+  }
+
+  const addMember = async (userId: string, tjmCents: number | null) => {
+    await memberMut.add({ project_id: project.id, user_id: userId, tjm_cents: tjmCents });
+    setPanel('none');
+  };
+  const addSource = async (values: AddRevenueSourceValues) => {
+    if (!companyId) return;
+    await sourceMut.create({
+      project_id: project.id,
+      company_id: companyId,
+      type: values.type,
+      name: values.name,
+      content: values.content,
+    });
+    setPanel('none');
+  };
+  const addReferrer = async (userId: string, percent: number) => {
+    if (!companyId) return;
+    await referralMut.add({ project_id: project.id, company_id: companyId, user_id: userId, percent });
+    setPanel('none');
+  };
+
+  return (
+    <StackScreen title={project.name} onBack={() => router.back()}>
+      <View style={styles.wrap}>
+        <Card padding="lg" style={styles.card}>
+          <View style={styles.header}>
+            <View style={styles.titleWrap}>
+              <Txt variant="title" numberOfLines={2}>
+                {project.name}
+              </Txt>
+              {project.client_name ? (
+                <Txt variant="body" tone="textMuted">
+                  {project.client_name}
+                </Txt>
+              ) : null}
+            </View>
+            <Badge label={projectStatusLabel(project.status)} status={projectBadge(project.status)} />
+          </View>
+          {project.default_tjm_cents != null ? (
+            <Row label="Default TJM">
+              <Money cents={project.default_tjm_cents} currency={currency} />
+            </Row>
+          ) : null}
+          <Row label="Hours per day" value={String(project.hours_per_day)} />
+          {project.budget_cents != null ? (
+            <Row label="Budget">
+              <Money cents={project.budget_cents} currency={currency} />
+            </Row>
+          ) : null}
+        </Card>
+
+        <Section
+          title="Members"
+          action={manager && panel !== 'member' ? () => setPanel('member') : undefined}
+        >
+          {panel === 'member' ? (
+            <AddProjectMemberForm
+              candidates={memberCandidates}
+              onAdd={addMember}
+              onCancel={() => setPanel('none')}
+              isSubmitting={memberMut.isPending}
+            />
+          ) : null}
+          {(members ?? []).map((member) => (
+            <ProjectMemberRow key={member.id} member={member} project={project} currency={currency} />
+          ))}
+        </Section>
+
+        <Section
+          title="Revenue sources"
+          action={manager && panel !== 'source' ? () => setPanel('source') : undefined}
+        >
+          {panel === 'source' ? (
+            <AddRevenueSourceForm
+              onAdd={addSource}
+              onCancel={() => setPanel('none')}
+              isSubmitting={sourceMut.isPending}
+            />
+          ) : null}
+          {(sources ?? []).map((source) => (
+            <RevenueSourceRow key={source.id} source={source} currency={currency} />
+          ))}
+        </Section>
+
+        <Section
+          title="Referrers"
+          action={manager && panel !== 'referrer' ? () => setPanel('referrer') : undefined}
+        >
+          {panel === 'referrer' ? (
+            <AddReferrerForm
+              candidates={referrerCandidates}
+              remainingPct={remainingPct}
+              onAdd={addReferrer}
+              onCancel={() => setPanel('none')}
+              isSubmitting={referralMut.isPending}
+            />
+          ) : null}
+          {(referrals ?? []).map((referral) => (
+            <ReferrerRow key={referral.id} referral={referral} />
+          ))}
+        </Section>
+
+        {manager && companyId ? (
+          <ProjectPnLCard project={project} companyId={companyId} currency={currency} />
+        ) : null}
+      </View>
+    </StackScreen>
+  );
+}
+
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Txt variant="heading">{title}</Txt>
+        {action ? <Button title="Add" size="sm" variant="secondary" onPress={action} /> : null}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { gap: spacing.xl },
+  card: { gap: spacing.sm },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  titleWrap: { flex: 1, gap: 2 },
+  section: { gap: spacing.sm },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+});

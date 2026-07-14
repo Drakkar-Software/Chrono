@@ -1,10 +1,11 @@
+import type { ComponentProps } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@chrono/ui';
 import { canManage } from '@chrono/sdk';
 import { useActiveCompany } from '@/lib/active-company-context';
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 const icon = (name: IoniconName) =>
   function TabIcon({ color, size }: { color: string; size: number }) {
