@@ -2,6 +2,10 @@ import type { CatalogSlice } from '../types';
 
 export const componentsBCatalog: CatalogSlice = {
   en: {
+    'compb.company.invoiceNumbering': 'Invoice numbering',
+    'compb.company.numberingOn': 'On',
+    'compb.company.numberingOff': 'Off',
+    'compb.company.numberingHint': 'Assign a sequential number to each invoice when it is submitted.',
     'compb.join.fallback': 'Couldn’t join — the invite may be invalid, used or expired.',
     'compb.company.saveFail': 'Could not save company settings.',
     'compb.invites.createFail': 'Could not create the invite.',
@@ -126,6 +130,10 @@ export const componentsBCatalog: CatalogSlice = {
     'compb.auth.password': 'Password',
   },
   fr: {
+    'compb.company.invoiceNumbering': 'Numérotation des factures',
+    'compb.company.numberingOn': 'Activée',
+    'compb.company.numberingOff': 'Désactivée',
+    'compb.company.numberingHint': 'Attribuer un numéro séquentiel à chaque facture lors de son envoi.',
     'compb.join.fallback': 'Impossible de rejoindre — l’invitation est peut-être invalide, déjà utilisée ou expirée.',
     'compb.company.saveFail': 'Impossible d’enregistrer les paramètres de l’entreprise.',
     'compb.invites.createFail': 'Impossible de créer l’invitation.',

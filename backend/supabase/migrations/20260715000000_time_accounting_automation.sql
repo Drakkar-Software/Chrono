@@ -29,6 +29,10 @@ create unique index invoices_company_number_idx
   on public.invoices (company_id, invoice_number)
   where invoice_number is not null;
 
+-- Companies can turn sequential numbering off (admin setting). Default on.
+alter table public.companies
+  add column invoice_numbering_enabled boolean not null default true;
+
 create table public.invoice_counters (
   company_id uuid not null references public.companies (id) on delete cascade,
   year       integer not null,
@@ -67,13 +71,19 @@ set search_path = ''
 as $$
 declare
   v_year integer;
+  v_enabled boolean;
 begin
   if new.status = 'submitted'
      and old.status is distinct from 'submitted'
      and new.invoice_number is null then
-    v_year := extract(year from coalesce(new.period_month, current_date))::integer;
-    new.invoice_number := public.next_invoice_number(new.company_id, v_year);
-    new.issued_on := current_date;
+    -- Skip numbering entirely when the company has it turned off.
+    select invoice_numbering_enabled into v_enabled
+    from public.companies where id = new.company_id;
+    if coalesce(v_enabled, true) then
+      v_year := extract(year from coalesce(new.period_month, current_date))::integer;
+      new.invoice_number := public.next_invoice_number(new.company_id, v_year);
+      new.issued_on := current_date;
+    end if;
   end if;
   return new;
 end;

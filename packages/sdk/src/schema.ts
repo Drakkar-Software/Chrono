@@ -82,6 +82,7 @@ export type Database = {
           vat_id: string | null;
           registration_id: string | null;
           vat_rate: number | null;
+          invoice_numbering_enabled: boolean;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -94,6 +95,7 @@ export type Database = {
           vat_id?: string | null;
           registration_id?: string | null;
           vat_rate?: number | null;
+          invoice_numbering_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;

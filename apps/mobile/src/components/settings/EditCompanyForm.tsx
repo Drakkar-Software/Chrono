@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Picker, TextField, spacing, useResponsive } from '@chrono/ui';
+import { Button, Picker, Segmented, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
 import { companyCurrency, companyName } from '@chrono/sdk';
 import type { CompanyMembership, Json } from '@chrono/sdk';
 
@@ -44,6 +44,7 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
   const [registrationId, setRegistrationId] = useState('');
   const [vatRate, setVatRate] = useState('');
   const [vatError, setVatError] = useState<string | undefined>();
+  const [numbering, setNumbering] = useState('on');
 
   // Seed the editable fields when the active company loads/changes. Legitimate
   // prop->state sync of async-loaded values (mirrors the profile-name pattern).
@@ -58,6 +59,7 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
     setVatId(company.vat_id ?? '');
     setRegistrationId(company.registration_id ?? '');
     setVatRate(company.vat_rate != null ? String(company.vat_rate) : '');
+    setNumbering(company.invoice_numbering_enabled === false ? 'off' : 'on');
   }, [company]);
 
   const save = async () => {
@@ -85,6 +87,7 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
       vat_id: vatId.trim() || null,
       registration_id: registrationId.trim() || null,
       vat_rate: parsedVat,
+      invoice_numbering_enabled: numbering === 'on',
     });
     await onSaved();
   };
@@ -146,6 +149,22 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
         keyboardType="decimal-pad"
         error={vatError}
       />
+      <View style={styles.field}>
+        <Txt variant="micro" mono uppercase tone="textMuted">
+          {t('compb.company.invoiceNumbering')}
+        </Txt>
+        <Segmented
+          options={[
+            { label: t('compb.company.numberingOn'), value: 'on' },
+            { label: t('compb.company.numberingOff'), value: 'off' },
+          ]}
+          value={numbering}
+          onValueChange={setNumbering}
+        />
+        <Txt variant="caption" tone="textMuted">
+          {t('compb.company.numberingHint')}
+        </Txt>
+      </View>
       {error ? (
         <InlineError error={error} describe={{ fallback: t('compb.company.saveFail') }} />
       ) : null}
@@ -162,4 +181,5 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
+  field: { gap: spacing.xs },
 });
