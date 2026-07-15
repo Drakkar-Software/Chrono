@@ -1,5 +1,5 @@
-import { markdownToHtml } from '@chrono/sdk';
-import { useTheme } from '@chrono/ui';
+import { markdownToHtml } from "@chrono/sdk";
+import { useTheme } from "@chrono/ui";
 
 /**
  * Web article renderer: converts the article markdown to semantic HTML so
@@ -10,11 +10,13 @@ export function ArticleBody({ markdown }: { markdown: string }) {
   const { colors } = useTheme();
   const html = markdownToHtml(markdown);
 
+  const headingFont = '"Fraunces", ui-serif, Georgia, serif';
+
   const css = `
-    .chrono-article { color: ${colors.text}; font-size: 18px; line-height: 1.75; }
-    .chrono-article h1 { font-size: 30px; line-height: 1.2; margin: 32px 0 14px; color: ${colors.text}; }
-    .chrono-article h2 { font-size: 24px; line-height: 1.25; margin: 28px 0 12px; color: ${colors.text}; }
-    .chrono-article h3 { font-size: 20px; line-height: 1.3; margin: 22px 0 8px; color: ${colors.text}; }
+    .chrono-article { color: ${colors.text}; font-size: 18px; line-height: 1.75; max-width: 68ch; }
+    .chrono-article h1 { font-family: ${headingFont}; font-weight: 600; letter-spacing: -0.3px; font-size: 32px; line-height: 1.2; margin: 36px 0 14px; color: ${colors.text}; }
+    .chrono-article h2 { font-family: ${headingFont}; font-weight: 600; letter-spacing: -0.2px; font-size: 26px; line-height: 1.25; margin: 32px 0 12px; color: ${colors.text}; }
+    .chrono-article h3 { font-family: ${headingFont}; font-weight: 600; font-size: 21px; line-height: 1.3; margin: 26px 0 8px; color: ${colors.text}; }
     .chrono-article p { margin: 0 0 18px; color: ${colors.textMuted}; }
     .chrono-article ul, .chrono-article ol { margin: 0 0 18px; padding-left: 22px; color: ${colors.textMuted}; }
     .chrono-article li { margin: 0 0 6px; }
@@ -28,7 +30,10 @@ export function ArticleBody({ markdown }: { markdown: string }) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
-      <div className="chrono-article" dangerouslySetInnerHTML={{ __html: html }} />
+      <div
+        className="chrono-article"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </>
   );
 }

@@ -1,15 +1,18 @@
-import { useCallback } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Link } from 'expo-router';
-import { BrandMark, Button, Txt, spacing, useResponsive, useTheme } from '@chrono/ui';
-import type { BlogArticle } from '@chrono/sdk';
+import { useCallback } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { Txt, spacing, useResponsive, useTheme } from "@chrono/ui";
+import type { BlogArticle } from "@chrono/sdk";
 
-import { useT } from '@/lib/i18n';
-import { useLanguage } from '@/lib/i18n';
-import { useBlogArticles } from '@/lib/hooks/use-blog';
-import { absoluteUrl } from '@/lib/site';
-import { ArticleCard } from '@/components/blog/ArticleCard';
-import { Seo } from '@/components/blog/Seo';
+import { useT, useLanguage } from "@/lib/i18n";
+import { useBlogArticles } from "@/lib/hooks/use-blog";
+import { absoluteUrl } from "@/lib/site";
+import { ArticleCard } from "@/components/blog/ArticleCard";
+import { Seo } from "@/components/blog/Seo";
+import {
+  MarketingFonts,
+  marketingDisplayFont,
+} from "@/components/marketing/MarketingFonts";
+import { MarketingNav } from "@/components/marketing/MarketingNav";
 
 export default function BlogIndex() {
   const t = useT();
@@ -20,19 +23,24 @@ export default function BlogIndex() {
 
   const formatDate = useCallback(
     (iso: string | null) =>
-      new Date(iso || 0).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' }),
+      new Date(iso || 0).toLocaleDateString(locale, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
     [locale],
   );
 
   const list = articles ?? [];
+  const [featuredArticle, ...restArticles] = list;
   const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Blog',
-    name: 'Chrono',
-    url: absoluteUrl('/blog'),
-    description: t('blog.metaDescription'),
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Chrono",
+    url: absoluteUrl("/blog"),
+    description: t("blog.metaDescription"),
     blogPost: list.map((a: BlogArticle) => ({
-      '@type': 'BlogPosting',
+      "@type": "BlogPosting",
       headline:
         (a.content?.title_translations?.[locale] as string) ||
         (a.content?.title_translations?.en as string) ||
@@ -43,61 +51,115 @@ export default function BlogIndex() {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: colors.canvas }} contentContainerStyle={styles.scroll}>
+    <ScrollView
+      style={{ backgroundColor: colors.canvas }}
+      contentContainerStyle={styles.scroll}
+    >
+      <MarketingFonts />
       <Seo
-        title={t('blog.metaTitle')}
-        description={t('blog.metaDescription')}
-        url={absoluteUrl('/blog')}
+        title={t("blog.metaTitle")}
+        description={t("blog.metaDescription")}
+        url={absoluteUrl("/blog")}
         jsonLd={jsonLd}
       />
-      <View style={styles.inner}>
-        <Link href="/" asChild>
-          <View accessibilityRole="link" style={styles.brand}>
-            <BrandMark size={30} shadow={false} />
-            <Txt variant="heading" weight="bold">Chrono</Txt>
-          </View>
-        </Link>
+      <MarketingNav />
 
+      <View
+        style={[styles.inner, { paddingHorizontal: isWide ? 64 : spacing.lg }]}
+      >
         <View style={styles.hero}>
-          <Txt variant="label" tone="accent">{t('blog.eyebrow')}</Txt>
-          <Txt variant="display" weight="bold" style={styles.title}>{t('blog.title')}</Txt>
-          <Txt variant="body" tone="textMuted" style={styles.lede}>{t('blog.lede')}</Txt>
+          <Txt
+            variant="caption"
+            mono
+            uppercase
+            tone="accent"
+            style={styles.eyebrow}
+          >
+            {t("blog.eyebrow")}
+          </Txt>
+          <Txt
+            variant="displayLg"
+            weight="bold"
+            style={[
+              styles.title,
+              { fontFamily: marketingDisplayFont, letterSpacing: -0.5 },
+            ]}
+          >
+            {t("blog.title")}
+          </Txt>
+          <Txt variant="body" tone="textMuted" style={styles.lede}>
+            {t("blog.lede")}
+          </Txt>
         </View>
 
         {isLoading && list.length === 0 ? (
-          <Txt variant="body" tone="textMuted">{t('blog.loading')}</Txt>
+          <Txt variant="body" tone="textMuted">
+            {t("blog.loading")}
+          </Txt>
         ) : list.length === 0 ? (
-          <Txt variant="body" tone="textMuted">{t('blog.empty')}</Txt>
+          <Txt variant="body" tone="textMuted">
+            {t("blog.empty")}
+          </Txt>
         ) : (
-          <View style={[styles.grid, isWide && styles.gridWide]}>
-            {list.map((a) => (
-              <View key={a.id} style={isWide ? styles.colWide : styles.col}>
-                <ArticleCard article={a} locale={locale} formatDate={formatDate} />
-              </View>
-            ))}
-          </View>
-        )}
+          <>
+            <ArticleCard
+              article={featuredArticle}
+              locale={locale}
+              formatDate={formatDate}
+              featured
+            />
 
-        <View style={styles.footer}>
-          <Link href="/" asChild>
-            <Button title={t('blog.backHome')} variant="secondary" />
-          </Link>
-        </View>
+            {restArticles.length > 0 ? (
+              <View style={styles.moreSection}>
+                <Txt
+                  variant="label"
+                  mono
+                  uppercase
+                  tone="textFaint"
+                  style={styles.moreLabel}
+                >
+                  {t("blog.moreArticles")}
+                </Txt>
+                <View style={[styles.grid, isWide && styles.gridWide]}>
+                  {restArticles.map((a) => (
+                    <View
+                      key={a.id}
+                      style={isWide ? styles.colWide : styles.col}
+                    >
+                      <ArticleCard
+                        article={a}
+                        locale={locale}
+                        formatDate={formatDate}
+                      />
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </>
+        )}
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flexGrow: 1, paddingVertical: spacing.xl, paddingHorizontal: spacing.lg },
-  inner: { width: '100%', maxWidth: 960, alignSelf: 'center', gap: spacing.xl },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  scroll: { flexGrow: 1, paddingBottom: spacing.xxl },
+  inner: {
+    width: "100%",
+    maxWidth: 1080,
+    alignSelf: "center",
+    gap: spacing.xxl,
+    paddingVertical: spacing.xxl,
+  },
+  eyebrow: { letterSpacing: 2 },
   hero: { gap: spacing.sm, maxWidth: 720 },
   title: { marginTop: spacing.xs },
   lede: { maxWidth: 640 },
+  moreSection: { gap: spacing.lg },
+  moreLabel: { letterSpacing: 1.5 },
   grid: { gap: spacing.lg },
-  gridWide: { flexDirection: 'row', flexWrap: 'wrap' },
-  col: { width: '100%' },
-  colWide: { width: '48%', minWidth: 300, flexGrow: 1 },
-  footer: { alignItems: 'flex-start', paddingTop: spacing.md },
+  gridWide: { flexDirection: "row", flexWrap: "wrap" },
+  col: { width: "100%" },
+  colWide: { width: "31.5%", minWidth: 280, flexGrow: 1 },
 });

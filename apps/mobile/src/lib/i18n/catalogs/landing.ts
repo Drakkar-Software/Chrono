@@ -4,12 +4,25 @@ import type { CatalogSlice } from '../types';
 // "onboarding.*" and "auth.*".
 export const landingCatalog: CatalogSlice = {
   en: {
+    // ─── Nav ───
+    'nav.blog': 'Blog',
+    'nav.getStarted': 'Get started',
+
     // ─── Landing marketing page ───
+    'landing.hero.eyebrow': 'Time → revenue, reconciled',
     'landing.hero.tagline': 'Track freelance time, recognize revenue, and get everyone paid.',
     'landing.hero.blurb':
       'Chrono is the time-tracking and invoicing workspace for companies running multiple freelancers across multiple projects — with approvals, revenue sources, referrals and funding-aware settlement handled end to end.',
     'landing.hero.getStarted': 'Get started',
     'landing.hero.trust': 'Multi-tenant · Offline-first · iOS · Android · Web',
+
+    'landing.ledger.title': 'This month’s ledger',
+    'landing.ledger.live': 'Live',
+    'landing.ledger.logged': 'Logged',
+    'landing.ledger.approved': 'Approved',
+    'landing.ledger.invoiced': 'Invoiced',
+    'landing.ledger.settled': 'Settled',
+    'landing.ledger.recognized': 'Recognized this month',
 
     'landing.features.eyebrow': 'Why Chrono',
     'landing.features.title': 'Everything from a logged hour\nto a settled invoice.',
@@ -43,6 +56,7 @@ export const landingCatalog: CatalogSlice = {
     'landing.step.settle.title': 'Settle',
     'landing.step.settle.body': 'Invoices are paid from recognized project revenue, FIFO.',
 
+    'landing.cta.eyebrow': 'Get started',
     'landing.cta.title': 'Ready to bill your time?',
     'landing.cta.subtitle': 'Set up your company and first project in minutes.',
 
@@ -115,13 +129,26 @@ export const landingCatalog: CatalogSlice = {
     'onboarding.role.errGeneric': 'Something went wrong',
   },
   fr: {
+    // ─── Nav ───
+    'nav.blog': 'Blog',
+    'nav.getStarted': 'Commencer',
+
     // ─── Landing marketing page ───
+    'landing.hero.eyebrow': 'Du temps au revenu, réconciliés',
     'landing.hero.tagline':
       'Suivez le temps des freelances, constatez les revenus et assurez le paiement de tous.',
     'landing.hero.blurb':
       "Chrono est l'espace de suivi du temps et de facturation pour les entreprises qui gèrent plusieurs freelances sur plusieurs projets — avec approbations, sources de revenus, parrainages et règlement tenant compte du financement, gérés de bout en bout.",
     'landing.hero.getStarted': 'Commencer',
     'landing.hero.trust': "Multi-entreprises · Hors ligne d'abord · iOS · Android · Web",
+
+    'landing.ledger.title': 'Le registre du mois',
+    'landing.ledger.live': 'En direct',
+    'landing.ledger.logged': 'Saisi',
+    'landing.ledger.approved': 'Approuvé',
+    'landing.ledger.invoiced': 'Facturé',
+    'landing.ledger.settled': 'Réglé',
+    'landing.ledger.recognized': 'Revenu constaté ce mois-ci',
 
     'landing.features.eyebrow': 'Pourquoi Chrono',
     'landing.features.title': "De l'heure saisie\nà la facture réglée.",
@@ -158,6 +185,7 @@ export const landingCatalog: CatalogSlice = {
     'landing.step.settle.body':
       'Les factures sont payées à partir des revenus de projet constatés, en FIFO.',
 
+    'landing.cta.eyebrow': 'Commencer',
     'landing.cta.title': 'Prêt à facturer votre temps ?',
     'landing.cta.subtitle': 'Configurez votre entreprise et votre premier projet en quelques minutes.',
 
