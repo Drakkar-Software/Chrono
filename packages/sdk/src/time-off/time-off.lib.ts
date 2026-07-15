@@ -11,9 +11,14 @@ import { minutesToDays } from '../time-entry/time-entry.lib';
 import type { TimeOff } from './time-off.entity';
 
 type TimeOffLike = Pick<TimeOff, 'off_date' | 'duration_minutes'>;
+type TimeOffKindLike = Pick<TimeOff, 'off_date' | 'duration_minutes' | 'kind'>;
 
 function inMonth(dateISO: string, monthISO: string): boolean {
   return dateISO.slice(0, 7) === monthISO.slice(0, 7);
+}
+
+function inYear(dateISO: string, year: number): boolean {
+  return Number(dateISO.slice(0, 4)) === year;
 }
 
 /**
@@ -58,4 +63,41 @@ export function partialOffMinutesByDate(
     out[e.off_date.slice(0, 10)] = e.duration_minutes;
   }
   return out;
+}
+
+/**
+ * Fractional `kind: 'vacation'` days consumed in `year`, using the same
+ * business-day / partial-day fraction rules as `timeOffDaysInMonth` — the
+ * "paid vacation" policy is tracked separately from the overall time-off
+ * capacity netting.
+ */
+export function vacationDaysUsedInYear(
+  entries: TimeOffKindLike[],
+  year: number,
+  workingWeekdays: number[],
+  holidayDates: string[],
+  hoursPerDay: number,
+): number {
+  let total = 0;
+  for (const e of entries) {
+    if (e.kind !== 'vacation') continue;
+    if (!inYear(e.off_date, year)) continue;
+    if (!isBusinessDay(e.off_date, workingWeekdays, holidayDates)) continue;
+    total += e.duration_minutes == null ? 1 : minutesToDays(e.duration_minutes, hoursPerDay);
+  }
+  return total;
+}
+
+/**
+ * Whether adding `addingDays` more vacation days on top of `currentYearDays`
+ * would exceed the company's paid-vacation policy. `null` policy =
+ * unlimited, never exceeded.
+ */
+export function exceedsVacationPolicy(
+  currentYearDays: number,
+  addingDays: number,
+  maxVacationDaysPerYear: number | null,
+): boolean {
+  if (maxVacationDaysPerYear == null) return false;
+  return currentYearDays + addingDays > maxVacationDaysPerYear;
 }

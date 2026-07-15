@@ -86,6 +86,13 @@ export function monthBounds(dateISO: string): { start: string; end: string } {
   return { start: toISO(start), end: toISO(end) };
 }
 
+/** Calendar year bounds { start, end } as 'YYYY-MM-DD'. */
+export function yearBounds(dateISO: string): { start: string; end: string } {
+  const d = parseISO(dateISO);
+  const year = d.getUTCFullYear();
+  return { start: `${year}-01-01`, end: `${year}-12-31` };
+}
+
 // ---------------------------------------------------------------------------
 // Grouping / summarizing
 // ---------------------------------------------------------------------------

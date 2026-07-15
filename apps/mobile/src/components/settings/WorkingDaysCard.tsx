@@ -35,6 +35,9 @@ export function WorkingDaysCard({ company }: WorkingDaysCardProps) {
   const [maxHolidays, setMaxHolidays] = useState(
     company.max_holidays_per_year != null ? String(company.max_holidays_per_year) : '',
   );
+  const [maxVacationDays, setMaxVacationDays] = useState(
+    company.max_vacation_days_per_year != null ? String(company.max_vacation_days_per_year) : '',
+  );
 
   const onWorkingWeekdaysChange = (value: number[]) => {
     void update(company.id, { working_weekdays: value });
@@ -45,6 +48,13 @@ export function WorkingDaysCard({ company }: WorkingDaysCardProps) {
     const parsed = trimmed === '' ? null : parseInt(trimmed, 10);
     if (parsed != null && (!Number.isFinite(parsed) || parsed < 0)) return;
     void update(company.id, { max_holidays_per_year: parsed });
+  };
+
+  const saveMaxVacationDays = () => {
+    const trimmed = maxVacationDays.trim();
+    const parsed = trimmed === '' ? null : parseInt(trimmed, 10);
+    if (parsed != null && (!Number.isFinite(parsed) || parsed < 0)) return;
+    void update(company.id, { max_vacation_days_per_year: parsed });
   };
 
   const addHoliday = async () => {
@@ -95,6 +105,21 @@ export function WorkingDaysCard({ company }: WorkingDaysCardProps) {
           {t('tabs.settings.maxHolidaysPerYearHint')}
         </Txt>
         <Button title={t('common.save')} size="sm" variant="secondary" onPress={saveMaxHolidays} />
+        {companyError ? <InlineError error={companyError} /> : null}
+      </View>
+
+      <View style={styles.field}>
+        <TextField
+          label={t('tabs.settings.maxVacationDaysPerYear')}
+          value={maxVacationDays}
+          onChangeText={setMaxVacationDays}
+          placeholder={t('tabs.settings.unlimited')}
+          keyboardType="number-pad"
+        />
+        <Txt variant="caption" tone="textMuted">
+          {t('tabs.settings.maxVacationDaysPerYearHint')}
+        </Txt>
+        <Button title={t('common.save')} size="sm" variant="secondary" onPress={saveMaxVacationDays} />
         {companyError ? <InlineError error={companyError} /> : null}
       </View>
 

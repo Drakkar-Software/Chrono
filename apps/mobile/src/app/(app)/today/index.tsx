@@ -24,6 +24,7 @@ import { useMyProjects } from '@/lib/hooks/use-projects';
 import { useTimeEntries, useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
 import { useMaxBusinessDays } from '@/lib/hooks/use-max-business-days';
+import { useVacationPolicy } from '@/lib/hooks/use-vacation-policy';
 import { useTimeOffMutations } from '@/lib/hooks/use-time-off';
 import { LogEntryForm, type LogEntryValues } from '@/components/time/LogEntryForm';
 import { TimeOffForm, type TimeOffValues } from '@/components/time/TimeOffForm';
@@ -57,7 +58,8 @@ export default function TodayScreen() {
     from: month.start,
     to: month.end,
   });
-  const { netBusinessDays, timeOff } = useMaxBusinessDays(userId, thisMonthKey);
+  const { netBusinessDays, timeOff, workingWeekdays, holidayDates } = useMaxBusinessDays(userId, thisMonthKey);
+  const { vacationDaysRemaining } = useVacationPolicy(userId, workingWeekdays, holidayDates);
   const { create, isPending } = useTimeEntryMutations();
   const { add: addTimeOff, remove: removeTimeOff, isPending: isSubmittingTimeOff, error: timeOffError } =
     useTimeOffMutations();
@@ -77,13 +79,14 @@ export default function TodayScreen() {
     };
   }, []);
 
+  const activeProjects = useMemo(() => (projects ?? []).filter((p) => p.status !== 'archived'), [projects]);
   const projectOptions = useMemo(
-    () => (projects ?? []).map((p) => ({ label: p.name, value: p.id })),
-    [projects],
+    () => activeProjects.map((p) => ({ label: p.name, value: p.id })),
+    [activeProjects],
   );
   const hoursPerDayByProject = useMemo(
-    () => Object.fromEntries((projects ?? []).map((p) => [p.id, p.hours_per_day])),
-    [projects],
+    () => Object.fromEntries(activeProjects.map((p) => [p.id, p.hours_per_day])),
+    [activeProjects],
   );
   const monthDaysLogged = useMemo(
     () =>
@@ -310,7 +313,11 @@ export default function TodayScreen() {
               contentContainerStyle={styles.sheetContent}
               keyboardShouldPersistTaps="handled"
             >
-              <TimeOffForm onSubmit={onSubmitTimeOff} isSubmitting={isSubmittingTimeOff} />
+              <TimeOffForm
+                onSubmit={onSubmitTimeOff}
+                isSubmitting={isSubmittingTimeOff}
+                vacationDaysRemaining={vacationDaysRemaining}
+              />
               <InlineError error={timeOffError} describe={{ duplicateMessage: t('comp.timeOff.errDuplicate') }} />
             </ScrollView>
           </Pressable>

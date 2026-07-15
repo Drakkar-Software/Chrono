@@ -47,6 +47,8 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.projects.emptyManager': 'Create your first project to start tracking time.',
     'tabs.projects.emptyFreelancer': 'You are not assigned to any projects yet.',
     'tabs.projects.newProject': 'New project',
+    'tabs.projects.showArchived': 'Show archived',
+    'tabs.projects.hideArchived': 'Hide archived',
 
     // Invoices
     'tabs.invoices.duplicateMessage': 'An invoice already exists for this month.',
@@ -115,6 +117,8 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.settings.workingDaysHint': 'The default weekdays counted as business days when capping how much time a person can log in a month.',
     'tabs.settings.maxHolidaysPerYear': 'Max holidays per year',
     'tabs.settings.maxHolidaysPerYearHint': 'Caps how many holiday dates can be declared in a single calendar year. Leave blank for no limit.',
+    'tabs.settings.maxVacationDaysPerYear': 'Max paid vacation days per year',
+    'tabs.settings.maxVacationDaysPerYearHint': 'Caps how many paid vacation days a member can take in a single calendar year. Leave blank for no limit.',
     'tabs.settings.unlimited': 'Unlimited',
     'tabs.settings.addHoliday': 'Add holiday',
     'tabs.settings.holidayName': 'Name',
@@ -186,6 +190,8 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.projects.emptyManager': 'Créez votre premier projet pour commencer à suivre le temps.',
     'tabs.projects.emptyFreelancer': 'Vous n’êtes assigné à aucun projet pour l’instant.',
     'tabs.projects.newProject': 'Nouveau projet',
+    'tabs.projects.showArchived': 'Afficher les archivés',
+    'tabs.projects.hideArchived': 'Masquer les archivés',
 
     // Invoices
     'tabs.invoices.duplicateMessage': 'Une facture existe déjà pour ce mois.',
@@ -254,6 +260,8 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.settings.workingDaysHint': 'Les jours de la semaine comptés comme jours ouvrés par défaut, pour limiter le temps saisi par une personne sur un mois.',
     'tabs.settings.maxHolidaysPerYear': 'Jours fériés max par an',
     'tabs.settings.maxHolidaysPerYearHint': 'Limite le nombre de jours fériés déclarables sur une année civile. Laissez vide pour aucune limite.',
+    'tabs.settings.maxVacationDaysPerYear': 'Jours de congé payé max par an',
+    'tabs.settings.maxVacationDaysPerYearHint': 'Limite le nombre de jours de congé payé qu’un membre peut prendre sur une année civile. Laissez vide pour aucune limite.',
     'tabs.settings.unlimited': 'Illimité',
     'tabs.settings.addHoliday': 'Ajouter un jour férié',
     'tabs.settings.holidayName': 'Nom',

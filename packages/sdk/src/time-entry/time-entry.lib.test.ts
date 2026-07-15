@@ -9,6 +9,7 @@ import {
   monthKey,
   groupByDay,
   summarizeByProject,
+  yearBounds,
 } from './time-entry.lib';
 
 describe('minutesToDays', () => {
@@ -143,6 +144,20 @@ describe('weekBounds across a year boundary', () => {
       start: '2025-12-29',
       end: '2026-01-04',
     });
+  });
+});
+
+describe('yearBounds', () => {
+  it('bounds a calendar year', () => {
+    expect(yearBounds('2026-07-14')).toEqual({
+      start: '2026-01-01',
+      end: '2026-12-31',
+    });
+  });
+
+  it('bounds correctly from any date in the year', () => {
+    expect(yearBounds('2026-01-01')).toEqual({ start: '2026-01-01', end: '2026-12-31' });
+    expect(yearBounds('2026-12-31')).toEqual({ start: '2026-01-01', end: '2026-12-31' });
   });
 });
 

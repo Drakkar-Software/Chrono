@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { fullDayOffDatesInMonth, partialOffMinutesByDate, timeOffDaysInMonth } from './time-off.lib';
+import {
+  exceedsVacationPolicy,
+  fullDayOffDatesInMonth,
+  partialOffMinutesByDate,
+  timeOffDaysInMonth,
+  vacationDaysUsedInYear,
+} from './time-off.lib';
+import type { TimeOffKind } from '../schema';
 
 const MON_FRI = [1, 2, 3, 4, 5];
 const HOURS_PER_DAY = 7;
 
-function off(overrides: Partial<{ off_date: string; duration_minutes: number | null }> = {}) {
-  return { off_date: '2026-07-15', duration_minutes: null, ...overrides };
+function off(
+  overrides: Partial<{ off_date: string; duration_minutes: number | null; kind: TimeOffKind }> = {},
+) {
+  return { off_date: '2026-07-15', duration_minutes: null, kind: 'vacation' as TimeOffKind, ...overrides };
 }
 
 describe('timeOffDaysInMonth', () => {
@@ -114,5 +123,83 @@ describe('partialOffMinutesByDate', () => {
 
   it('is empty when there are no partial entries', () => {
     expect(partialOffMinutesByDate([], '2026-07')).toEqual({});
+  });
+});
+
+describe('vacationDaysUsedInYear', () => {
+  it('counts a full-day vacation entry as 1', () => {
+    const total = vacationDaysUsedInYear([off()], 2026, MON_FRI, [], HOURS_PER_DAY);
+    expect(total).toBe(1);
+  });
+
+  it('ignores non-vacation kinds', () => {
+    const total = vacationDaysUsedInYear([off({ kind: 'sick' })], 2026, MON_FRI, [], HOURS_PER_DAY);
+    expect(total).toBe(0);
+  });
+
+  it('converts a partial vacation entry to a fraction of the day', () => {
+    const total = vacationDaysUsedInYear(
+      [off({ duration_minutes: 210 })],
+      2026,
+      MON_FRI,
+      [],
+      HOURS_PER_DAY,
+    );
+    expect(total).toBe(0.5);
+  });
+
+  it('ignores entries outside the target year', () => {
+    const total = vacationDaysUsedInYear(
+      [off({ off_date: '2025-07-15' })],
+      2026,
+      MON_FRI,
+      [],
+      HOURS_PER_DAY,
+    );
+    expect(total).toBe(0);
+  });
+
+  it('is 0 for a full-day vacation on a weekend', () => {
+    const total = vacationDaysUsedInYear(
+      [off({ off_date: '2026-07-18' })],
+      2026,
+      MON_FRI,
+      [],
+      HOURS_PER_DAY,
+    );
+    expect(total).toBe(0);
+  });
+
+  it('sums multiple vacation entries across the year', () => {
+    const total = vacationDaysUsedInYear(
+      [off({ off_date: '2026-07-06' }), off({ off_date: '2026-07-07', duration_minutes: 210 })],
+      2026,
+      MON_FRI,
+      [],
+      HOURS_PER_DAY,
+    );
+    expect(total).toBe(1.5);
+  });
+
+  it('is 0 for an empty list', () => {
+    expect(vacationDaysUsedInYear([], 2026, MON_FRI, [], HOURS_PER_DAY)).toBe(0);
+  });
+});
+
+describe('exceedsVacationPolicy', () => {
+  it('never exceeds when the policy is unlimited (null)', () => {
+    expect(exceedsVacationPolicy(100, 5, null)).toBe(false);
+  });
+
+  it('is false when under the cap', () => {
+    expect(exceedsVacationPolicy(10, 1, 25)).toBe(false);
+  });
+
+  it('is true when adding would exceed the cap', () => {
+    expect(exceedsVacationPolicy(25, 1, 25)).toBe(true);
+  });
+
+  it('is false exactly at the cap', () => {
+    expect(exceedsVacationPolicy(24, 1, 25)).toBe(false);
   });
 });

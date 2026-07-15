@@ -134,6 +134,7 @@ export type Database = {
           invoice_numbering_enabled: boolean;
           working_weekdays: number[];
           max_holidays_per_year: number | null;
+          max_vacation_days_per_year: number | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -149,6 +150,7 @@ export type Database = {
           invoice_numbering_enabled?: boolean;
           working_weekdays?: number[];
           max_holidays_per_year?: number | null;
+          max_vacation_days_per_year?: number | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;

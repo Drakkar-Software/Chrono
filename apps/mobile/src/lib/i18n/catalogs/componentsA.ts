@@ -88,6 +88,8 @@ export const componentsACatalog: CatalogSlice = {
     'comp.timeOff.kind.sick': 'Sick',
     'comp.timeOff.kind.personal': 'Personal',
     'comp.timeOff.kind.holiday': 'Holiday',
+    'comp.timeOff.vacationRemaining': '{n} paid vacation day(s) left this year',
+    'comp.timeOff.errVacationCapExceeded': 'That would exceed your paid vacation allowance ({n} day(s) left).',
 
     // Calendar
     'comp.calendar.legendOff': 'Time off',
@@ -272,6 +274,8 @@ export const componentsACatalog: CatalogSlice = {
     'comp.timeOff.kind.sick': 'Maladie',
     'comp.timeOff.kind.personal': 'Personnel',
     'comp.timeOff.kind.holiday': 'Jour férié',
+    'comp.timeOff.vacationRemaining': '{n} jour(s) de congé payé restant(s) cette année',
+    'comp.timeOff.errVacationCapExceeded': 'Cela dépasserait votre solde de congés payés ({n} jour(s) restant(s)).',
 
     // Calendrier
     'comp.calendar.legendOff': 'Congé',

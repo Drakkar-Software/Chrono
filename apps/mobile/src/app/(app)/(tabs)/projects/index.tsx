@@ -34,6 +34,7 @@ export default function ProjectsScreen() {
 
   const { create, isPending } = useProjectMutations();
   const [creating, setCreating] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const onCreate = async (values: NewProjectValues) => {
     if (!companyId || !user?.id) return;
@@ -59,10 +60,12 @@ export default function ProjectsScreen() {
     [manager, creating, t],
   );
 
-  const list = projects ?? [];
+  const all = projects ?? [];
+  const archivedCount = all.filter((p) => p.status === 'archived').length;
+  const list = showArchived ? all : all.filter((p) => p.status !== 'archived');
   const { page, hasMore, loadMore } = usePagination(
     list,
-    `${companyId ?? ''}:${manager ? 'managed' : 'mine'}`,
+    `${companyId ?? ''}:${manager ? 'managed' : 'mine'}:${showArchived ? 'all' : 'active'}`,
   );
 
   return (
@@ -105,6 +108,14 @@ export default function ProjectsScreen() {
             <LoadMore hasMore={hasMore} onLoadMore={loadMore} remaining={list.length - page.length} />
           </>
         )}
+
+        {archivedCount > 0 && !loading && !creating ? (
+          <Button
+            title={showArchived ? t('tabs.projects.hideArchived') : t('tabs.projects.showArchived')}
+            variant="ghost"
+            onPress={() => setShowArchived((v) => !v)}
+          />
+        ) : null}
       </View>
     </StackScreen>
   );

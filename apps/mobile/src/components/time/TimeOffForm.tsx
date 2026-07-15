@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { DatePicker, Segmented, TextField, Txt, TitledCard, borders, radii, spacing, useTheme } from '@chrono/ui';
 import type { PickerOption } from '@chrono/ui';
+import { DEFAULT_HOURS_PER_DAY, minutesToDays } from '@chrono/sdk';
 import type { TimeOffKind } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
 import { FormActions } from '@/components/common/FormActions';
@@ -20,12 +21,14 @@ export interface TimeOffValues {
 export interface TimeOffFormProps {
   onSubmit: (values: TimeOffValues) => void;
   isSubmitting?: boolean;
+  /** Remaining paid-vacation days this year — null = unlimited (no cap). Enforced only when `kind` is 'vacation'. */
+  vacationDaysRemaining?: number | null;
 }
 
 const KINDS: TimeOffKind[] = ['vacation', 'sick', 'personal', 'holiday'];
 
 /** Self-service time-off composer: a date, full day or a partial number of hours, a kind, and an optional note. */
-export function TimeOffForm({ onSubmit, isSubmitting = false }: TimeOffFormProps) {
+export function TimeOffForm({ onSubmit, isSubmitting = false, vacationDaysRemaining = null }: TimeOffFormProps) {
   const t = useT();
   const kindOptions: PickerOption[] = useMemo(
     () => KINDS.map((k) => ({ label: t(`comp.timeOff.kind.${k}`), value: k })),
@@ -45,6 +48,13 @@ export function TimeOffForm({ onSubmit, isSubmitting = false }: TimeOffFormProps
       durationMinutes = parseHoursToMinutes(hours);
       if (durationMinutes <= 0) {
         setError(t('comp.timeOff.errEnterHours'));
+        return;
+      }
+    }
+    if (kind === 'vacation' && vacationDaysRemaining != null) {
+      const requestedDays = durationMinutes == null ? 1 : minutesToDays(durationMinutes, DEFAULT_HOURS_PER_DAY);
+      if (requestedDays > vacationDaysRemaining) {
+        setError(t('comp.timeOff.errVacationCapExceeded', { n: vacationDaysRemaining }));
         return;
       }
     }
@@ -88,6 +98,11 @@ export function TimeOffForm({ onSubmit, isSubmitting = false }: TimeOffFormProps
           {t('comp.timeOff.type')}
         </Txt>
         <ChipRow options={kindOptions} value={kind} onChange={(v) => setKind(v as TimeOffKind)} />
+        {kind === 'vacation' && vacationDaysRemaining != null ? (
+          <Txt variant="caption" tone="textMuted">
+            {t('comp.timeOff.vacationRemaining', { n: vacationDaysRemaining })}
+          </Txt>
+        ) : null}
       </View>
 
       <TextField
