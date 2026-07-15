@@ -53,7 +53,11 @@ export function useCompanyMemberMutations() {
       update(id, { default_hourly_rate_cents: defaultHourlyRateCents }),
     [update],
   );
+  const updateCapacity = useCallback(
+    (id: string, weeklyCapacityDays: number) => update(id, { weekly_capacity_days: weeklyCapacityDays }),
+    [update],
+  );
   const remove = useCallback((id: string) => update(id, { deleted: true }), [update]);
 
-  return { add, updateRole, updateRate, remove, isPending: isLoading, error };
+  return { add, updateRole, updateRate, updateCapacity, remove, isPending: isLoading, error };
 }

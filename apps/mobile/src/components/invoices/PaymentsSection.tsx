@@ -30,6 +30,9 @@ export function PaymentsSection({ invoiceId, companyId, currency, canManage, use
   const [paidOn, setPaidOn] = useState(new Date());
   const [method, setMethod] = useState('bank_transfer');
   const [note, setNote] = useState('');
+  const [cryptoAsset, setCryptoAsset] = useState('');
+  const [cryptoAmount, setCryptoAmount] = useState('');
+  const [cryptoTxHash, setCryptoTxHash] = useState('');
   const [formError, setFormError] = useState<string | undefined>();
 
   const list = payments ?? [];
@@ -52,9 +55,15 @@ export function PaymentsSection({ invoiceId, companyId, currency, canManage, use
         method,
         note: note.trim() || null,
         recordedBy: userId,
+        cryptoAsset: method === 'crypto' ? cryptoAsset.trim() || null : null,
+        cryptoAmount: method === 'crypto' ? cryptoAmount.trim() || null : null,
+        cryptoTxHash: method === 'crypto' ? cryptoTxHash.trim() || null : null,
       });
       setAmount('');
       setNote('');
+      setCryptoAsset('');
+      setCryptoAmount('');
+      setCryptoTxHash('');
       setOpen(false);
     } catch {
       // Surfaced via `error` below.
@@ -76,6 +85,13 @@ export function PaymentsSection({ invoiceId, companyId, currency, canManage, use
           <TextField label={t('common.amount')} value={amount} onChangeText={setAmount} placeholder={t('comp.invoice.amountPlaceholder')} keyboardType="decimal-pad" />
           <DatePicker label={t('comp.invoice.paidOn')} value={paidOn} onChange={setPaidOn} maximumDate={new Date()} />
           <Picker label={t('comp.invoice.method')} value={method} onValueChange={setMethod} options={[...PAYMENT_METHODS]} />
+          {method === 'crypto' ? (
+            <>
+              <TextField label={t('comp.invoice.cryptoAsset')} value={cryptoAsset} onChangeText={setCryptoAsset} placeholder="BTC" />
+              <TextField label={t('comp.invoice.cryptoAmount')} value={cryptoAmount} onChangeText={setCryptoAmount} placeholder="0.015" keyboardType="decimal-pad" />
+              <TextField label={t('comp.invoice.cryptoTxHash')} value={cryptoTxHash} onChangeText={setCryptoTxHash} placeholder="0x…" />
+            </>
+          ) : null}
           <TextField label={t('comp.invoice.noteOptional')} value={note} onChangeText={setNote} placeholder={t('comp.invoice.notePlaceholder')} />
           <InlineError message={formError} />
           {error ? <InlineError error={error} describe={{ fallback: t('comp.invoice.recordFail') }} /> : null}
@@ -96,7 +112,14 @@ export function PaymentsSection({ invoiceId, companyId, currency, canManage, use
       ) : (
         <Card padding="lg" style={styles.list}>
           {list.map((p) => (
-            <Row key={p.id} label={`${p.paid_on} · ${paymentMethodLabel(p.method)}`}>
+            <Row
+              key={p.id}
+              label={
+                p.method === 'crypto' && p.crypto_asset
+                  ? `${p.paid_on} · ${paymentMethodLabel(p.method)} (${p.crypto_asset}${p.crypto_amount ? ` ${p.crypto_amount}` : ''})`
+                  : `${p.paid_on} · ${paymentMethodLabel(p.method)}`
+              }
+            >
               <View style={styles.rowRight}>
                 <Money cents={p.amount_cents} currency={currency} />
                 {canManage ? (

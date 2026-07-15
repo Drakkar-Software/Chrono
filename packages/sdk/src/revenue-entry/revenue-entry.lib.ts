@@ -59,12 +59,18 @@ export function availableFunding(
   return Math.max(0, revenue - referral - fixedCostCents - paid);
 }
 
-/** Project margin = revenue - referral payouts - fixed costs - freelancer costs (cents). */
+/**
+ * Project margin = revenue - referral payouts - fixed costs - freelancer costs
+ * - reimbursable expenses (cents). Expenses are a real cost but, unlike fixed
+ * costs, are paid outside the FIFO pool (see availableFunding) — they only
+ * affect margin, not funding.
+ */
 export function projectMargin(
   revenueCents: number,
   referralCents: number,
   costCents: number,
   fixedCostCents = 0,
+  expenseCents = 0,
 ): number {
-  return revenueCents - referralCents - fixedCostCents - costCents;
+  return revenueCents - referralCents - fixedCostCents - costCents - expenseCents;
 }

@@ -11,6 +11,7 @@ describe('sumPayments', () => {
 describe('paymentMethodLabel', () => {
   it('maps known methods, passes through unknown, defaults null', () => {
     expect(paymentMethodLabel('bank_transfer')).toBe('Bank transfer');
+    expect(paymentMethodLabel('crypto')).toBe('Crypto');
     expect(paymentMethodLabel('wire')).toBe('wire');
     expect(paymentMethodLabel(null)).toBe('Payment');
   });

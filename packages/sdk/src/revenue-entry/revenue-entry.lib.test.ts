@@ -109,4 +109,9 @@ describe('projectMargin', () => {
     // 800000 - 80000 - 20000 (fixed) - 500000 = 200000
     expect(projectMargin(800000, 80000, 500000, 20000)).toBe(200000);
   });
+
+  it('subtracts reimbursable expenses when provided', () => {
+    // 800000 - 80000 - 20000 (fixed) - 500000 - 15000 (expenses) = 185000
+    expect(projectMargin(800000, 80000, 500000, 20000, 15000)).toBe(185000);
+  });
 });

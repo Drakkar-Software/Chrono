@@ -13,12 +13,14 @@ import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { todayISO } from '@/lib/date';
+import { uploadImage } from '@/lib/image-upload';
 import { useProject } from '@/lib/hooks/use-projects';
 import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
 import { useProjectMembers, useProjectMemberMutations } from '@/lib/hooks/use-project-members';
 import { useCompanyMembers } from '@/lib/hooks/use-company-members';
 import { useRevenueSources, useRevenueSourceMutations } from '@/lib/hooks/use-revenue-sources';
 import { useProjectFixedCosts, useProjectFixedCostMutations } from '@/lib/hooks/use-project-fixed-costs';
+import { useProjectExpenses, useExpenseMutations } from '@/lib/hooks/use-project-expenses';
 import { useProjectReferrals, useProjectReferralMutations } from '@/lib/hooks/use-project-referrals';
 import { useRevenueEntries, useRecognizeRevenue } from '@/lib/hooks/use-revenue-entries';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
@@ -32,6 +34,8 @@ import { AddProjectMemberForm } from '@/components/projects/AddProjectMemberForm
 import { AddRevenueSourceForm, type AddRevenueSourceValues } from '@/components/projects/AddRevenueSourceForm';
 import { AddFixedCostForm, type AddFixedCostValues } from '@/components/projects/AddFixedCostForm';
 import { AddReferrerForm } from '@/components/projects/AddReferrerForm';
+import { AddExpenseForm, type AddExpenseValues } from '@/components/expenses/AddExpenseForm';
+import { ExpenseRow } from '@/components/expenses/ExpenseRow';
 import { EditProjectForm, type EditProjectValues } from '@/components/projects/EditProjectForm';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -39,7 +43,7 @@ import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
-type Panel = 'none' | 'edit' | 'member' | 'source' | 'fixedCost' | 'referrer';
+type Panel = 'none' | 'edit' | 'member' | 'source' | 'fixedCost' | 'expense' | 'referrer';
 
 export default function ProjectDetail() {
   const t = useT();
@@ -58,6 +62,7 @@ export default function ProjectDetail() {
   const { data: companyMembers } = useCompanyMembers(companyId);
   const { data: sources } = useRevenueSources(id);
   const { data: fixedCosts } = useProjectFixedCosts(id);
+  const { data: expenses } = useProjectExpenses(id, companyId);
   const { data: referrals } = useProjectReferrals(id);
 
   // P&L data for this one project (single-project reads, not a fan-out).
@@ -73,6 +78,7 @@ export default function ProjectDetail() {
   const memberMut = useProjectMemberMutations();
   const sourceMut = useRevenueSourceMutations();
   const fixedCostMut = useProjectFixedCostMutations();
+  const expenseMut = useExpenseMutations();
   const referralMut = useProjectReferralMutations();
   const projectMut = useProjectMutations();
   const { mutateAsync: recognizeRevenue, isPending: recognizing } = useRecognizeRevenue();
@@ -94,6 +100,14 @@ export default function ProjectDetail() {
   }, [companyMembers, referrals]);
 
   const remainingPct = remainingReferralPct(referrals ?? []);
+  const isProjectMember = (members ?? []).some((m) => m.user_id === user?.id);
+  const profileByUserId = useMemo(() => {
+    const map = new Map<string, { full_name: string | null }>();
+    for (const m of companyMembers ?? []) {
+      if (m.profile) map.set(m.user_id, m.profile);
+    }
+    return map;
+  }, [companyMembers]);
 
   if (isLoading && !project) {
     return (
@@ -163,6 +177,24 @@ export default function ProjectDetail() {
       period_month: values.periodMonth ?? null,
       starts_on: values.startsOn ?? null,
     });
+    setPanel('none');
+  };
+  const addExpense = async (values: AddExpenseValues) => {
+    if (!companyId || !user) return;
+    const created = await expenseMut.create({
+      project_id: project.id,
+      company_id: companyId,
+      user_id: user.id,
+      description: values.description,
+      amount_cents: values.amountCents,
+      spent_on: values.spentOn,
+      category: values.category ?? null,
+    });
+    if (values.receipt) {
+      const path = `${companyId}/${created.id}.${values.receipt.ext}`;
+      const url = await uploadImage('receipts', path, values.receipt.uri, values.receipt.contentType);
+      await expenseMut.update(created.id, { receipt_url: url });
+    }
     setPanel('none');
   };
   const addReferrer = async (userId: string, percent: number) => {
@@ -341,6 +373,43 @@ export default function ProjectDetail() {
           </Section>
         ) : null}
 
+        {/* Reimbursable expenses — freelancers submit, managers moderate. */}
+        {manager || isProjectMember ? (
+          <Section
+            title={t('details.expenses')}
+            action={(manager || isProjectMember) && panel !== 'expense' ? () => setPanel('expense') : undefined}
+          >
+            {panel === 'expense' ? (
+              <>
+                <AddExpenseForm
+                  onAdd={addExpense}
+                  onCancel={() => setPanel('none')}
+                  isSubmitting={expenseMut.isPending}
+                />
+                {expenseMut.error ? <InlineError error={expenseMut.error} /> : null}
+              </>
+            ) : null}
+            {(expenses ?? []).map((expense) => (
+              <ExpenseRow
+                key={expense.id}
+                expense={expense}
+                currency={currency}
+                submitter={profileByUserId.get(expense.user_id)}
+                canModerate={manager}
+                onApprove={() => void expenseMut.approve(expense.id)}
+                onReject={(reason) => void expenseMut.reject(expense.id, reason)}
+                onMarkReimbursed={() => user && void expenseMut.markReimbursed(expense.id, user.id)}
+                isBusy={expenseMut.isPending}
+              />
+            ))}
+            {(expenses ?? []).length === 0 && panel !== 'expense' ? (
+              <Txt variant="body" tone="textMuted">
+                {t('common.noneYet')}
+              </Txt>
+            ) : null}
+          </Section>
+        ) : null}
+
         {manager ? (
           <Section
             title={t('details.referrers')}
@@ -382,6 +451,7 @@ export default function ProjectDetail() {
             referralEarnings={pnlReferrals ?? []}
             invoices={pnlInvoices ?? []}
             fixedCosts={fixedCosts ?? []}
+            expenses={expenses ?? []}
           />
         ) : null}
       </View>

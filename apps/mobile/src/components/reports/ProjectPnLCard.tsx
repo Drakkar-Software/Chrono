@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Money, Row, TitledCard, spacing, useTheme } from '@chrono/ui';
-import { availableFunding, fixedCostCumulative, projectMargin, sumReferralEarnings } from '@chrono/sdk';
-import type { Invoice, Project, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
+import { availableFunding, fixedCostCumulative, projectMargin, sumApprovedExpenses, sumReferralEarnings } from '@chrono/sdk';
+import type { Invoice, Project, ProjectExpense, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { todayISO } from '@/lib/date';
@@ -20,6 +20,8 @@ export interface ProjectPnLCardProps {
   invoices: Invoice[];
   /** This project's fixed cost definitions (hosting, tooling, etc.), pre-filtered by the reports screen. */
   fixedCosts?: ProjectFixedCost[];
+  /** This project's expenses, pre-filtered by the reports screen. */
+  expenses?: ProjectExpense[];
 }
 
 /**
@@ -34,6 +36,7 @@ export function ProjectPnLCard({
   referralEarnings,
   invoices,
   fixedCosts = [],
+  expenses = [],
 }: ProjectPnLCardProps) {
   const t = useT();
   const { colors } = useTheme();
@@ -64,8 +67,11 @@ export function ProjectPnLCard({
     () => fixedCostCumulative(fixedCosts, todayISO()),
     [fixedCosts],
   );
+  // Reimbursable expenses are a real cost but, unlike fixed costs, are paid
+  // outside the FIFO pool — they affect margin only, not availableFunding.
+  const expenseCents = useMemo(() => sumApprovedExpenses(expenses), [expenses]);
 
-  const margin = projectMargin(revenueCents, referralCents, costCents, fixedCostCents);
+  const margin = projectMargin(revenueCents, referralCents, costCents, fixedCostCents, expenseCents);
   const funding = availableFunding(revenueEntries, referralEarnings, paidInvoices, fixedCostCents);
 
   return (
@@ -82,6 +88,9 @@ export function ProjectPnLCard({
         </StatTile>
         <StatTile label={t('compb.pnl.cost')}>
           <Money cents={costCents} currency={currency} variant="heading" tone="textMuted" />
+        </StatTile>
+        <StatTile label={t('compb.pnl.expenses')}>
+          <Money cents={expenseCents} currency={currency} variant="heading" tone="textMuted" />
         </StatTile>
         <StatTile label={t('compb.pnl.margin')}>
           <Money cents={margin} currency={currency} variant="heading" tone={margin >= 0 ? 'success' : 'danger'} />

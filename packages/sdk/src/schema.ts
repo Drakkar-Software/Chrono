@@ -20,6 +20,7 @@ export type ProjectStatus = 'active' | 'archived';
 export type TimeEntryStatus = 'pending' | 'approved' | 'rejected';
 export type RevenueSourceType = 'time_based' | 'recurring' | 'self_billing';
 export type FixedCostCadence = 'recurring' | 'one_off';
+export type ExpenseStatus = 'pending' | 'approved' | 'rejected';
 export type InvoiceStatus =
   | 'draft'
   | 'submitted'
@@ -33,7 +34,10 @@ export type NotificationType =
   | 'invoice_paid'
   | 'invoice_partially_paid'
   | 'referral_earned'
-  | 'reminder';
+  | 'reminder'
+  | 'expense_submitted'
+  | 'expense_approved'
+  | 'expense_rejected';
 export type BlogArticleStatus = 'draft' | 'published';
 
 type Timestamps = {
@@ -154,6 +158,7 @@ export type Database = {
           user_id: string;
           role: AppRole;
           default_hourly_rate_cents: number | null;
+          weekly_capacity_days: number;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -161,6 +166,7 @@ export type Database = {
           user_id: string;
           role?: AppRole;
           default_hourly_rate_cents?: number | null;
+          weekly_capacity_days?: number;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -411,6 +417,54 @@ export type Database = {
           },
         ];
       };
+      project_expenses: {
+        Row: {
+          id: string;
+          project_id: string;
+          company_id: string;
+          user_id: string;
+          description: string;
+          amount_cents: number;
+          spent_on: string;
+          category: string | null;
+          receipt_url: string | null;
+          status: ExpenseStatus;
+          approved_by: string | null;
+          approved_at: string | null;
+          rejection_reason: string | null;
+          reimbursed_at: string | null;
+          reimbursed_by: string | null;
+        } & Timestamps;
+        Insert: {
+          id?: string;
+          project_id: string;
+          company_id: string;
+          user_id: string;
+          description: string;
+          amount_cents: number;
+          spent_on?: string;
+          category?: string | null;
+          receipt_url?: string | null;
+          status?: ExpenseStatus;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          rejection_reason?: string | null;
+          reimbursed_at?: string | null;
+          reimbursed_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['project_expenses']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'project_expenses_project_id_fkey';
+            columns: ['project_id'];
+            referencedRelation: 'projects';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       project_referrals: {
         Row: {
           id: string;
@@ -642,6 +696,10 @@ export type Database = {
           method: string | null;
           note: string | null;
           recorded_by: string | null;
+          crypto_asset: string | null;
+          crypto_amount: string | null;
+          crypto_tx_hash: string | null;
+          crypto_wallet: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -652,6 +710,10 @@ export type Database = {
           method?: string | null;
           note?: string | null;
           recorded_by?: string | null;
+          crypto_asset?: string | null;
+          crypto_amount?: string | null;
+          crypto_tx_hash?: string | null;
+          crypto_wallet?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -712,6 +774,7 @@ export type Database = {
       time_entry_status: TimeEntryStatus;
       revenue_source_type: RevenueSourceType;
       fixed_cost_cadence: FixedCostCadence;
+      expense_status: ExpenseStatus;
       invoice_status: InvoiceStatus;
       notification_type: NotificationType;
       blog_article_status: BlogArticleStatus;

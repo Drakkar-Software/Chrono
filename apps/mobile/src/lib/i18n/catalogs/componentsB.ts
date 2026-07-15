@@ -76,6 +76,7 @@ export const componentsBCatalog: CatalogSlice = {
     'compb.pnl.referrals': 'Referrals',
     'compb.pnl.fixedCosts': 'Fixed costs',
     'compb.pnl.cost': 'Cost',
+    'compb.pnl.expenses': 'Expenses',
     'compb.pnl.margin': 'Margin',
     'compb.pnl.availableFunding': 'Available funding',
 
@@ -87,6 +88,12 @@ export const componentsBCatalog: CatalogSlice = {
 
     // reports/TrendsCard
     'compb.trends.empty': 'No activity in the last few months yet.',
+
+    // reports/CapacityCard
+    'compb.capacity.title': 'Capacity & utilization',
+    'compb.capacity.caption': 'Worked days vs. weekly capacity for the selected range.',
+    'compb.capacity.overCount': '{n} over capacity',
+    'compb.capacity.daysPerWeek': 'Days/week',
 
     // approvals/ApprovalRow
     'compb.approval.deselect': 'Deselect entry',
@@ -206,6 +213,7 @@ export const componentsBCatalog: CatalogSlice = {
     'compb.pnl.referrals': 'Parrainages',
     'compb.pnl.fixedCosts': 'Coûts fixes',
     'compb.pnl.cost': 'Coût',
+    'compb.pnl.expenses': 'Dépenses',
     'compb.pnl.margin': 'Marge',
     'compb.pnl.availableFunding': 'Financement disponible',
 
@@ -214,6 +222,12 @@ export const componentsBCatalog: CatalogSlice = {
     'compb.budget.overBudget': 'Dépassement de budget',
     'compb.budget.nearBudget': 'Proche du budget',
     'compb.budget.usedOf': '{used} sur {total}',
+
+    // reports/CapacityCard
+    'compb.capacity.title': 'Capacité et utilisation',
+    'compb.capacity.caption': 'Jours travaillés vs capacité hebdomadaire sur la période sélectionnée.',
+    'compb.capacity.overCount': '{n} en surcapacité',
+    'compb.capacity.daysPerWeek': 'Jours/semaine',
 
     // reports/TrendsCard
     'compb.trends.empty': 'Aucune activité au cours des derniers mois.',

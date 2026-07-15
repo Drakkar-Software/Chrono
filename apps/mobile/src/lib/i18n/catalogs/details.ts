@@ -16,6 +16,7 @@ export const detailsCatalog: CatalogSlice = {
     'details.members': 'Members',
     'details.revenueSources': 'Revenue sources',
     'details.fixedCosts': 'Fixed costs',
+    'details.expenses': 'Expenses',
     'details.referrers': 'Referrers',
     'details.noReferrers': 'No referrers',
     // Invoice detail
@@ -79,6 +80,7 @@ export const detailsCatalog: CatalogSlice = {
     'details.members': 'Membres',
     'details.revenueSources': 'Sources de revenus',
     'details.fixedCosts': 'Coûts fixes',
+    'details.expenses': 'Dépenses',
     'details.referrers': 'Apporteurs d’affaires',
     'details.noReferrers': 'Aucun apporteur d’affaires',
     // Invoice detail

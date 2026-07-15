@@ -28,6 +28,12 @@ export function notificationIcon(type: NotificationType): string {
       return 'gift-outline';
     case 'reminder':
       return 'alarm-outline';
+    case 'expense_submitted':
+      return 'receipt-outline';
+    case 'expense_approved':
+      return 'checkmark-circle-outline';
+    case 'expense_rejected':
+      return 'close-circle-outline';
     default:
       return 'notifications-outline';
   }
@@ -41,12 +47,15 @@ export function notificationTone(
     case 'time_approved':
     case 'invoice_paid':
     case 'referral_earned':
+    case 'expense_approved':
       return 'success';
     case 'time_rejected':
+    case 'expense_rejected':
       return 'danger';
     case 'time_submitted':
     case 'invoice_partially_paid':
     case 'reminder':
+    case 'expense_submitted':
       return 'accent';
     default:
       return 'text';

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { lastMonths, monthlyTrend } from './reports';
+import { lastMonths, monthlyTrend, summarizeUtilization } from './reports';
+import type { CompanyMemberWithProfile } from '@chrono/sdk';
 
 describe('lastMonths', () => {
   it('returns N ascending month keys ending at today', () => {
@@ -65,5 +66,56 @@ describe('monthlyTrend', () => {
         (r) => r.revenueCents === 0 && r.costCents === 0 && r.fixedCostCents === 0 && r.marginCents === 0,
       ),
     ).toBe(true);
+  });
+});
+
+function member(userId: string, weeklyCapacityDays: number): CompanyMemberWithProfile {
+  return {
+    id: userId,
+    company_id: 'c1',
+    user_id: userId,
+    role: 'freelancer',
+    default_hourly_rate_cents: null,
+    weekly_capacity_days: weeklyCapacityDays,
+    created_at: '',
+    updated_at: '',
+    deleted: false,
+    profile: null,
+  };
+}
+
+describe('summarizeUtilization', () => {
+  it('is worked days over prorated capacity days for a bounded range', () => {
+    // 7-day range (Mon-Sun): capacity = 5 days for a 5-day/week member.
+    const rows = summarizeUtilization(
+      [{ userId: 'a', minutes: 0, days: 4, earnedCents: 0, paidCents: 0 }],
+      [member('a', 5)],
+      { from: '2026-07-06', to: '2026-07-12' },
+    );
+    expect(rows).toEqual([
+      { userId: 'a', workedDays: 4, capacityDays: 5, utilizationPct: 80, status: 'ok' },
+    ]);
+  });
+
+  it('flags over-capacity and under-utilized members', () => {
+    const rows = summarizeUtilization(
+      [
+        { userId: 'over', minutes: 0, days: 7, earnedCents: 0, paidCents: 0 },
+        { userId: 'under', minutes: 0, days: 1, earnedCents: 0, paidCents: 0 },
+      ],
+      [member('over', 5), member('under', 5)],
+      { from: '2026-07-06', to: '2026-07-12' },
+    );
+    expect(rows.find((r) => r.userId === 'over')?.status).toBe('over');
+    expect(rows.find((r) => r.userId === 'under')?.status).toBe('under');
+  });
+
+  it('defaults a member with no logged time to 0 worked days', () => {
+    const rows = summarizeUtilization([], [member('a', 5)], { from: '2026-07-06', to: '2026-07-12' });
+    expect(rows).toEqual([{ userId: 'a', workedDays: 0, capacityDays: 5, utilizationPct: 0, status: 'under' }]);
+  });
+
+  it('is empty for an open-ended range', () => {
+    expect(summarizeUtilization([], [member('a', 5)], {})).toEqual([]);
   });
 });

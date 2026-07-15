@@ -29,6 +29,10 @@ export function useInvoicePaymentMutations() {
       method: string | null;
       note: string | null;
       recordedBy: string;
+      cryptoAsset?: string | null;
+      cryptoAmount?: string | null;
+      cryptoTxHash?: string | null;
+      cryptoWallet?: string | null;
     }) =>
       insert({
         invoice_id: input.invoiceId,
@@ -38,6 +42,10 @@ export function useInvoicePaymentMutations() {
         method: input.method,
         note: input.note,
         recorded_by: input.recordedBy,
+        crypto_asset: input.cryptoAsset ?? null,
+        crypto_amount: input.cryptoAmount ?? null,
+        crypto_tx_hash: input.cryptoTxHash ?? null,
+        crypto_wallet: input.cryptoWallet ?? null,
       }),
     [insert],
   );

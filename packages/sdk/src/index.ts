@@ -49,6 +49,14 @@ export * from './project-fixed-cost/project-fixed-cost.entity';
 export * from './project-fixed-cost/project-fixed-cost.queries';
 export * from './project-fixed-cost/project-fixed-cost.lib';
 
+// Project expenses
+export * from './project-expense/project-expense.entity';
+export * from './project-expense/project-expense.queries';
+export * from './project-expense/project-expense.lib';
+
+// Capacity / utilization
+export * from './capacity/capacity.lib';
+
 // Project referrals
 export * from './project-referral/project-referral.entity';
 export * from './project-referral/project-referral.queries';

@@ -1,5 +1,14 @@
-import { DEFAULT_HOURS_PER_DAY, isActiveInvoice, minutesToDays, monthBounds, totalFixedCostForMonth } from '@chrono/sdk';
-import type { InvoiceStatus, ProjectFixedCost } from '@chrono/sdk';
+import {
+  DEFAULT_HOURS_PER_DAY,
+  capacityDaysInRange,
+  isActiveInvoice,
+  minutesToDays,
+  monthBounds,
+  totalFixedCostForMonth,
+  utilization,
+  utilizationStatus,
+} from '@chrono/sdk';
+import type { CompanyMemberWithProfile, InvoiceStatus, ProjectFixedCost, UtilizationStatus } from '@chrono/sdk';
 
 /** Date-range presets for scoping report figures. */
 export type RangePreset = 'this_month' | 'last_month' | 'this_quarter' | 'all';
@@ -172,4 +181,40 @@ export function summarizeFreelancers(
   return [...byUser.values()].sort(
     (a, b) => b.earnedCents - a.earnedCents || b.minutes - a.minutes,
   );
+}
+
+export interface UtilizationRow {
+  userId: string;
+  workedDays: number;
+  capacityDays: number;
+  utilizationPct: number;
+  status: UtilizationStatus;
+}
+
+/**
+ * Actuals-based utilization per member for `range`: worked days (from
+ * `freelancerRows`, already summarized by `summarizeFreelancers`) over
+ * capacity days (each member's `weekly_capacity_days` prorated over the
+ * range). Empty for an open-ended range — there is no bounded denominator.
+ */
+export function summarizeUtilization(
+  freelancerRows: FreelancerSummary[],
+  members: CompanyMemberWithProfile[],
+  range: DateRange,
+): UtilizationRow[] {
+  if (!range.from || !range.to) return [];
+  const workedByUser = new Map(freelancerRows.map((r) => [r.userId, r.days]));
+
+  return members.map((m) => {
+    const workedDays = workedByUser.get(m.user_id) ?? 0;
+    const capacityDays = capacityDaysInRange(m.weekly_capacity_days, range);
+    const utilizationPct = utilization(workedDays, capacityDays);
+    return {
+      userId: m.user_id,
+      workedDays,
+      capacityDays,
+      utilizationPct,
+      status: utilizationStatus(utilizationPct),
+    };
+  });
 }

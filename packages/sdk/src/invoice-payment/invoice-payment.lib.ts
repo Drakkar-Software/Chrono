@@ -9,6 +9,7 @@ const METHOD_LABELS: Record<string, string> = {
   bank_transfer: 'Bank transfer',
   card: 'Card',
   cash: 'Cash',
+  crypto: 'Crypto',
   other: 'Other',
 };
 
@@ -21,5 +22,6 @@ export const PAYMENT_METHODS = [
   { label: 'Bank transfer', value: 'bank_transfer' },
   { label: 'Card', value: 'card' },
   { label: 'Cash', value: 'cash' },
+  { label: 'Crypto', value: 'crypto' },
   { label: 'Other', value: 'other' },
 ] as const;

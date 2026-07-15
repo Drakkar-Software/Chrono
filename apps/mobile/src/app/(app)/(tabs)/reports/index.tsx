@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
-import { Button, CardGrid, EmptyState, Segmented, StackScreen, Txt, spacing } from '@chrono/ui';
-import { canManage, companyCurrency } from '@chrono/sdk';
-import type { InvoiceWithRelations, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
+import { Button, CardGrid, EmptyState, Money, Row, Segmented, StackScreen, Txt, spacing } from '@chrono/ui';
+import { canManage, companyCurrency, displayName, expensesOwedByUser } from '@chrono/sdk';
+import type { InvoiceWithRelations, ProjectExpense, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
@@ -13,6 +13,7 @@ import { usePendingApprovals, useApproveEntry, useRejectEntry } from '@/lib/hook
 import { useProjects } from '@/lib/hooks/use-projects';
 import { useCompanyRevenueEntries } from '@/lib/hooks/use-revenue-entries';
 import { useCompanyProjectFixedCosts } from '@/lib/hooks/use-project-fixed-costs';
+import { useCompanyExpenses, usePendingExpenses, useExpenseMutations } from '@/lib/hooks/use-project-expenses';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
@@ -23,13 +24,16 @@ import {
   monthlyTrend,
   rangeBounds,
   summarizeFreelancers,
+  summarizeUtilization,
   type RangePreset,
 } from '@/lib/reports';
 import { ApprovalRow } from '@/components/approvals/ApprovalRow';
+import { ExpenseRow } from '@/components/expenses/ExpenseRow';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
 import { TrendsCard } from '@/components/reports/TrendsCard';
 import { TagBreakdown } from '@/components/reports/TagBreakdown';
 import { FreelancerBreakdown } from '@/components/reports/FreelancerBreakdown';
+import { CapacityCard } from '@/components/reports/CapacityCard';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
@@ -74,12 +78,16 @@ export default function ReportsScreen() {
   const approve = useApproveEntry();
   const reject = useRejectEntry();
 
+  const { data: pendingExpenses, refetch: refetchPendingExpenses } = usePendingExpenses(companyId ?? undefined);
+  const expenseMut = useExpenseMutations();
+
   // Company-scoped P&L inputs fetched ONCE, then sliced per project below —
   // avoids the 3-query-per-card fan-out (N+1) the cards used to trigger.
   const { data: revenueEntries } = useCompanyRevenueEntries(companyId ?? undefined);
   const { data: referralEarnings } = useReferralEarnings(companyId ? { companyId } : {});
   const { data: invoices } = useInvoices({ companyId: companyId ?? '' });
   const { data: fixedCosts } = useCompanyProjectFixedCosts(companyId ?? undefined);
+  const { data: expenses } = useCompanyExpenses(companyId ?? undefined);
 
   // Approved billable time in-range — one company-scoped query, sliced per user.
   const { data: approvedEntries, isLoading: loadingApproved } = useTimeEntries({
@@ -107,11 +115,22 @@ export default function ReportsScreen() {
     () => groupByProject<ProjectFixedCost>(fixedCosts ?? []),
     [fixedCosts],
   );
+  const expensesByProject = useMemo(
+    () => groupByProject<ProjectExpense>(expenses ?? []),
+    [expenses],
+  );
 
   const freelancerRows = useMemo(() => {
     const invoicesInRange = (invoices ?? []).filter((inv) => inRange(inv.period_month, range));
     return summarizeFreelancers(approvedEntries ?? [], invoicesInRange);
   }, [approvedEntries, invoices, range]);
+
+  const utilizationRows = useMemo(
+    () => summarizeUtilization(freelancerRows, members ?? [], range),
+    [freelancerRows, members, range],
+  );
+
+  const owedByUser = useMemo(() => expensesOwedByUser(expenses ?? []), [expenses]);
 
   // Six-month revenue/cost/margin trend — independent of the range preset above,
   // built from the company-wide data already fetched (no extra queries).
@@ -266,6 +285,26 @@ export default function ReportsScreen() {
           )}
         </View>
 
+        {pendingExpenses && pendingExpenses.length > 0 ? (
+          <View style={styles.section}>
+            <SectionHeader eyebrow={t('tabs.reports.review')} title={t('comp.expense.pendingApprovals')} count={pendingExpenses.length} />
+            <CardGrid minColumnWidth={280}>
+              {pendingExpenses.map((expense) => (
+                <ExpenseRow
+                  key={expense.id}
+                  expense={expense}
+                  currency={currency}
+                  submitter={(members ?? []).find((m) => m.user_id === expense.user_id)?.profile}
+                  canModerate
+                  onApprove={() => void expenseMut.approve(expense.id).then(() => refetchPendingExpenses())}
+                  onReject={(reason) => void expenseMut.reject(expense.id, reason).then(() => refetchPendingExpenses())}
+                  isBusy={expenseMut.isPending}
+                />
+              ))}
+            </CardGrid>
+          </View>
+        ) : null}
+
         <View style={styles.section}>
           <SectionHeader eyebrow={t('tabs.reports.trends')} title={t('tabs.reports.last6Months')} />
           <TrendsCard points={trend} currency={currency} />
@@ -282,6 +321,22 @@ export default function ReportsScreen() {
             <FreelancerBreakdown rows={freelancerRows} members={members ?? []} currency={currency} />
           )}
         </View>
+
+        <View style={styles.section}>
+          <SectionHeader eyebrow={t('tabs.reports.people')} title={t('compb.capacity.title')} />
+          <CapacityCard rows={utilizationRows} members={members ?? []} />
+        </View>
+
+        {Object.keys(owedByUser).length > 0 ? (
+          <View style={styles.section}>
+            <SectionHeader eyebrow={t('tabs.reports.people')} title={t('comp.expense.owed')} />
+            {Object.entries(owedByUser).map(([userId, cents]) => (
+              <Row key={userId} label={displayName((members ?? []).find((m) => m.user_id === userId)?.profile)}>
+                <Money cents={cents} currency={currency} />
+              </Row>
+            ))}
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <SectionHeader eyebrow={t('tabs.reports.categories')} title={t('tabs.reports.byTag')} />
@@ -313,6 +368,7 @@ export default function ReportsScreen() {
                   referralEarnings={referralsByProject.get(project.id) ?? []}
                   invoices={invoicesByProject.get(project.id) ?? []}
                   fixedCosts={fixedCostsByProject.get(project.id) ?? []}
+                  expenses={expensesByProject.get(project.id) ?? []}
                 />
               ))}
             </CardGrid>
