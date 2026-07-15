@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { EmptyState, Row, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
+import { EmptyState, Row, StackScreen, Txt, spacing } from '@chrono/ui';
 import { formatDuration, groupByDay, sumDurations } from '@chrono/sdk';
 import type { TimeEntryFilters, TimeEntryWithProject } from '@chrono/sdk';
 
@@ -28,7 +28,6 @@ type DayGroup = { date: string; items: TimeEntryWithProject[] };
 export default function HistoryScreen() {
   const t = useT();
   const router = useRouter();
-  const { isWide } = useResponsive();
   const { user } = useAppAuth();
   const { companyId } = useActiveCompany();
   const userId = user?.id;
@@ -106,7 +105,7 @@ export default function HistoryScreen() {
       <FlatList
         data={dayGroups}
         keyExtractor={(group) => group.date}
-        contentContainerStyle={[styles.content, isWide && styles.contentWide]}
+        contentContainerStyle={styles.content}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={<ListFooterSpinner visible={hasMore} />}
@@ -139,7 +138,6 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md, flexGrow: 1 },
-  contentWide: { maxWidth: 900, width: '100%', alignSelf: 'center' },
   header: { gap: spacing.lg, marginBottom: spacing.sm },
   day: { gap: spacing.xs },
 });

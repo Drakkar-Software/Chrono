@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney, invoiceAmounts, invoiceStatusLabel } from './invoice.lib';
+import type { InvoiceStatus } from '../schema';
+import type { Invoice } from './invoice.entity';
+import {
+  formatMoney,
+  invoiceAmounts,
+  invoiceStatusLabel,
+  isActiveInvoice,
+  totalOutstanding,
+} from './invoice.lib';
 
 describe('formatMoney', () => {
   it('formats integer cents as currency (deterministic en-US locale)', () => {
@@ -64,5 +72,97 @@ describe('invoiceAmounts', () => {
       credit_carried_forward_cents: 0,
     });
     expect(amounts.outstandingCents).toBe(0);
+  });
+});
+
+describe('isActiveInvoice', () => {
+  it('is true for money-bearing statuses', () => {
+    expect(isActiveInvoice('submitted')).toBe(true);
+    expect(isActiveInvoice('partially_paid')).toBe(true);
+    expect(isActiveInvoice('paid')).toBe(true);
+  });
+
+  it('is false for draft and cancelled', () => {
+    expect(isActiveInvoice('draft')).toBe(false);
+    expect(isActiveInvoice('cancelled')).toBe(false);
+  });
+});
+
+describe('totalOutstanding', () => {
+  // Minimal invoice-shaped fixture — only the fields totalOutstanding reads.
+  type OutInv = Pick<
+    Invoice,
+    | 'project_id'
+    | 'freelancer_id'
+    | 'period_month'
+    | 'status'
+    | 'amount_due_cents'
+    | 'amount_paid_cents'
+  >;
+  function inv(
+    project_id: string,
+    freelancer_id: string,
+    period_month: string,
+    status: InvoiceStatus,
+    amount_due_cents: number,
+    amount_paid_cents: number,
+  ): OutInv {
+    return {
+      project_id,
+      freelancer_id,
+      period_month,
+      status,
+      amount_due_cents,
+      amount_paid_cents,
+    };
+  }
+
+  it('(a) sums a single submitted invoice outstanding', () => {
+    expect(
+      totalOutstanding([inv('p', 'f', '2026-01-01', 'submitted', 1000, 0)]),
+    ).toBe(1000);
+  });
+
+  it('(b) takes the latest month per stream — the carry chain is not double-counted', () => {
+    // Same project+freelancer stream. Month2 already re-includes the carry, so
+    // the total is month2's outstanding (400), NOT 400 + 400.
+    const invoices = [
+      inv('p', 'f', '2026-01-01', 'partially_paid', 1000, 600),
+      inv('p', 'f', '2026-02-01', 'submitted', 400, 0),
+    ];
+    expect(totalOutstanding(invoices)).toBe(400);
+  });
+
+  it('(c) a cancelled latest invoice contributes 0', () => {
+    expect(
+      totalOutstanding([inv('p', 'f', '2026-01-01', 'cancelled', 1000, 0)]),
+    ).toBe(0);
+  });
+
+  it('(d) a fully-paid latest invoice contributes 0', () => {
+    expect(
+      totalOutstanding([inv('p', 'f', '2026-01-01', 'paid', 1000, 1000)]),
+    ).toBe(0);
+  });
+
+  it('(e) sums two distinct streams independently', () => {
+    const invoices = [
+      inv('p1', 'f1', '2026-01-01', 'submitted', 1000, 200), // 800
+      inv('p2', 'f2', '2026-01-01', 'partially_paid', 500, 100), // 400
+    ];
+    expect(totalOutstanding(invoices)).toBe(1200);
+  });
+
+  it('distinguishes streams by both project and freelancer', () => {
+    // Same freelancer, two projects -> two streams, both count.
+    const invoices = [
+      inv('p1', 'f', '2026-01-01', 'submitted', 300, 0),
+      inv('p2', 'f', '2026-01-01', 'submitted', 700, 0),
+    ];
+    expect(totalOutstanding(invoices)).toBe(1000);
+  });
+
+  it('is 0 for an empty list', () => {
+    expect(totalOutstanding([])).toBe(0);
   });
 });

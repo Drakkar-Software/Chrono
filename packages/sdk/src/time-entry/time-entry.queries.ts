@@ -38,6 +38,20 @@ export async function fetchTimeEntries(
   return (data ?? []) as unknown as TimeEntryWithProject[];
 }
 
+/** A single time entry by id (with its project join), or null if not found. */
+export async function fetchTimeEntry(
+  client: Client,
+  id: string,
+): Promise<TimeEntryWithProject | null> {
+  const { data, error } = await client
+    .from('time_entries')
+    .select(TIME_ENTRY_SELECT)
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as unknown as TimeEntryWithProject | null;
+}
+
 export async function fetchWeekEntries(
   client: Client,
   userId: string,

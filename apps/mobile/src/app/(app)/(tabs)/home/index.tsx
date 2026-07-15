@@ -7,9 +7,9 @@ import {
   companyCurrency,
   formatDuration,
   groupByDay,
-  invoiceAmounts,
   monthBounds,
   sumDurations,
+  totalOutstanding,
   weekBounds,
 } from '@chrono/sdk';
 
@@ -65,10 +65,7 @@ export default function HomeScreen() {
 
   const monthMinutes = useMemo(() => sumDurations(monthEntries.data ?? []), [monthEntries.data]);
   const weekMinutes = useMemo(() => sumDurations(week.data ?? []), [week.data]);
-  const outstandingCents = useMemo(
-    () => (invoices ?? []).reduce((acc, inv) => acc + invoiceAmounts(inv).outstandingCents, 0),
-    [invoices],
-  );
+  const outstandingCents = useMemo(() => totalOutstanding(invoices ?? []), [invoices]);
   const activeProjects = manager
     ? (companyProjects ?? []).filter((p) => p.status === 'active').length
     : (myProjects ?? []).length;

@@ -38,6 +38,10 @@ export function TextField({
         autoCapitalize={autoCapitalize}
         editable={editable}
         multiline={multiline}
+        // The visible label is a separate <Txt>, so give the input its own
+        // accessible name (react-native-web maps this to aria-label); fold the
+        // error in so a screen reader announces it with the field.
+        accessibilityLabel={label ? (error ? `${label}. ${error}` : label) : undefined}
         style={[
           styles.input,
           {

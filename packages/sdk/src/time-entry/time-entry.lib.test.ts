@@ -19,6 +19,12 @@ describe('minutesToDays', () => {
 
   it('returns 0 for a non-positive working day', () => {
     expect(minutesToDays(420, 0)).toBe(0);
+    // Negative hours-per-day also hits the <=0 guard.
+    expect(minutesToDays(420, -7)).toBe(0);
+  });
+
+  it('carries a negative sign through for negative minutes', () => {
+    expect(minutesToDays(-420, 7)).toBe(-1);
   });
 });
 
@@ -37,6 +43,24 @@ describe('computeEarnedCents', () => {
 
   it('is zero for zero minutes', () => {
     expect(computeEarnedCents(0, 7, 50000)).toBe(0);
+  });
+
+  it('is negative for negative minutes', () => {
+    // -1 full day at 50000/day.
+    expect(computeEarnedCents(-420, 7, 50000)).toBe(-50000);
+  });
+
+  it('is 0 when the working day is <= 0 (guard short-circuits)', () => {
+    expect(computeEarnedCents(420, 0, 50000)).toBe(0);
+    expect(computeEarnedCents(420, -7, 50000)).toBe(0);
+  });
+
+  it('rounds a half-cent boundary up (Math.round is half-up)', () => {
+    // 1h day (60 min). 30 min = 0.5 day.
+    // 0.5 * 1 = 0.5 -> 1
+    expect(computeEarnedCents(30, 1, 1)).toBe(1);
+    // 0.5 * 5 = 2.5 -> 3
+    expect(computeEarnedCents(30, 1, 5)).toBe(3);
   });
 });
 
@@ -95,6 +119,30 @@ describe('monthBounds / monthKey', () => {
 
   it('normalizes to the first of the month', () => {
     expect(monthKey('2026-07-14')).toBe('2026-07-01');
+  });
+
+  it('bounds December correctly', () => {
+    expect(monthBounds('2026-12-10')).toEqual({
+      start: '2026-12-01',
+      end: '2026-12-31',
+    });
+  });
+
+  it('bounds a leap-year February to the 29th', () => {
+    expect(monthBounds('2028-02-15')).toEqual({
+      start: '2028-02-01',
+      end: '2028-02-29',
+    });
+  });
+});
+
+describe('weekBounds across a year boundary', () => {
+  it('spans from December into the next January', () => {
+    // 2025-12-31 is a Wednesday -> Mon 2025-12-29 .. Sun 2026-01-04
+    expect(weekBounds('2025-12-31')).toEqual({
+      start: '2025-12-29',
+      end: '2026-01-04',
+    });
   });
 });
 

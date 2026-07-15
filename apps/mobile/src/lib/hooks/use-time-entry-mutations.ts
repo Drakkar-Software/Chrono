@@ -3,26 +3,22 @@ import { useMutation } from '@drakkar.software/anchor/hooks';
 import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
-import { fetchTimeEntries } from '@chrono/sdk';
+import { fetchTimeEntry } from '@chrono/sdk';
 import type { TablesInsert, TablesUpdate, TimeEntryWithProject } from '@chrono/sdk';
 
-/** A single time entry by id (read from the loaded company set). */
+/** A single time entry by id — one row, not a company-wide scan. */
 export function useTimeEntry(id: string | undefined, companyId: string | undefined) {
-  const res = linkedQuery<TimeEntryWithProject[]>(
-    () => fetchTimeEntries(globalSupabaseClient, { companyId: companyId! }),
+  void companyId; // kept for call-site symmetry; the id alone identifies the row
+  return linkedQuery<TimeEntryWithProject | null>(
+    () => fetchTimeEntry(globalSupabaseClient, id!),
     {
       stores: [stores.time_entries],
-      enabled: !!id && !!companyId,
-      deps: [companyId],
+      enabled: !!id,
+      deps: [id],
       staleTime: 30_000,
-      queryKey: `time-entries:${companyId}`,
+      queryKey: `time-entry:${id}`,
     },
   );
-  return {
-    data: res.data?.find((e) => e.id === id),
-    isLoading: res.isLoading,
-    error: res.error,
-  };
 }
 
 export function useTimeEntryMutations() {

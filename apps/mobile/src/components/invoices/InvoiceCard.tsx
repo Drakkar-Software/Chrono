@@ -17,6 +17,9 @@ export function InvoiceCard({ invoice, currency, onPress }: InvoiceCardProps) {
   const { colors } = useTheme();
   const amounts = invoiceAmounts(invoice);
   const period = invoice.period_month.slice(0, 7);
+  // A cancelled invoice keeps its frozen amount_due in the DB but owes nothing —
+  // show 0 so it doesn't read as money still due next to the "Cancelled" badge.
+  const dueCents = invoice.status === 'cancelled' ? 0 : amounts.amountDueCents;
 
   return (
     <Pressable
@@ -40,7 +43,7 @@ export function InvoiceCard({ invoice, currency, onPress }: InvoiceCardProps) {
         ) : null}
       </View>
       <View style={styles.right}>
-        <Money cents={amounts.amountDueCents} currency={currency} />
+        <Money cents={dueCents} currency={currency} />
         <Badge label={t('status.' + invoice.status)} status={invoiceBadge(invoice.status)} />
       </View>
     </Pressable>

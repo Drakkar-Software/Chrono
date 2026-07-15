@@ -65,10 +65,29 @@ describe('availableFunding', () => {
       ),
     ).toBe(0);
   });
+
+  it('is 0 for all-empty arrays', () => {
+    expect(availableFunding([], [], [])).toBe(0);
+  });
+
+  it('treats null amount_cents entries as 0', () => {
+    // Revenue rows can carry a null amount_cents; they must contribute nothing.
+    const funding = availableFunding(
+      [{ amount_cents: null as unknown as number }, { amount_cents: 300000 }],
+      [],
+      [],
+    );
+    expect(funding).toBe(300000);
+  });
 });
 
 describe('projectMargin', () => {
   it('is revenue minus referral minus cost', () => {
     expect(projectMargin(800000, 80000, 500000)).toBe(220000);
+  });
+
+  it('goes negative when cost exceeds revenue net of referral', () => {
+    // 100000 - 20000 - 200000 = -120000
+    expect(projectMargin(100000, 20000, 200000)).toBe(-120000);
   });
 });

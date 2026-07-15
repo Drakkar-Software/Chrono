@@ -1,4 +1,5 @@
-import { DEFAULT_HOURS_PER_DAY, minutesToDays, monthBounds } from '@chrono/sdk';
+import { DEFAULT_HOURS_PER_DAY, isActiveInvoice, minutesToDays, monthBounds } from '@chrono/sdk';
+import type { InvoiceStatus } from '@chrono/sdk';
 
 /** Date-range presets for scoping report figures. */
 export type RangePreset = 'this_month' | 'last_month' | 'this_quarter' | 'all';
@@ -62,7 +63,7 @@ export interface MonthlyPoint {
 
 type TrendRevenue = { period_month: string; amount_cents: number };
 type TrendReferral = { period_month: string; amount_cents: number };
-type TrendInvoice = { period_month: string; earned_cents: number; status: string };
+type TrendInvoice = { period_month: string; earned_cents: number; status: InvoiceStatus };
 
 /** The last `count` month keys ('YYYY-MM') ending at (and including) `todayISO`. */
 export function lastMonths(todayISO: string, count: number): string[] {
@@ -97,7 +98,7 @@ export function monthlyTrend(
   for (const r of revenueEntries) bump(revenue, r.period_month.slice(0, 7), r.amount_cents ?? 0);
   for (const r of referralEarnings) bump(referral, r.period_month.slice(0, 7), r.amount_cents ?? 0);
   for (const i of invoices) {
-    if (i.status === 'submitted' || i.status === 'partially_paid' || i.status === 'paid') {
+    if (isActiveInvoice(i.status)) {
       bump(cost, i.period_month.slice(0, 7), i.earned_cents ?? 0);
     }
   }
@@ -128,6 +129,7 @@ type BreakdownInvoice = {
   freelancer_id: string;
   earned_cents: number;
   amount_paid_cents: number;
+  status: InvoiceStatus;
 };
 
 /**
@@ -155,6 +157,9 @@ export function summarizeFreelancers(
     s.days += minutesToDays(e.duration_minutes ?? 0, e.project?.hours_per_day ?? DEFAULT_HOURS_PER_DAY);
   }
   for (const inv of invoices) {
+    // Only real invoices count — cancelled keeps frozen earned_cents in the DB
+    // and drafts aren't claims yet; either would inflate the freelancer's total.
+    if (!isActiveInvoice(inv.status)) continue;
     const s = get(inv.freelancer_id);
     s.earnedCents += inv.earned_cents ?? 0;
     s.paidCents += inv.amount_paid_cents ?? 0;

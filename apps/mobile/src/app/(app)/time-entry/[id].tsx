@@ -16,7 +16,7 @@ export default function TimeEntryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { companyId } = useActiveCompany();
 
-  const { data: entry, isLoading, error } = useTimeEntry(id, companyId ?? undefined);
+  const { data: entry, isLoading, error, refetch } = useTimeEntry(id, companyId ?? undefined);
   const { update, remove, isPending } = useTimeEntryMutations();
 
   if (isLoading && !entry) {
@@ -29,7 +29,7 @@ export default function TimeEntryDetail() {
   if (error && !entry) {
     return (
       <StackScreen title={t('details.timeEntry')} onBack={() => router.back()}>
-        <ErrorState error={error} />
+        <ErrorState error={error} onRetry={() => void refetch()} />
       </StackScreen>
     );
   }
