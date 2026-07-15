@@ -10,10 +10,12 @@ import {
   effectiveTjm,
   formatDuration,
   formatMoney,
+  fullDayOffDatesInMonth,
   groupByDay,
   minutesToDays,
   monthBounds,
   monthKey,
+  partialOffMinutesByDate,
   sumDurations,
   sumReferralEarnings,
 } from '@chrono/sdk';
@@ -91,7 +93,7 @@ export default function HomeScreen() {
   });
   const visibleProjects = useVisibleProjects(role, userId, companyId ?? undefined);
   const { data: pending } = usePendingApprovals(manager ? companyId ?? undefined : undefined);
-  const { maxBusinessDays, remainingBusinessDays, workingWeekdays, holidayDates } = useMaxBusinessDays(
+  const { netBusinessDays, netRemainingBusinessDays, workingWeekdays, holidayDates, timeOff } = useMaxBusinessDays(
     userId,
     thisMonthKey,
   );
@@ -139,6 +141,15 @@ export default function HomeScreen() {
     for (const [date, entries] of Object.entries(grouped)) out[date] = sumDurations(entries);
     return out;
   }, [monthEntries.data]);
+
+  const fullDayOffDates = useMemo(
+    () => fullDayOffDatesInMonth(timeOff, thisMonthKey),
+    [timeOff, thisMonthKey],
+  );
+  const partialOffDates = useMemo(
+    () => Object.keys(partialOffMinutesByDate(timeOff, thisMonthKey)),
+    [timeOff, thisMonthKey],
+  );
 
   const pendingCount = (pending ?? []).length;
 
@@ -199,8 +210,8 @@ export default function HomeScreen() {
                 <Txt variant="caption" tone="textMuted" mono numberOfLines={1}>
                   {t('tabs.home.periodDays', {
                     worked: workedDays.toFixed(1),
-                    max: maxBusinessDays,
-                    remaining: remainingBusinessDays,
+                    max: netBusinessDays,
+                    remaining: netRemainingBusinessDays,
                   })}
                 </Txt>
               </View>
@@ -260,6 +271,8 @@ export default function HomeScreen() {
               minutesByDay={minutesByDay}
               workingWeekdays={workingWeekdays}
               holidayDates={holidayDates}
+              fullDayOffDates={fullDayOffDates}
+              partialOffDates={partialOffDates}
               today={today}
             />
           </Card>

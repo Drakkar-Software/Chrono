@@ -66,7 +66,7 @@ export default function ProjectsScreen() {
   );
 
   return (
-    <StackScreen title={t('tabs.nav.projects')} headerRight={headerRight} wide>
+    <StackScreen title={t('tabs.nav.projects')} headerRight={headerRight}>
       <View style={styles.wrap}>
         {creating ? (
           <NewProjectForm onCreate={onCreate} onCancel={() => setCreating(false)} isSubmitting={isPending} />
@@ -92,7 +92,7 @@ export default function ProjectsScreen() {
           />
         ) : (
           <>
-            <CardGrid minColumnWidth={260}>
+            <CardGrid single>
               {page.map((project) => (
                 <ProjectCard
                   key={project.id}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, EmptyState, StackScreen, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
+import { Button, EmptyState, IconButton, StackScreen, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 import {
   DEFAULT_HOURS_PER_DAY,
   buildCopiedEntries,
@@ -24,7 +24,9 @@ import { useMyProjects } from '@/lib/hooks/use-projects';
 import { useTimeEntries, useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
 import { useMaxBusinessDays } from '@/lib/hooks/use-max-business-days';
+import { useTimeOffMutations } from '@/lib/hooks/use-time-off';
 import { LogEntryForm, type LogEntryValues } from '@/components/time/LogEntryForm';
+import { TimeOffForm, type TimeOffValues } from '@/components/time/TimeOffForm';
 import { DayGroupHeader } from '@/components/time/DayGroupHeader';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { WeekStrip } from '@/components/time/WeekStrip';
@@ -55,11 +57,14 @@ export default function TodayScreen() {
     from: month.start,
     to: month.end,
   });
-  const { maxBusinessDays } = useMaxBusinessDays(userId, thisMonthKey);
+  const { netBusinessDays, timeOff } = useMaxBusinessDays(userId, thisMonthKey);
   const { create, isPending } = useTimeEntryMutations();
+  const { add: addTimeOff, remove: removeTimeOff, isPending: isSubmittingTimeOff, error: timeOffError } =
+    useTimeOffMutations();
   const [copying, setCopying] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showTimeOffForm, setShowTimeOffForm] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
@@ -119,6 +124,20 @@ export default function TodayScreen() {
     setShowForm(false);
   };
 
+  const onSubmitTimeOff = async (values: TimeOffValues) => {
+    if (!userId || !companyId) return;
+    const input: TablesInsert<'time_off'> = {
+      company_id: companyId,
+      user_id: userId,
+      off_date: toISODate(values.offDate),
+      duration_minutes: values.durationMinutes,
+      kind: values.kind,
+      note: values.note || null,
+    };
+    await addTimeOff(input);
+    setShowTimeOffForm(false);
+  };
+
   const copyLastWeek = async () => {
     if (!userId || !companyId || !lastWeekEntries?.length) return;
     setCopying(true);
@@ -154,6 +173,12 @@ export default function TodayScreen() {
 
         <View style={styles.actions}>
           <Button title={t('tabs.today.logTimeCta')} onPress={() => setShowForm(true)} fullWidth />
+          <Button
+            title={t('comp.timeOff.takeTimeOff')}
+            variant="secondary"
+            onPress={() => setShowTimeOffForm(true)}
+            fullWidth
+          />
           {lastWeekCount > 0 ? (
             <Button
               title={t('tabs.today.copyLastWeek', { n: lastWeekCount })}
@@ -165,6 +190,33 @@ export default function TodayScreen() {
           ) : null}
         </View>
         {copyError ? <InlineError message={copyError} /> : null}
+
+        {timeOff.length > 0 ? (
+          <View style={styles.section}>
+            <SectionHeader title={t('comp.timeOff.thisMonth')} count={timeOff.length} />
+            <View style={styles.timeOffList}>
+              {timeOff.map((off) => (
+                <View key={off.id} style={styles.timeOffRow}>
+                  <Txt variant="body" numberOfLines={1} style={styles.timeOffLabel}>
+                    {t(`comp.timeOff.kind.${off.kind}`)}
+                  </Txt>
+                  <Txt variant="caption" tone="textMuted">
+                    {off.off_date}
+                    {off.duration_minutes != null
+                      ? ` · ${formatDuration(off.duration_minutes)}`
+                      : ` · ${t('comp.timeOff.fullDay')}`}
+                  </Txt>
+                  <IconButton
+                    name="close"
+                    size={18}
+                    onPress={() => void removeTimeOff(off.id)}
+                    accessibilityLabel={t('common.remove')}
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <Txt variant="label" tone="textMuted" uppercase>
@@ -234,9 +286,32 @@ export default function TodayScreen() {
                 isSubmitting={isPending}
                 hoursPerDayByProject={hoursPerDayByProject}
                 monthDaysLogged={monthDaysLogged}
-                maxBusinessDays={maxBusinessDays}
+                maxBusinessDays={netBusinessDays}
                 monthLabel={monthLabel}
               />
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={showTimeOffForm}
+        transparent
+        animationType={reduceMotion ? 'none' : 'fade'}
+        onRequestClose={() => setShowTimeOffForm(false)}
+      >
+        <Pressable
+          style={[styles.backdrop, { backgroundColor: colors.overlay }]}
+          onPress={() => setShowTimeOffForm(false)}
+        >
+          <Pressable style={styles.sheetWrap} onPress={(e) => e.stopPropagation()}>
+            <ScrollView
+              style={[styles.sheet, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}
+              contentContainerStyle={styles.sheetContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <TimeOffForm onSubmit={onSubmitTimeOff} isSubmitting={isSubmittingTimeOff} />
+              <InlineError error={timeOffError} describe={{ duplicateMessage: t('comp.timeOff.errDuplicate') }} />
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -250,6 +325,9 @@ const styles = StyleSheet.create({
   actions: { gap: spacing.sm },
   section: { gap: spacing.md },
   day: { gap: spacing.xs },
+  timeOffList: { gap: spacing.xs },
+  timeOffRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 36 },
+  timeOffLabel: { flex: 1 },
   backdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   sheetWrap: { width: '100%', maxWidth: 480, maxHeight: '90%' },
   sheet: { borderWidth: borders.thin, borderRadius: radii.lg, overflow: 'hidden' },

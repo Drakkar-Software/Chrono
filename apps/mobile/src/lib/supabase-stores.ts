@@ -31,6 +31,7 @@ const TABLES = [
   'invoices',
   'notifications',
   'company_holidays',
+  'time_off',
   'company_invites',
   'invoice_payments',
   'audit_log',

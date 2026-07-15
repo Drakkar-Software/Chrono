@@ -39,6 +39,7 @@ export type NotificationType =
   | 'expense_approved'
   | 'expense_rejected';
 export type BlogArticleStatus = 'draft' | 'published';
+export type TimeOffKind = 'vacation' | 'sick' | 'personal' | 'holiday';
 
 type Timestamps = {
   created_at: string;
@@ -208,6 +209,37 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'company_holidays_company_id_fkey';
+            columns: ['company_id'];
+            referencedRelation: 'companies';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      time_off: {
+        Row: {
+          id: string;
+          company_id: string;
+          user_id: string;
+          off_date: string;
+          duration_minutes: number | null;
+          kind: TimeOffKind;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          user_id: string;
+          off_date: string;
+          duration_minutes?: number | null;
+          kind?: TimeOffKind;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['time_off']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'time_off_company_id_fkey';
             columns: ['company_id'];
             referencedRelation: 'companies';
             referencedColumns: ['id'];
@@ -824,6 +856,7 @@ export type Database = {
       invoice_status: InvoiceStatus;
       notification_type: NotificationType;
       blog_article_status: BlogArticleStatus;
+      time_off_kind: TimeOffKind;
     };
     CompositeTypes: Record<string, never>;
   };

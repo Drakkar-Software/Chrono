@@ -16,6 +16,10 @@ export interface MonthCalendarProps {
   minutesByDay: Record<string, number>;
   workingWeekdays: number[];
   holidayDates: string[];
+  /** Full-day time-off dates ('YYYY-MM-DD') — rendered as a filled corner dot. */
+  fullDayOffDates?: string[];
+  /** Partial time-off dates ('YYYY-MM-DD') — rendered as a hollow corner dot. */
+  partialOffDates?: string[];
   /** Today's date, for the "current day" ring. */
   today: string;
 }
@@ -34,12 +38,23 @@ const WEEKDAY_LABEL_KEYS = [
  * A compact month grid marking days with logged time, dimming non-working
  * days and holidays, and ringing today — the "work calendar" glance view.
  */
-export function MonthCalendar({ monthISO, minutesByDay, workingWeekdays, holidayDates, today }: MonthCalendarProps) {
+export function MonthCalendar({
+  monthISO,
+  minutesByDay,
+  workingWeekdays,
+  holidayDates,
+  fullDayOffDates = [],
+  partialOffDates = [],
+  today,
+}: MonthCalendarProps) {
   const t = useT();
   const { colors } = useTheme();
   const weeks = buildMonthGrid(monthISO);
   const holidaySet = new Set(holidayDates.map((h) => h.slice(0, 10)));
   const workSet = new Set(workingWeekdays);
+  const fullOffSet = new Set(fullDayOffDates);
+  const partialOffSet = new Set(partialOffDates);
+  const hasOffDates = fullDayOffDates.length > 0 || partialOffDates.length > 0;
 
   return (
     <View style={styles.wrap}>
@@ -59,49 +74,73 @@ export function MonthCalendar({ monthISO, minutesByDay, workingWeekdays, holiday
             const isToday = day.date === today;
             const isHoliday = holidaySet.has(day.date);
             const isWorkingDay = workSet.has(isoWeekday(day.date));
+            const isFullOff = day.inMonth && fullOffSet.has(day.date);
+            const isPartialOff = day.inMonth && partialOffSet.has(day.date);
             const minutes = minutesByDay[day.date] ?? 0;
             const pct = day.inMonth ? dayFillPct(minutes, DAILY_TARGET_MINUTES) : 0;
             const logged = pct > 0;
             const bg = !day.inMonth
               ? 'transparent'
-              : isHoliday || !isWorkingDay
+              : isFullOff || isHoliday || !isWorkingDay
                 ? colors.fill
                 : colors.surface;
             return (
               <View key={day.date} style={styles.cell}>
-                <View
-                  style={[
-                    styles.day,
-                    {
-                      backgroundColor: bg,
-                      borderColor: isToday ? colors.accent : 'transparent',
-                      borderWidth: isToday ? borders.thick : 0,
-                    },
-                  ]}
-                >
-                  {logged ? (
-                    <View style={[styles.fill, { height: `${pct * 100}%`, backgroundColor: colors.accent }]} />
-                  ) : null}
-                  <Txt
-                    variant="caption"
-                    color={
-                      !day.inMonth
-                        ? colors.textFaint
-                        : !logged
-                          ? colors.textMuted
-                          : pct >= READABLE_ON_FILL_THRESHOLD
-                            ? colors.accentText
-                            : colors.accent
-                    }
+                <View style={styles.dayWrap}>
+                  <View
+                    style={[
+                      styles.day,
+                      {
+                        backgroundColor: bg,
+                        borderColor: isToday ? colors.accent : 'transparent',
+                        borderWidth: isToday ? borders.thick : 0,
+                      },
+                    ]}
                   >
-                    {dayNum}
-                  </Txt>
+                    {logged ? (
+                      <View style={[styles.fill, { height: `${pct * 100}%`, backgroundColor: colors.accent }]} />
+                    ) : null}
+                    <Txt
+                      variant="caption"
+                      color={
+                        !day.inMonth
+                          ? colors.textFaint
+                          : !logged
+                            ? colors.textMuted
+                            : pct >= READABLE_ON_FILL_THRESHOLD
+                              ? colors.accentText
+                              : colors.accent
+                      }
+                    >
+                      {dayNum}
+                    </Txt>
+                  </View>
+                  {isFullOff || isPartialOff ? (
+                    <View
+                      style={[
+                        styles.offDot,
+                        {
+                          backgroundColor: isFullOff ? colors.info : colors.surface,
+                          borderColor: colors.info,
+                          borderWidth: isFullOff ? 0 : borders.thick,
+                        },
+                      ]}
+                    />
+                  ) : null}
                 </View>
               </View>
             );
           })}
         </View>
       ))}
+      {hasOffDates ? (
+        <View style={styles.legend}>
+          <View style={[styles.legendDot, { backgroundColor: colors.info }]} />
+          <Txt variant="micro" tone="textFaint">
+            {t('comp.calendar.legendOff')}
+          </Txt>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -110,6 +149,7 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.xs },
   row: { flexDirection: 'row' },
   cell: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 2 },
+  dayWrap: { width: 30, height: 30 },
   day: {
     width: 30,
     height: 30,
@@ -124,4 +164,20 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  offDot: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    width: 8,
+    height: 8,
+    borderRadius: radii.pill,
+  },
+  legend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: spacing.xs,
+    marginTop: 2,
+  },
+  legendDot: { width: 8, height: 8, borderRadius: radii.pill },
 });

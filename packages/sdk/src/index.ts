@@ -65,6 +65,11 @@ export * from './company-holiday/company-holiday.entity';
 export * from './company-holiday/company-holiday.queries';
 export * from './company-holiday/company-holiday.lib';
 
+// Member time off (self-service day/partial-day/hours off)
+export * from './time-off/time-off.entity';
+export * from './time-off/time-off.queries';
+export * from './time-off/time-off.lib';
+
 // Project referrals
 export * from './project-referral/project-referral.entity';
 export * from './project-referral/project-referral.queries';

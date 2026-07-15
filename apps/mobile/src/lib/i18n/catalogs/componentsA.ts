@@ -71,6 +71,27 @@ export const componentsACatalog: CatalogSlice = {
     'comp.time.noProjectsHint': "You're not assigned to any project yet — ask a manager to add you.",
     'comp.time.quickDuration': 'Quick add',
 
+    // Time off
+    'comp.timeOff.takeTimeOff': 'Take time off',
+    'comp.timeOff.addTimeOff': 'Add time off',
+    'comp.timeOff.amount': 'Amount',
+    'comp.timeOff.fullDay': 'Full day',
+    'comp.timeOff.partial': 'Partial',
+    'comp.timeOff.hoursOff': 'Hours off',
+    'comp.timeOff.type': 'Type',
+    'comp.timeOff.noteOptional': 'Note (optional)',
+    'comp.timeOff.notePlaceholder': 'Anything worth noting?',
+    'comp.timeOff.thisMonth': 'Time off this month',
+    'comp.timeOff.errEnterHours': 'Enter the number of hours off',
+    'comp.timeOff.errDuplicate': "You've already logged time off for that date.",
+    'comp.timeOff.kind.vacation': 'Vacation',
+    'comp.timeOff.kind.sick': 'Sick',
+    'comp.timeOff.kind.personal': 'Personal',
+    'comp.timeOff.kind.holiday': 'Holiday',
+
+    // Calendar
+    'comp.calendar.legendOff': 'Time off',
+
     // Invoices
     'comp.invoice.earned': 'Earned',
     'comp.invoice.creditBroughtForward': 'Credit brought forward',
@@ -233,6 +254,27 @@ export const componentsACatalog: CatalogSlice = {
     'comp.time.errDayCapExceeded': 'Cela vous mènerait à {logged} sur {max} jours ouvrés pour {month}',
     'comp.time.noProjectsHint': "Vous n’êtes assigné à aucun projet — demandez à un manager de vous ajouter.",
     'comp.time.quickDuration': 'Ajout rapide',
+
+    // Congés
+    'comp.timeOff.takeTimeOff': 'Prendre un congé',
+    'comp.timeOff.addTimeOff': 'Ajouter un congé',
+    'comp.timeOff.amount': 'Durée',
+    'comp.timeOff.fullDay': 'Journée complète',
+    'comp.timeOff.partial': 'Partiel',
+    'comp.timeOff.hoursOff': 'Heures d’absence',
+    'comp.timeOff.type': 'Type',
+    'comp.timeOff.noteOptional': 'Note (facultatif)',
+    'comp.timeOff.notePlaceholder': 'Une précision à ajouter ?',
+    'comp.timeOff.thisMonth': 'Congés ce mois-ci',
+    'comp.timeOff.errEnterHours': 'Indiquez le nombre d’heures d’absence',
+    'comp.timeOff.errDuplicate': 'Vous avez déjà un congé enregistré à cette date.',
+    'comp.timeOff.kind.vacation': 'Vacances',
+    'comp.timeOff.kind.sick': 'Maladie',
+    'comp.timeOff.kind.personal': 'Personnel',
+    'comp.timeOff.kind.holiday': 'Jour férié',
+
+    // Calendrier
+    'comp.calendar.legendOff': 'Congé',
 
     'comp.invoice.earned': 'Gagné',
     'comp.invoice.creditBroughtForward': 'Crédit reporté (antérieur)',
