@@ -6,9 +6,11 @@ import { marketingDisplayFont } from "./MarketingFonts";
 
 // Deliberately outside the light/dark palette — a fixed, high-contrast "statement"
 // band used for the closing CTA on marketing pages, independent of theme scheme.
-const INK = "#12101c";
-const INK_MUTED = "#a6a1bd";
-const PAPER = "#f4f2ee";
+// Values echo the app's warm-graphite ink / paper so the band reads as the
+// same instrument, just inked in reverse.
+const INK = "#1f1d16";
+const INK_MUTED = "#a8a292";
+const PAPER = "#ede9de";
 
 export interface StatementBandProps {
   title: string;
@@ -52,7 +54,7 @@ export function StatementBand({ title, subtitle, ctaLabel }: StatementBandProps)
         </Txt>
       ) : null}
       <Link href="/(landing)/register" asChild>
-        <Button title={ctaLabel} size="lg" fullWidth={!isWide} />
+        <Button title={ctaLabel} size="lg" fullWidth={!isWide} center={isWide} />
       </Link>
     </View>
   );

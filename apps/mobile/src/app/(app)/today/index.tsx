@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, EmptyState, StackScreen, spacing, useResponsive } from '@chrono/ui';
+import { Button, EmptyState, StackScreen, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 import { buildCopiedEntries, groupByDay, shiftEntryDate, sumDurations, formatDuration, weekBounds } from '@chrono/sdk';
 import type { TablesInsert } from '@chrono/sdk';
 
@@ -15,7 +15,7 @@ import { useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
 import { LogEntryForm, type LogEntryValues } from '@/components/time/LogEntryForm';
 import { DayGroupHeader } from '@/components/time/DayGroupHeader';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
-import { WeekGrid } from '@/components/time/WeekGrid';
+import { WeekStrip } from '@/components/time/WeekStrip';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState, InlineError } from '@/components/common/ErrorState';
@@ -24,7 +24,7 @@ import { StatRow, StatTile } from '@/components/ui/StatTile';
 export default function TodayScreen() {
   const t = useT();
   const router = useRouter();
-  const { isWide } = useResponsive();
+  const { colors } = useTheme();
   const { user } = useAppAuth();
   const { companyId } = useActiveCompany();
   const userId = user?.id;
@@ -37,6 +37,18 @@ export default function TodayScreen() {
   const { create, isPending } = useTimeEntryMutations();
   const [copying, setCopying] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled().then((v) => {
+      if (!cancelled) setReduceMotion(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const projectOptions = useMemo(
     () => (projects ?? []).map((p) => ({ label: p.name, value: p.id })),
@@ -70,6 +82,7 @@ export default function TodayScreen() {
       tags: values.tags,
     };
     create(input);
+    setShowForm(false);
   };
 
   const copyLastWeek = async () => {
@@ -97,83 +110,106 @@ export default function TodayScreen() {
 
   const lastWeekCount = lastWeekEntries?.length ?? 0;
 
-  const week = (
-    <View style={styles.section}>
-      <SectionHeader eyebrow={t('tabs.today.thisWeek')} title={t('tabs.today.loggedTime')} count={entries?.length} />
-      <StatRow>
-        <StatTile label={t('tabs.today.today')} value={formatDuration(todayMinutes)} />
-        <StatTile label={t('tabs.today.thisWeek')} value={formatDuration(weekMinutes)} tone="accent" />
-      </StatRow>
-      <WeekGrid entries={entries ?? []} weekStart={weekStart} />
-      {isLoading && entries == null ? (
-        <ScreenLoader />
-      ) : error && entries == null ? (
-        <ErrorState
-          error={error}
-          title={t('tabs.today.loadError')}
-          onRetry={() => {
-            void refetch();
-          }}
-        />
-      ) : days.length === 0 ? (
-        <EmptyState
-          icon="time-outline"
-          title={t('tabs.today.noEntries')}
-          subtitle={t('tabs.today.noEntriesSubtitle')}
-          tone="accent"
-        />
-      ) : (
-        days.map((day) => (
-          <View key={day.date} style={styles.day}>
-            <DayGroupHeader date={day.date} minutes={sumDurations(day.items)} />
-            {day.items.map((entry) => (
-              <TimeEntryRow
-                key={entry.id}
-                entry={entry}
-                onPress={
-                  (entry.status === 'pending' && entry.invoice_id == null) ||
-                  entry.status === 'rejected'
-                    ? () => router.push(`/time-entry/${entry.id}`)
-                    : undefined
-                }
-              />
-            ))}
-          </View>
-        ))
-      )}
-    </View>
-  );
-
   return (
     <StackScreen title={t('tabs.today.title')} onBack={() => router.back()}>
-      <View style={[styles.wrap, isWide && styles.wrapWide]}>
-        <View style={isWide ? styles.formCol : undefined}>
-          <LogEntryForm projectOptions={projectOptions} onSubmit={onSubmit} isSubmitting={isPending} />
+      <View style={styles.wrap}>
+        <StatRow>
+          <StatTile label={t('tabs.today.today')} value={formatDuration(todayMinutes)} />
+          <StatTile label={t('tabs.today.thisWeek')} value={formatDuration(weekMinutes)} tone="accent" />
+        </StatRow>
+
+        <View style={styles.actions}>
+          <Button title={t('tabs.today.logTimeCta')} onPress={() => setShowForm(true)} fullWidth />
           {lastWeekCount > 0 ? (
-            <View style={styles.copyBtn}>
-              <Button
-                title={t('tabs.today.copyLastWeek', { n: lastWeekCount })}
-                variant="secondary"
-                onPress={copyLastWeek}
-                loading={copying}
-                fullWidth
-              />
-              {copyError ? <InlineError message={copyError} /> : null}
-            </View>
+            <Button
+              title={t('tabs.today.copyLastWeek', { n: lastWeekCount })}
+              variant="secondary"
+              onPress={copyLastWeek}
+              loading={copying}
+              fullWidth
+            />
           ) : null}
         </View>
-        <View style={isWide ? styles.weekCol : undefined}>{week}</View>
+        {copyError ? <InlineError message={copyError} /> : null}
+
+        <View style={styles.section}>
+          <Txt variant="label" tone="textMuted" uppercase>
+            {t('tabs.today.weekStrip')}
+          </Txt>
+          <WeekStrip entries={entries ?? []} weekStart={weekStart} />
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader eyebrow={t('tabs.today.thisWeek')} title={t('tabs.today.loggedTime')} count={entries?.length} />
+          {isLoading && entries == null ? (
+            <ScreenLoader />
+          ) : error && entries == null ? (
+            <ErrorState
+              error={error}
+              title={t('tabs.today.loadError')}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          ) : days.length === 0 ? (
+            <EmptyState
+              icon="time-outline"
+              title={t('tabs.today.noEntries')}
+              subtitle={t('tabs.today.noEntriesSubtitle')}
+              tone="accent"
+              action={<Button title={t('tabs.today.logTimeCta')} onPress={() => setShowForm(true)} />}
+            />
+          ) : (
+            days.map((day) => (
+              <View key={day.date} style={styles.day}>
+                <DayGroupHeader date={day.date} minutes={sumDurations(day.items)} />
+                {day.items.map((entry) => (
+                  <TimeEntryRow
+                    key={entry.id}
+                    entry={entry}
+                    onPress={
+                      (entry.status === 'pending' && entry.invoice_id == null) ||
+                      entry.status === 'rejected'
+                        ? () => router.push(`/time-entry/${entry.id}`)
+                        : undefined
+                    }
+                  />
+                ))}
+              </View>
+            ))
+          )}
+        </View>
       </View>
+
+      <Modal
+        visible={showForm}
+        transparent
+        animationType={reduceMotion ? 'none' : 'fade'}
+        onRequestClose={() => setShowForm(false)}
+      >
+        <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={() => setShowForm(false)}>
+          <Pressable style={styles.sheetWrap} onPress={(e) => e.stopPropagation()}>
+            <ScrollView
+              style={[styles.sheet, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}
+              contentContainerStyle={styles.sheetContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <LogEntryForm projectOptions={projectOptions} onSubmit={onSubmit} isSubmitting={isPending} />
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xl },
-  wrapWide: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
-  formCol: { flexBasis: 320, flexGrow: 0, flexShrink: 0, maxWidth: 340, gap: spacing.sm },
-  weekCol: { flex: 1 },
-  copyBtn: { marginTop: spacing.xs },
+  actions: { gap: spacing.sm },
   section: { gap: spacing.md },
   day: { gap: spacing.xs },
+  backdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  sheetWrap: { width: '100%', maxWidth: 480, maxHeight: '90%' },
+  sheet: { borderWidth: borders.thin, borderRadius: radii.lg, overflow: 'hidden' },
+  sheetContent: { padding: spacing.lg },
 });

@@ -1,6 +1,6 @@
 import { StyleSheet, TextInput, View } from 'react-native';
 
-import { borders, layout, opacity, radii, spacing, type as typeScale } from '../theme';
+import { borders, fontFamilyFor, layout, opacity, radii, spacing, type as typeScale } from '../theme';
 import { useTheme } from '../use-theme';
 import { Txt } from './Txt';
 
@@ -51,6 +51,7 @@ export function TextField({
             minHeight: multiline ? layout.controlMinHeight * 2 : layout.controlMinHeight,
             opacity: editable ? 1 : opacity.disabled,
             textAlignVertical: multiline ? 'top' : 'center',
+            fontFamily: fontFamilyFor('body', 'regular'),
           },
         ]}
       />

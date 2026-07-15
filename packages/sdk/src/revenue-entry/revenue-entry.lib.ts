@@ -31,23 +31,40 @@ export function selfBillingRevenue(
 }
 
 /**
+ * A recognized revenue entry only counts toward the funding pool once the
+ * client has actually paid it — `paid_at` is null (due by client) by default
+ * for every entry, until a manager marks it paid.
+ */
+export function revenueEntryPaid(entry: Pick<RevenueEntry, 'paid_at'>): boolean {
+  return entry.paid_at != null;
+}
+
+/** Recognized revenue still due by the client (not yet marked paid), in cents. */
+export function dueRevenue(
+  revenueEntries: Array<Pick<RevenueEntry, 'amount_cents' | 'paid_at'>>,
+): number {
+  return revenueEntries
+    .filter((r) => !revenueEntryPaid(r))
+    .reduce((acc, r) => acc + (r.amount_cents ?? 0), 0);
+}
+
+/**
  * Funding still available in a project's pool:
- *   cumulative recognized revenue
+ *   cumulative PAID revenue (due-by-client revenue does not count yet)
  *   - cumulative referral payouts
  *   - cumulative fixed costs (hosting, tooling, etc.)
  *   - cumulative invoice payments
  * Floored at zero (matches settle_project_month).
  */
 export function availableFunding(
-  revenueEntries: Array<Pick<RevenueEntry, 'amount_cents'>>,
+  revenueEntries: Array<Pick<RevenueEntry, 'amount_cents' | 'paid_at'>>,
   referralEarnings: Array<{ amount_cents: number }>,
   paidInvoices: Array<{ amount_paid_cents: number }>,
   fixedCostCents = 0,
 ): number {
-  const revenue = revenueEntries.reduce(
-    (acc, r) => acc + (r.amount_cents ?? 0),
-    0,
-  );
+  const revenue = revenueEntries
+    .filter(revenueEntryPaid)
+    .reduce((acc, r) => acc + (r.amount_cents ?? 0), 0);
   const referral = referralEarnings.reduce(
     (acc, r) => acc + (r.amount_cents ?? 0),
     0,

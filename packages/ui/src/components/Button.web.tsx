@@ -18,6 +18,7 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
+  center = false,
 }: ButtonProps) {
   const { colors } = useTheme();
   const c = buttonColors(colors, variant);
@@ -40,7 +41,7 @@ export function Button({
           backgroundColor: c.bg,
           borderColor: c.border,
           opacity: blocked ? opacity.disabled : pressed ? 0.85 : 1,
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
+          alignSelf: fullWidth ? 'stretch' : center ? 'center' : 'flex-start',
           width: fullWidth ? '100%' : undefined,
         },
       ]}

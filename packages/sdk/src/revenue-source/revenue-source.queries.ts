@@ -13,7 +13,7 @@ export async function fetchRevenueSources(
     .select('*')
     .eq('project_id', projectId)
     .eq('deleted', false)
-    .order('created_at', { ascending: true });
+    .order('invoiced_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as RevenueSource[];
 }

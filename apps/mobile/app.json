@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "backgroundColor": "#0B1020",
+    "backgroundColor": "#16150F",
     "icon": "./assets/images/icon.png",
     "ios": {
       "supportsTablet": true,
@@ -30,12 +30,29 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Geist-Regular.ttf",
+            "./assets/fonts/Geist-Medium.ttf",
+            "./assets/fonts/Geist-SemiBold.ttf",
+            "./assets/fonts/Geist-Bold.ttf",
+            "./assets/fonts/GeistMono-Regular.ttf",
+            "./assets/fonts/GeistMono-Medium.ttf",
+            "./assets/fonts/GeistMono-SemiBold.ttf",
+            "./assets/fonts/GeistMono-Bold.ttf"
+          ]
+        }
+      ],
       "expo-notifications",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#f3f2ef",
+          "dark": {
+            "backgroundColor": "#16150f"
+          },
           "image": "./assets/images/logo.png",
           "imageWidth": 200
         }

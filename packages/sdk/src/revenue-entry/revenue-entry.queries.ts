@@ -53,3 +53,20 @@ export async function recognizeRevenue(
   });
   if (error) throw error;
 }
+
+/**
+ * Mark one or more revenue entries paid (or back to due). Manager-only,
+ * scoped server-side to the entries' own company. Pass every due entry's id
+ * to bulk-mark a project's history paid at once.
+ */
+export async function markRevenueEntriesPaid(
+  client: Client,
+  entryIds: string[],
+  paid = true,
+): Promise<void> {
+  const { error } = await client.rpc('mark_revenue_entries_paid', {
+    p_entry_ids: entryIds,
+    p_paid: paid,
+  });
+  if (error) throw error;
+}

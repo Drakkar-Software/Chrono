@@ -1,7 +1,14 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Money, Row, TitledCard, spacing, useTheme } from '@chrono/ui';
-import { availableFunding, fixedCostCumulative, projectMargin, sumApprovedExpenses, sumReferralEarnings } from '@chrono/sdk';
+import {
+  availableFunding,
+  dueRevenue,
+  fixedCostCumulative,
+  projectMargin,
+  sumApprovedExpenses,
+  sumReferralEarnings,
+} from '@chrono/sdk';
 import type { Invoice, Project, ProjectExpense, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
@@ -73,6 +80,9 @@ export function ProjectPnLCard({
 
   const margin = projectMargin(revenueCents, referralCents, costCents, fixedCostCents, expenseCents);
   const funding = availableFunding(revenueEntries, referralEarnings, paidInvoices, fixedCostCents);
+  // Recognized revenue the client hasn't paid yet — it doesn't count toward
+  // `funding` until a manager marks it paid (see revenue-entry.lib#dueRevenue).
+  const dueCents = useMemo(() => dueRevenue(revenueEntries), [revenueEntries]);
 
   return (
     <TitledCard title={project.name} titleNumberOfLines={1}>
@@ -100,6 +110,11 @@ export function ProjectPnLCard({
       <Row label={t('compb.pnl.availableFunding')}>
         <Money cents={funding} currency={currency} tone="textMuted" />
       </Row>
+      {dueCents > 0 ? (
+        <Row label={t('compb.pnl.dueByClient')}>
+          <Money cents={dueCents} currency={currency} tone="warning" />
+        </Row>
+      ) : null}
       <BudgetMeter project={project} usedCents={costCents} currency={currency} />
     </TitledCard>
   );

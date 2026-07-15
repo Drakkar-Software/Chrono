@@ -13,4 +13,6 @@ export interface ButtonProps {
   loading?: boolean;
   /** Stretch to the container width. Default false. */
   fullWidth?: boolean;
+  /** Center the button itself (instead of shrink-wrapping to the start edge) — for placement under centered text/content. Default false. */
+  center?: boolean;
 }

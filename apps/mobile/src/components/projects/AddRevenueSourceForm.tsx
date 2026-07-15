@@ -1,21 +1,20 @@
 import { useState } from 'react';
-import { Picker, TextField, TitledCard } from '@chrono/ui';
+import { Picker, Segmented, TextField, TitledCard } from '@chrono/ui';
 import { revenueSourceLabel } from '@chrono/sdk';
 import type { Json, RevenueSourceType } from '@chrono/sdk';
 import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
+import { resolveDayRateCents, toCents, toNumber } from './AddRevenueSourceForm.lib';
 
 export interface AddRevenueSourceValues {
   name: string;
   type: RevenueSourceType;
   content: Json;
-}
-
-export interface AddRevenueSourceFormProps {
-  onAdd: (values: AddRevenueSourceValues) => void;
-  onCancel: () => void;
-  isSubmitting?: boolean;
+  /** Free-text reference to the invoice number/id in the manager's own invoicing system. */
+  externalInvoiceId?: string;
+  /** Mark the recognized amount for this source paid immediately (default: due by client). */
+  markPaid: boolean;
 }
 
 const TYPE_OPTIONS = (['time_based', 'recurring', 'self_billing'] as RevenueSourceType[]).map((t) => ({
@@ -23,31 +22,40 @@ const TYPE_OPTIONS = (['time_based', 'recurring', 'self_billing'] as RevenueSour
   value: t,
 }));
 
-function toCents(input: string): number {
-  const parsed = parseFloat(input.replace(',', '.'));
-  return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
-}
-
-function toNumber(input: string): number | undefined {
-  const parsed = parseFloat(input.replace(',', '.'));
-  return Number.isFinite(parsed) ? parsed : undefined;
+export interface AddRevenueSourceFormProps {
+  onAdd: (values: AddRevenueSourceValues) => void;
+  onCancel: () => void;
+  isSubmitting?: boolean;
+  /** The project's default TJM — used as the day rate when the field below is left blank. */
+  defaultTjmCents?: number | null;
 }
 
 /** Add a revenue source; the amount field's meaning follows the chosen type. */
-export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: AddRevenueSourceFormProps) {
+export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false, defaultTjmCents }: AddRevenueSourceFormProps) {
   const t = useT();
   const [name, setName] = useState('');
   const [type, setType] = useState<RevenueSourceType>('time_based');
   const [amount, setAmount] = useState('');
   const [markup, setMarkup] = useState('');
   // time_based manual invoice override: fill either field, the other is
-  // inferred from the client day rate (`amount`) above.
+  // inferred from the client day rate (`amount`, falling back to the
+  // project's default TJM when left blank) above.
   const [days, setDays] = useState('');
   const [total, setTotal] = useState('');
+  const [externalInvoiceId, setExternalInvoiceId] = useState('');
+  const [paidStatus, setPaidStatus] = useState<'due' | 'paid'>('due');
   const [error, setError] = useState<string | undefined>();
 
+  const paidOptions = [
+    { label: t('details.dueByClient'), value: 'due' },
+    { label: t('details.paid'), value: 'paid' },
+  ];
+
   const amountLabel = type === 'recurring' ? t('comp.revsource.monthlyAmount') : t('comp.revsource.clientDayRate');
-  const tjmCents = toCents(amount);
+  // Recurring's "amount" is a literal monthly figure, no day-rate fallback.
+  const tjmCents = type === 'recurring' ? toCents(amount) : resolveDayRateCents(amount, defaultTjmCents);
+  const amountPlaceholder =
+    type !== 'recurring' && defaultTjmCents ? String(Math.round(defaultTjmCents / 100)) : '500';
 
   const onDaysChange = (value: string) => {
     setDays(value);
@@ -75,7 +83,9 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
       setError(t('comp.revsource.errName'));
       return;
     }
-    const cents = toCents(amount);
+    // Resolved rate (falls back to the project default when left blank) for
+    // time_based/self_billing; recurring's amount is used literally.
+    const cents = tjmCents;
     if (cents < 0) {
       setError(t('comp.revsource.errNegative', { label: amountLabel }));
       return;
@@ -97,6 +107,13 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
       };
     } else {
       const manualDays = toNumber(days);
+      const overrideRequested = days.trim() !== '' || total.trim() !== '';
+      if (overrideRequested && cents <= 0 && !total.trim()) {
+        // Days were entered but there's no day rate to derive a total from —
+        // without this guard the override silently saved as a 0€ total.
+        setError(t('comp.revsource.errTjmRequired'));
+        return;
+      }
       const manualTotalCents = total.trim() ? toCents(total) : manualDays !== undefined ? Math.round(manualDays * cents) : undefined;
       if (manualTotalCents !== undefined && manualTotalCents < 0) {
         setError(t('comp.revsource.errNegative', { label: t('comp.revsource.totalInvoiced') }));
@@ -112,7 +129,13 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
           : { client_tjm_cents: cents };
     }
     setError(undefined);
-    onAdd({ name: name.trim(), type, content });
+    onAdd({
+      name: name.trim(),
+      type,
+      content,
+      externalInvoiceId: externalInvoiceId.trim() || undefined,
+      markPaid: paidStatus === 'paid',
+    });
   };
 
   return (
@@ -128,7 +151,7 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
         label={amountLabel}
         value={amount}
         onChangeText={setAmount}
-        placeholder="500"
+        placeholder={amountPlaceholder}
         keyboardType="decimal-pad"
       />
       {type === 'self_billing' ? (
@@ -158,6 +181,13 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false }: 
           />
         </>
       ) : null}
+      <TextField
+        label={t('comp.revsource.externalInvoiceId')}
+        value={externalInvoiceId}
+        onChangeText={setExternalInvoiceId}
+        placeholder={t('comp.revsource.externalInvoiceIdPlaceholder')}
+      />
+      <Segmented options={paidOptions} value={paidStatus} onValueChange={(v) => setPaidStatus(v as 'due' | 'paid')} />
       <InlineError message={error ?? ''} />
       <FormActions
         submitLabel={t('comp.revsource.addSource')}

@@ -315,6 +315,10 @@ export type Database = {
           ends_on: string | null;
           content: Json;
           created_by: string | null;
+          /** When this amount was invoiced to the client — defaults to creation time; the list's sort key. */
+          invoiced_at: string;
+          /** Free-text reference to the invoice number/id in the manager's own invoicing system. */
+          external_invoice_id: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -327,6 +331,8 @@ export type Database = {
           ends_on?: string | null;
           content?: Json;
           created_by?: string | null;
+          invoiced_at?: string;
+          external_invoice_id?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -352,6 +358,8 @@ export type Database = {
           amount_cents: number;
           auto_generated: boolean;
           notes: string | null;
+          /** When the client actually paid this recognized amount. Null = due by client. */
+          paid_at: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -363,6 +371,7 @@ export type Database = {
           amount_cents: number;
           auto_generated?: boolean;
           notes?: string | null;
+          paid_at?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -761,6 +770,10 @@ export type Database = {
       };
       settle_project_month: {
         Args: { p_project_id: string; p_period: string };
+        Returns: undefined;
+      };
+      mark_revenue_entries_paid: {
+        Args: { p_entry_ids: string[]; p_paid?: boolean };
         Returns: undefined;
       };
       is_company_member: { Args: { cid: string }; Returns: boolean };

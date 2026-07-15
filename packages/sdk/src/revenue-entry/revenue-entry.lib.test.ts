@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   availableFunding,
+  dueRevenue,
   projectMargin,
   recurringRevenue,
+  revenueEntryPaid,
   selfBillingRevenue,
   timeBasedRevenue,
 } from './revenue-entry.lib';
+
+const PAID = '2026-07-01T00:00:00Z';
 
 describe('recurringRevenue', () => {
   it('reads monthly_amount_cents for recurring sources', () => {
@@ -46,20 +50,47 @@ describe('selfBillingRevenue', () => {
   });
 });
 
+describe('revenueEntryPaid', () => {
+  it('is false when paid_at is null (due by client, the default)', () => {
+    expect(revenueEntryPaid({ paid_at: null })).toBe(false);
+  });
+
+  it('is true once paid_at is set', () => {
+    expect(revenueEntryPaid({ paid_at: PAID })).toBe(true);
+  });
+});
+
+describe('dueRevenue', () => {
+  it('sums only entries not yet marked paid', () => {
+    const due = dueRevenue([
+      { amount_cents: 500000, paid_at: null },
+      { amount_cents: 300000, paid_at: PAID },
+    ]);
+    expect(due).toBe(500000);
+  });
+
+  it('is 0 once everything is paid', () => {
+    expect(dueRevenue([{ amount_cents: 500000, paid_at: PAID }])).toBe(0);
+  });
+});
+
 describe('availableFunding', () => {
-  it('is cumulative revenue minus referrals minus paid invoices', () => {
+  it('counts only PAID revenue toward the pool — due-by-client revenue does not count yet', () => {
     const funding = availableFunding(
-      [{ amount_cents: 500000 }, { amount_cents: 300000 }],
+      [
+        { amount_cents: 500000, paid_at: PAID },
+        { amount_cents: 300000, paid_at: null }, // still due — excluded
+      ],
       [{ amount_cents: 80000 }],
       [{ amount_paid_cents: 200000 }],
     );
-    expect(funding).toBe(520000); // 800000 - 80000 - 200000
+    expect(funding).toBe(220000); // 500000 (paid only) - 80000 - 200000
   });
 
   it('floors at zero when overdrawn', () => {
     expect(
       availableFunding(
-        [{ amount_cents: 100000 }],
+        [{ amount_cents: 100000, paid_at: PAID }],
         [{ amount_cents: 50000 }],
         [{ amount_paid_cents: 100000 }],
       ),
@@ -73,7 +104,10 @@ describe('availableFunding', () => {
   it('treats null amount_cents entries as 0', () => {
     // Revenue rows can carry a null amount_cents; they must contribute nothing.
     const funding = availableFunding(
-      [{ amount_cents: null as unknown as number }, { amount_cents: 300000 }],
+      [
+        { amount_cents: null as unknown as number, paid_at: PAID },
+        { amount_cents: 300000, paid_at: PAID },
+      ],
       [],
       [],
     );
@@ -82,16 +116,19 @@ describe('availableFunding', () => {
 
   it('subtracts fixed costs (e.g. hosting) from the pool', () => {
     const funding = availableFunding(
-      [{ amount_cents: 500000 }, { amount_cents: 300000 }],
+      [
+        { amount_cents: 500000, paid_at: PAID },
+        { amount_cents: 300000, paid_at: null },
+      ],
       [{ amount_cents: 80000 }],
       [{ amount_paid_cents: 200000 }],
       20000,
     );
-    expect(funding).toBe(500000); // 800000 - 80000 - 20000 - 200000
+    expect(funding).toBe(200000); // 500000 (paid only) - 80000 - 20000 - 200000
   });
 
   it('defaults fixed costs to 0 when omitted', () => {
-    expect(availableFunding([{ amount_cents: 100000 }], [], [])).toBe(100000);
+    expect(availableFunding([{ amount_cents: 100000, paid_at: PAID }], [], [])).toBe(100000);
   });
 });
 

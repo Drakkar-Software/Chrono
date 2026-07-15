@@ -6,6 +6,7 @@ import { FieldRow } from '@/components/common/FieldRow';
 import { FormActions } from '@/components/common/FormActions';
 import { fromISODate, toISODate } from '@/lib/date';
 import { useT } from '@/lib/i18n';
+import { formatMinutesAsHoursInput, parseHoursToMinutes } from './time-entry-form.lib';
 
 export interface EditEntryFormProps {
   entry: Pick<TimeEntry, 'entry_date' | 'duration_minutes' | 'description' | 'billable'>;
@@ -22,14 +23,11 @@ export function EditEntryForm({ entry, onSave, onDelete, isSaving = false }: Edi
     { label: t('comp.time.nonBillable'), value: 'nonbillable' },
   ];
   const [date, setDate] = useState(fromISODate(entry.entry_date));
-  const [hours, setHours] = useState(String(entry.duration_minutes / 60));
+  const [hours, setHours] = useState(formatMinutesAsHoursInput(entry.duration_minutes));
   const [description, setDescription] = useState(entry.description ?? '');
   const [billable, setBillable] = useState(entry.billable ? 'billable' : 'nonbillable');
 
-  const durationMinutes = useMemo(() => {
-    const parsed = parseFloat(hours.replace(',', '.'));
-    return Number.isFinite(parsed) ? Math.round(parsed * 60) : 0;
-  }, [hours]);
+  const durationMinutes = useMemo(() => parseHoursToMinutes(hours), [hours]);
 
   const save = () => {
     if (durationMinutes <= 0) return;

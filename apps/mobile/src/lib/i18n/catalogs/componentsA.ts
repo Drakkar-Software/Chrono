@@ -58,6 +58,8 @@ export const componentsACatalog: CatalogSlice = {
     'comp.time.addEntry': 'Add entry',
     'comp.time.errPickProject': 'Pick a project',
     'comp.time.errEnterDuration': 'Enter a duration in hours',
+    'comp.time.noProjectsHint': "You're not assigned to any project yet — ask a manager to add you.",
+    'comp.time.quickDuration': 'Quick add',
 
     // Invoices
     'comp.invoice.earned': 'Earned',
@@ -126,6 +128,9 @@ export const componentsACatalog: CatalogSlice = {
     'comp.revsource.errName': 'Enter a name',
     'comp.revsource.errNegative': '{label} cannot be negative',
     'comp.revsource.errMarkupMin': 'Markup % cannot be below -100',
+    'comp.revsource.errTjmRequired': 'Enter a client day rate to invoice a number of days',
+    'comp.revsource.externalInvoiceId': 'External invoice # (optional)',
+    'comp.revsource.externalInvoiceIdPlaceholder': 'e.g. INV-2026-014',
 
     // Fixed costs
     'comp.fixedcost.title': 'Add fixed cost',
@@ -207,6 +212,8 @@ export const componentsACatalog: CatalogSlice = {
     'comp.time.addEntry': 'Ajouter l’entrée',
     'comp.time.errPickProject': 'Choisissez un projet',
     'comp.time.errEnterDuration': 'Saisissez une durée en heures',
+    'comp.time.noProjectsHint': "Vous n’êtes assigné à aucun projet — demandez à un manager de vous ajouter.",
+    'comp.time.quickDuration': 'Ajout rapide',
 
     'comp.invoice.earned': 'Gagné',
     'comp.invoice.creditBroughtForward': 'Crédit reporté (antérieur)',
@@ -272,6 +279,9 @@ export const componentsACatalog: CatalogSlice = {
     'comp.revsource.errName': 'Saisissez un nom',
     'comp.revsource.errNegative': '{label} ne peut pas être négatif',
     'comp.revsource.errMarkupMin': 'La marge % ne peut pas être inférieure à -100',
+    'comp.revsource.errTjmRequired': 'Saisissez un TJM client pour facturer un nombre de jours',
+    'comp.revsource.externalInvoiceId': 'N° de facture externe (optionnel)',
+    'comp.revsource.externalInvoiceIdPlaceholder': 'ex. FAC-2026-014',
 
     'comp.fixedcost.title': 'Ajouter un coût fixe',
     'comp.fixedcost.cadence': 'Cadence',

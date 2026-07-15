@@ -1,49 +1,34 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Badge, Button, Card, EmptyState, StackScreen, Txt, formatMoney, spacing } from '@chrono/ui';
+import { Badge, Button, Card, EmptyState, ListItem, Money, StackScreen, Txt, formatMoney, spacing } from '@chrono/ui';
 import {
   canManage,
   companyCurrency,
-  displayName,
-  remainingReferralPct,
+  monthlyRecurringAmount,
+  sourceClientTjm,
+  sourceManualAmount,
 } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
-import { todayISO } from '@/lib/date';
-import { uploadImage } from '@/lib/image-upload';
 import { useProject } from '@/lib/hooks/use-projects';
 import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
-import { useProjectMembers, useProjectMemberMutations } from '@/lib/hooks/use-project-members';
-import { useCompanyMembers } from '@/lib/hooks/use-company-members';
-import { useRevenueSources, useRevenueSourceMutations } from '@/lib/hooks/use-revenue-sources';
-import { useProjectFixedCosts, useProjectFixedCostMutations } from '@/lib/hooks/use-project-fixed-costs';
-import { useProjectExpenses, useExpenseMutations } from '@/lib/hooks/use-project-expenses';
-import { useProjectReferrals, useProjectReferralMutations } from '@/lib/hooks/use-project-referrals';
-import { useRevenueEntries, useRecognizeRevenue } from '@/lib/hooks/use-revenue-entries';
+import { useProjectMembers } from '@/lib/hooks/use-project-members';
+import { useRevenueSources } from '@/lib/hooks/use-revenue-sources';
+import { useProjectFixedCosts } from '@/lib/hooks/use-project-fixed-costs';
+import { useProjectExpenses } from '@/lib/hooks/use-project-expenses';
+import { useProjectReferrals } from '@/lib/hooks/use-project-referrals';
+import { useRevenueEntries } from '@/lib/hooks/use-revenue-entries';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { projectBadge } from '@/lib/status';
-import { ProjectMemberRow } from '@/components/projects/ProjectMemberRow';
-import { RevenueSourceRow } from '@/components/projects/RevenueSourceRow';
-import { FixedCostRow } from '@/components/projects/FixedCostRow';
-import { ReferrerRow } from '@/components/projects/ReferrerRow';
-import { AddProjectMemberForm } from '@/components/projects/AddProjectMemberForm';
-import { AddRevenueSourceForm, type AddRevenueSourceValues } from '@/components/projects/AddRevenueSourceForm';
-import { AddFixedCostForm, type AddFixedCostValues } from '@/components/projects/AddFixedCostForm';
-import { AddReferrerForm } from '@/components/projects/AddReferrerForm';
-import { AddExpenseForm, type AddExpenseValues } from '@/components/expenses/AddExpenseForm';
-import { ExpenseRow } from '@/components/expenses/ExpenseRow';
 import { EditProjectForm, type EditProjectValues } from '@/components/projects/EditProjectForm';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
-import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
-
-type Panel = 'none' | 'edit' | 'member' | 'source' | 'fixedCost' | 'expense' | 'referrer';
+import { useState } from 'react';
 
 export default function ProjectDetail() {
   const t = useT();
@@ -52,18 +37,19 @@ export default function ProjectDetail() {
   const { user } = useAppAuth();
   const { company, role } = useActiveCompany();
   const manager = canManage(role);
-  const admin = role === 'admin';
   const currency = companyCurrency(company);
 
   const { data: project, isLoading, error: projectError, refetch: refetchProject } = useProject(id);
   const companyId = project?.company_id;
 
+  // Fetched here only for the entry-row counts/summaries below — each
+  // sub-screen fetches its own full data independently.
   const { data: members } = useProjectMembers(id);
-  const { data: companyMembers } = useCompanyMembers(companyId);
   const { data: sources } = useRevenueSources(id);
   const { data: fixedCosts } = useProjectFixedCosts(id);
   const { data: expenses } = useProjectExpenses(id, companyId);
   const { data: referrals } = useProjectReferrals(id);
+  const isProjectMember = (members ?? []).some((m) => m.user_id === user?.id);
 
   // P&L data for this one project (single-project reads, not a fan-out).
   const { data: pnlRevenue } = useRevenueEntries(manager ? id : undefined);
@@ -75,39 +61,31 @@ export default function ProjectDetail() {
     projectId: id,
   });
 
-  const memberMut = useProjectMemberMutations();
-  const sourceMut = useRevenueSourceMutations();
-  const fixedCostMut = useProjectFixedCostMutations();
-  const expenseMut = useExpenseMutations();
-  const referralMut = useProjectReferralMutations();
   const projectMut = useProjectMutations();
-  const { mutateAsync: recognizeRevenue, isPending: recognizing } = useRecognizeRevenue();
+  const [editing, setEditing] = useState(false);
 
-  const [panel, setPanel] = useState<Panel>('none');
-
-  const memberCandidates = useMemo(() => {
-    const assigned = new Set((members ?? []).map((m) => m.user_id));
-    return (companyMembers ?? [])
-      .filter((m) => !assigned.has(m.user_id))
-      .map((m) => ({ label: displayName(m.profile), value: m.user_id }));
-  }, [companyMembers, members]);
-
-  const referrerCandidates = useMemo(() => {
-    const existing = new Set((referrals ?? []).map((r) => r.user_id));
-    return (companyMembers ?? [])
-      .filter((m) => !existing.has(m.user_id))
-      .map((m) => ({ label: displayName(m.profile), value: m.user_id }));
-  }, [companyMembers, referrals]);
-
-  const remainingPct = remainingReferralPct(referrals ?? []);
-  const isProjectMember = (members ?? []).some((m) => m.user_id === user?.id);
-  const profileByUserId = useMemo(() => {
-    const map = new Map<string, { full_name: string | null }>();
-    for (const m of companyMembers ?? []) {
-      if (m.profile) map.set(m.user_id, m.profile);
-    }
-    return map;
-  }, [companyMembers]);
+  const saveEdits = async (values: EditProjectValues) => {
+    if (!project) return;
+    await projectMut.update(project.id, {
+      name: values.name,
+      client_name: values.clientName || null,
+      description: values.description || null,
+      default_tjm_cents: values.defaultTjmCents,
+      budget_cents: values.budgetCents,
+      hours_per_day: values.hoursPerDay,
+      status: values.status,
+      vat_rate: values.vatRate,
+    });
+    await refetchProject();
+    setEditing(false);
+  };
+  const toggleArchive = async () => {
+    if (!project) return;
+    await projectMut.update(project.id, {
+      status: project.status === 'archived' ? 'active' : 'archived',
+    });
+    await refetchProject();
+  };
 
   if (isLoading && !project) {
     return (
@@ -141,102 +119,31 @@ export default function ProjectDetail() {
     );
   }
 
-  const addMember = async (userId: string, tjmCents: number | null) => {
-    await memberMut.add({ project_id: project.id, user_id: userId, tjm_cents: tjmCents });
-    setPanel('none');
-  };
-  const addSource = async (values: AddRevenueSourceValues) => {
-    if (!companyId) return;
-    await sourceMut.create({
-      project_id: project.id,
-      company_id: companyId,
-      type: values.type,
-      name: values.name,
-      content: values.content,
-    });
-    // Recognize the current month immediately so the funding pool (available
-    // balance) reflects the new source right away, instead of only at the
-    // next invoice settle.
-    await recognizeRevenue(project.id, todayISO());
-    setPanel('none');
-  };
-  const removeSource = async (sourceId: string) => {
-    await sourceMut.deactivate(sourceId);
-    // A deactivated/removed source's revenue must be retired from the pool
-    // right away too — recognize_project_revenue does that retirement.
-    await recognizeRevenue(project.id, todayISO());
-  };
-  const addFixedCost = async (values: AddFixedCostValues) => {
-    if (!companyId) return;
-    await fixedCostMut.create({
-      project_id: project.id,
-      company_id: companyId,
-      name: values.name,
-      cadence: values.cadence,
-      amount_cents: values.amountCents,
-      period_month: values.periodMonth ?? null,
-      starts_on: values.startsOn ?? null,
-    });
-    setPanel('none');
-  };
-  const addExpense = async (values: AddExpenseValues) => {
-    if (!companyId || !user) return;
-    const created = await expenseMut.create({
-      project_id: project.id,
-      company_id: companyId,
-      user_id: user.id,
-      description: values.description,
-      amount_cents: values.amountCents,
-      spent_on: values.spentOn,
-      category: values.category ?? null,
-    });
-    if (values.receipt) {
-      const path = `${companyId}/${created.id}.${values.receipt.ext}`;
-      const url = await uploadImage('receipts', path, values.receipt.uri, values.receipt.contentType);
-      await expenseMut.update(created.id, { receipt_url: url });
-    }
-    setPanel('none');
-  };
-  const addReferrer = async (userId: string, percent: number) => {
-    if (!companyId) return;
-    await referralMut.add({ project_id: project.id, company_id: companyId, user_id: userId, percent });
-    setPanel('none');
-  };
-  const saveEdits = async (values: EditProjectValues) => {
-    await projectMut.update(project.id, {
-      name: values.name,
-      client_name: values.clientName || null,
-      description: values.description || null,
-      default_tjm_cents: values.defaultTjmCents,
-      budget_cents: values.budgetCents,
-      hours_per_day: values.hoursPerDay,
-      status: values.status,
-      vat_rate: values.vatRate,
-    });
-    await refetchProject();
-    setPanel('none');
-  };
-  const toggleArchive = async () => {
-    await projectMut.update(project.id, {
-      status: project.status === 'archived' ? 'active' : 'archived',
-    });
-    await refetchProject();
-  };
+  const revenueSourcesTotalCents = (sources ?? []).reduce((acc, source) => {
+    const amount =
+      source.type === 'recurring'
+        ? monthlyRecurringAmount(source)
+        : (sourceManualAmount(source) ?? sourceClientTjm(source));
+    return acc + amount;
+  }, 0);
+  const fixedCostsTotalCents = (fixedCosts ?? [])
+    .filter((c) => c.cadence === 'recurring')
+    .reduce((acc, c) => acc + c.amount_cents, 0);
 
   return (
     <StackScreen title={project.name} onBack={() => router.back()}>
-      <View style={styles.wrap}>
-        {manager && panel === 'edit' ? (
+      <View style={{ gap: spacing.xl }}>
+        {manager && editing ? (
           <EditProjectForm
             project={project}
             onSave={saveEdits}
-            onCancel={() => setPanel('none')}
+            onCancel={() => setEditing(false)}
             isSubmitting={projectMut.isPending}
           />
         ) : (
-          <Card padding="lg" style={styles.card}>
-            <View style={styles.header}>
-              <View style={styles.titleWrap}>
+          <Card padding="lg" style={{ gap: spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
+              <View style={{ flex: 1, gap: 2 }}>
                 <Txt variant="title" numberOfLines={2}>
                   {project.name}
                 </Txt>
@@ -248,19 +155,9 @@ export default function ProjectDetail() {
               </View>
               <Badge label={t('status.' + project.status)} status={projectBadge(project.status)} />
             </View>
-            <StatRow>
-              <StatTile
-                label={t('details.defaultTjm')}
-                value={project.default_tjm_cents != null ? formatMoney(project.default_tjm_cents, currency) : '—'}
-              />
-              <StatTile label={t('details.hoursPerDay')} value={String(project.hours_per_day)} />
-              {project.budget_cents != null ? (
-                <StatTile label={t('details.budget')} value={formatMoney(project.budget_cents, currency)} />
-              ) : null}
-            </StatRow>
             {manager ? (
-              <View style={styles.headerActions}>
-                <Button title={t('common.edit')} size="sm" variant="secondary" onPress={() => setPanel('edit')} />
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <Button title={t('common.edit')} size="sm" variant="secondary" onPress={() => setEditing(true)} />
                 <Button
                   title={project.status === 'archived' ? t('details.unarchive') : t('details.archive')}
                   size="sm"
@@ -274,175 +171,6 @@ export default function ProjectDetail() {
           </Card>
         )}
 
-        <Section
-          title={t('details.members')}
-          action={manager && panel !== 'member' ? () => setPanel('member') : undefined}
-        >
-          {panel === 'member' ? (
-            <>
-              <AddProjectMemberForm
-                candidates={memberCandidates}
-                onAdd={addMember}
-                onCancel={() => setPanel('none')}
-                isSubmitting={memberMut.isPending}
-              />
-              {memberMut.error ? <InlineError error={memberMut.error} /> : null}
-            </>
-          ) : null}
-          {(members ?? []).map((member) => (
-            <ProjectMemberRow
-              key={member.id}
-              member={member}
-              project={project}
-              currency={currency}
-              showRate={manager || member.user_id === user?.id}
-              onRemove={manager ? () => void memberMut.remove(member.id) : undefined}
-              removing={memberMut.isPending}
-            />
-          ))}
-          {(members ?? []).length === 0 && panel !== 'member' ? (
-            <Txt variant="body" tone="textMuted">
-              {t('common.noneYet')}
-            </Txt>
-          ) : null}
-        </Section>
-
-        {/* Revenue config is manager-only (pricing/margins); referrer setup is admin-only. */}
-        {manager ? (
-          <Section
-            title={t('details.revenueSources')}
-            action={panel !== 'source' ? () => setPanel('source') : undefined}
-          >
-            {panel === 'source' ? (
-              <>
-                <AddRevenueSourceForm
-                  onAdd={addSource}
-                  onCancel={() => setPanel('none')}
-                  isSubmitting={sourceMut.isPending || recognizing}
-                />
-                {sourceMut.error ? <InlineError error={sourceMut.error} /> : null}
-              </>
-            ) : null}
-            {(sources ?? []).map((source) => (
-              <RevenueSourceRow
-                key={source.id}
-                source={source}
-                currency={currency}
-                onRemove={() => void removeSource(source.id)}
-                removing={sourceMut.isPending || recognizing}
-              />
-            ))}
-            {(sources ?? []).length === 0 && panel !== 'source' ? (
-              <Txt variant="body" tone="textMuted">
-                {t('common.noneYet')}
-              </Txt>
-            ) : null}
-          </Section>
-        ) : null}
-
-        {/* Period fixed costs (hosting, tooling, etc.) subtract from the funding pool. */}
-        {manager ? (
-          <Section
-            title={t('details.fixedCosts')}
-            action={panel !== 'fixedCost' ? () => setPanel('fixedCost') : undefined}
-          >
-            {panel === 'fixedCost' ? (
-              <>
-                <AddFixedCostForm
-                  onAdd={addFixedCost}
-                  onCancel={() => setPanel('none')}
-                  isSubmitting={fixedCostMut.isPending}
-                />
-                {fixedCostMut.error ? <InlineError error={fixedCostMut.error} /> : null}
-              </>
-            ) : null}
-            {(fixedCosts ?? []).map((cost) => (
-              <FixedCostRow
-                key={cost.id}
-                cost={cost}
-                currency={currency}
-                onRemove={() => void fixedCostMut.remove(cost.id)}
-                removing={fixedCostMut.isPending}
-              />
-            ))}
-            {(fixedCosts ?? []).length === 0 && panel !== 'fixedCost' ? (
-              <Txt variant="body" tone="textMuted">
-                {t('common.noneYet')}
-              </Txt>
-            ) : null}
-          </Section>
-        ) : null}
-
-        {/* Reimbursable expenses — freelancers submit, managers moderate. */}
-        {manager || isProjectMember ? (
-          <Section
-            title={t('details.expenses')}
-            action={(manager || isProjectMember) && panel !== 'expense' ? () => setPanel('expense') : undefined}
-          >
-            {panel === 'expense' ? (
-              <>
-                <AddExpenseForm
-                  onAdd={addExpense}
-                  onCancel={() => setPanel('none')}
-                  isSubmitting={expenseMut.isPending}
-                />
-                {expenseMut.error ? <InlineError error={expenseMut.error} /> : null}
-              </>
-            ) : null}
-            {(expenses ?? []).map((expense) => (
-              <ExpenseRow
-                key={expense.id}
-                expense={expense}
-                currency={currency}
-                submitter={profileByUserId.get(expense.user_id)}
-                canModerate={manager}
-                onApprove={() => void expenseMut.approve(expense.id)}
-                onReject={(reason) => void expenseMut.reject(expense.id, reason)}
-                onMarkReimbursed={() => user && void expenseMut.markReimbursed(expense.id, user.id)}
-                isBusy={expenseMut.isPending}
-              />
-            ))}
-            {(expenses ?? []).length === 0 && panel !== 'expense' ? (
-              <Txt variant="body" tone="textMuted">
-                {t('common.noneYet')}
-              </Txt>
-            ) : null}
-          </Section>
-        ) : null}
-
-        {manager ? (
-          <Section
-            title={t('details.referrers')}
-            action={admin && panel !== 'referrer' ? () => setPanel('referrer') : undefined}
-          >
-            {panel === 'referrer' ? (
-              <>
-                <AddReferrerForm
-                  candidates={referrerCandidates}
-                  remainingPct={remainingPct}
-                  onAdd={addReferrer}
-                  onCancel={() => setPanel('none')}
-                  isSubmitting={referralMut.isPending}
-                />
-                {referralMut.error ? <InlineError error={referralMut.error} /> : null}
-              </>
-            ) : null}
-            {(referrals ?? []).map((referral) => (
-              <ReferrerRow
-                key={referral.id}
-                referral={referral}
-                onRemove={admin ? () => void referralMut.remove(referral.id) : undefined}
-                removing={referralMut.isPending}
-              />
-            ))}
-            {(referrals ?? []).length === 0 && panel !== 'referrer' ? (
-              <Txt variant="body" tone="textMuted">
-                {admin ? t('common.noneYet') : t('details.noReferrers')}
-              </Txt>
-            ) : null}
-          </Section>
-        ) : null}
-
         {manager && companyId ? (
           <ProjectPnLCard
             project={project}
@@ -454,37 +182,68 @@ export default function ProjectDetail() {
             expenses={expenses ?? []}
           />
         ) : null}
+
+        <Card padding="none">
+          <ListItem
+            title={t('details.members')}
+            subtitle={t('details.membersCount', { count: (members ?? []).length })}
+            onPress={() => router.push(`/project/${id}/members`)}
+          />
+          {manager ? (
+            <ListItem
+              title={t('details.revenueSources')}
+              subtitle={t('details.revenueSourcesCount', { count: (sources ?? []).length })}
+              trailing={
+                revenueSourcesTotalCents > 0 ? (
+                  <Money cents={revenueSourcesTotalCents} currency={currency} tone="textMuted" />
+                ) : undefined
+              }
+              onPress={() => router.push(`/project/${id}/revenue-sources`)}
+            />
+          ) : null}
+          {manager ? (
+            <ListItem
+              title={t('details.fixedCosts')}
+              subtitle={t('details.fixedCostsCount', { count: (fixedCosts ?? []).length })}
+              trailing={
+                fixedCostsTotalCents > 0 ? (
+                  <Money cents={fixedCostsTotalCents} currency={currency} tone="textMuted" />
+                ) : undefined
+              }
+              onPress={() => router.push(`/project/${id}/fixed-costs`)}
+            />
+          ) : null}
+          {manager || isProjectMember ? (
+            <ListItem
+              title={t('details.expenses')}
+              subtitle={t('details.expensesCount', { count: (expenses ?? []).length })}
+              onPress={() => router.push(`/project/${id}/expenses`)}
+            />
+          ) : null}
+          {manager ? (
+            <ListItem
+              title={t('details.referrers')}
+              subtitle={t('details.referrersCount', { count: (referrals ?? []).length })}
+              onPress={() => router.push(`/project/${id}/referrers`)}
+              divider={false}
+            />
+          ) : null}
+        </Card>
+
+        <Card padding="lg" style={{ gap: spacing.md }}>
+          <Txt variant="heading">{t('details.rateAndCapacity')}</Txt>
+          <StatRow>
+            <StatTile
+              label={t('details.defaultTjm')}
+              value={project.default_tjm_cents != null ? formatMoney(project.default_tjm_cents, currency) : '—'}
+            />
+            <StatTile label={t('details.hoursPerDay')} value={String(project.hours_per_day)} />
+            {project.budget_cents != null ? (
+              <StatTile label={t('details.budget')} value={formatMoney(project.budget_cents, currency)} />
+            ) : null}
+          </StatRow>
+        </Card>
       </View>
     </StackScreen>
   );
 }
-
-function Section({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: () => void;
-  children: ReactNode;
-}) {
-  const t = useT();
-  return (
-    <View style={styles.section}>
-      <SectionHeader
-        title={title}
-        action={action ? <Button title={t('common.add')} size="sm" variant="secondary" onPress={action} /> : undefined}
-      />
-      {children}
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  wrap: { gap: spacing.xl },
-  card: { gap: spacing.md },
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  headerActions: { flexDirection: 'row', gap: spacing.sm },
-  titleWrap: { flex: 1, gap: 2 },
-  section: { gap: spacing.sm },
-});

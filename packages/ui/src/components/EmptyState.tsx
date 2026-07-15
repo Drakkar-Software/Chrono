@@ -31,12 +31,12 @@ const TONE_TOKENS: Record<EmptyStateTone, { fg: keyof Palette; ring: keyof Palet
 };
 
 const DIAL_SIZE = 88;
-const CROWN_SIZE = { width: 10, height: 7 };
 
 /**
  * Centered dial + title + subtitle for empty lists / zero-data / dead-end
- * states. The icon sits inside a stopwatch-style dial (a ring with a crown
- * notch, echoing `BrandMark`) so even "nothing here" still reads as Chrono.
+ * states. The icon sits inside a clean instrument-lens ring — a deliberately
+ * abstract circle, no watch parts (ticks/crown/screws) — so even "nothing
+ * here" reads as precise rather than decorative.
  */
 export function EmptyState({ icon, title, subtitle, action, tone = 'neutral' }: EmptyStateProps) {
   const { colors } = useTheme();
@@ -67,6 +67,7 @@ export function EmptyState({ icon, title, subtitle, action, tone = 'neutral' }: 
     <View style={styles.wrap}>
       <Animated.View
         style={{
+          alignItems: 'center',
           opacity: progress,
           transform: [
             { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) },
@@ -76,7 +77,6 @@ export function EmptyState({ icon, title, subtitle, action, tone = 'neutral' }: 
       >
         {icon ? (
           <View style={styles.dialWrap}>
-            <View style={[styles.crown, { backgroundColor: colors[toneTokens.ring] }]} />
             <View
               style={[styles.dial, { borderColor: colors[toneTokens.ring], backgroundColor: colors[toneTokens.fill] }]}
             >
@@ -110,15 +110,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
-  crown: {
-    position: 'absolute',
-    top: -(CROWN_SIZE.height - 1),
-    left: '50%',
-    marginLeft: -(CROWN_SIZE.width / 2),
-    width: CROWN_SIZE.width,
-    height: CROWN_SIZE.height,
-    borderRadius: radii.sm / 2,
-  },
   dial: {
     width: DIAL_SIZE,
     height: DIAL_SIZE,
@@ -129,5 +120,9 @@ const styles = StyleSheet.create({
   },
   title: { maxWidth: 280 },
   subtitle: { marginTop: spacing.xs, maxWidth: 280 },
-  action: { marginTop: spacing.xl },
+  // Row + justifyContent (not column + alignItems) so the action centers
+  // regardless of the child's own alignSelf — a Button defaults to
+  // alignSelf:'flex-start', which would otherwise always win over a column
+  // parent's alignItems:'center'.
+  action: { marginTop: spacing.xl, flexDirection: 'row', justifyContent: 'center' },
 });

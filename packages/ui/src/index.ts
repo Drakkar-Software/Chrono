@@ -13,12 +13,18 @@ export {
   radii,
   borders,
   type as typeScale,
+  trackingUppercase,
   fonts,
+  fontFamilies,
+  fontFamilyFor,
   weights,
+  weightNameFor,
   shadows,
   elevation,
   opacity,
   layout,
+  controlHeight,
+  motion,
 } from './theme';
 export type {
   Palette,

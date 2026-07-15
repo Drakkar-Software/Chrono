@@ -79,6 +79,7 @@ export const componentsBCatalog: CatalogSlice = {
     'compb.pnl.expenses': 'Expenses',
     'compb.pnl.margin': 'Margin',
     'compb.pnl.availableFunding': 'Available funding',
+    'compb.pnl.dueByClient': 'Due by client',
 
     // reports/BudgetMeter
     'compb.budget.budget': 'Budget',
@@ -216,6 +217,7 @@ export const componentsBCatalog: CatalogSlice = {
     'compb.pnl.expenses': 'Dépenses',
     'compb.pnl.margin': 'Marge',
     'compb.pnl.availableFunding': 'Financement disponible',
+    'compb.pnl.dueByClient': 'Dû par le client',
 
     // reports/BudgetMeter
     'compb.budget.budget': 'Budget',

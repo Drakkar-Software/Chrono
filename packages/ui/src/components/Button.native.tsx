@@ -32,12 +32,17 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
+  center = false,
 }: ButtonProps) {
   const { colors } = useTheme();
   const c = buttonColors(colors, variant);
   const m = buttonMetrics(size);
   const blocked = disabled || loading;
-  const hostStyle = [styles.host, fullWidth ? styles.full : styles.auto, { height: m.height }];
+  const hostStyle = [
+    styles.host,
+    fullWidth ? styles.full : center ? styles.center : styles.auto,
+    { height: m.height },
+  ];
 
   // Loading isn't expressible on the native button — render a themed view that
   // mirrors the web look so the busy state is consistent cross-platform.
@@ -54,7 +59,7 @@ export function Button({
             backgroundColor: c.bg,
             borderColor: c.border,
             opacity: opacity.disabled,
-            alignSelf: fullWidth ? 'stretch' : 'flex-start',
+            alignSelf: fullWidth ? 'stretch' : center ? 'center' : 'flex-start',
           },
         ]}
       >
@@ -103,6 +108,7 @@ export function Button({
 const styles = StyleSheet.create({
   host: { justifyContent: 'center' },
   auto: { alignSelf: 'flex-start' },
+  center: { alignSelf: 'center' },
   full: { alignSelf: 'stretch', width: '100%' },
   loadingBase: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   spinner: { marginRight: 8 },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
-import { borders, layout, opacity, radii, spacing, type as typeScale } from '../theme';
+import { borders, fontFamilyFor, layout, opacity, radii, spacing, type as typeScale } from '../theme';
 import { useTheme } from '../use-theme';
 import { Txt } from './Txt';
 
@@ -73,6 +73,7 @@ export function DatePicker({ label, value, onChange, minimumDate, maximumDate, d
             backgroundColor: colors.surface,
             borderColor: invalid ? colors.danger : colors.border,
             opacity: disabled ? opacity.disabled : 1,
+            fontFamily: fontFamilyFor('mono', 'regular'),
           },
         ]}
       />
