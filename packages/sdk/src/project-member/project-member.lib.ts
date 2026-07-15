@@ -19,25 +19,30 @@ export function effectiveTjm(
  * effective day rate. Mirrors the DB trigger that values an invoice's worked
  * minutes (`round(minutes / (hours_per_day*60) * coalesce(pm.tjm_cents,
  * p.default_tjm_cents, 0))`), so this is a faithful preview of what those
- * entries will earn once invoiced. Entries are grouped per user — one rate
- * applies to a whole user's minutes, same as the server invoicing an entire
- * month at once — so per-entry rounding never drifts from server rounding.
+ * entries will earn once invoiced. Entries are grouped per user PER CALENDAR
+ * MONTH — invoices are generated one per freelancer per month (see
+ * `fetchMonthEntriesForInvoice`) — so summing minutes across months first
+ * would round once where the server rounds once per month, drifting by a
+ * cent or two whenever uninvoiced time spans more than one month.
  */
 export function valueUninvoicedTime(
   entries: Array<
-    Pick<TimeEntry, 'user_id' | 'duration_minutes' | 'status' | 'billable' | 'invoice_id' | 'deleted'>
+    Pick<TimeEntry, 'user_id' | 'duration_minutes' | 'status' | 'billable' | 'invoice_id' | 'deleted' | 'entry_date'>
   >,
   project: Pick<Project, 'default_tjm_cents' | 'hours_per_day'>,
   members: Array<Pick<ProjectMember, 'user_id' | 'tjm_cents'>>,
 ): number {
-  const minutesByUser = new Map<string, number>();
+  const minutesByUserMonth = new Map<string, { userId: string; minutes: number }>();
   for (const e of entries) {
     if (e.status !== 'approved' || !e.billable || e.invoice_id != null || e.deleted) continue;
-    minutesByUser.set(e.user_id, (minutesByUser.get(e.user_id) ?? 0) + (e.duration_minutes ?? 0));
+    const key = `${e.user_id}:${e.entry_date.slice(0, 7)}`;
+    const group = minutesByUserMonth.get(key);
+    if (group) group.minutes += e.duration_minutes ?? 0;
+    else minutesByUserMonth.set(key, { userId: e.user_id, minutes: e.duration_minutes ?? 0 });
   }
   const memberByUser = new Map(members.map((m) => [m.user_id, m]));
   let total = 0;
-  for (const [userId, minutes] of minutesByUser) {
+  for (const { userId, minutes } of minutesByUserMonth.values()) {
     const tjm = effectiveTjm(memberByUser.get(userId), project);
     total += computeEarnedCents(minutes, project.hours_per_day, tjm);
   }

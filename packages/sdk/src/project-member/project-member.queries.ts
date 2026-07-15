@@ -38,8 +38,9 @@ export async function fetchCompanyProjectMembers(
 ): Promise<ProjectMember[]> {
   const { data, error } = await client
     .from('project_members')
-    .select('*, project:projects!inner(company_id)')
+    .select('*, project:projects!inner(company_id, deleted)')
     .eq('project.company_id', companyId)
+    .eq('project.deleted', false)
     .eq('deleted', false);
   if (error) throw error;
   return (data ?? []) as unknown as ProjectMember[];

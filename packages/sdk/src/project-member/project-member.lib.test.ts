@@ -25,6 +25,7 @@ function entry(overrides: Partial<{
   billable: boolean;
   invoice_id: string | null;
   deleted: boolean;
+  entry_date: string;
 }> = {}) {
   return {
     user_id: 'u1',
@@ -33,6 +34,7 @@ function entry(overrides: Partial<{
     billable: true,
     invoice_id: null,
     deleted: false,
+    entry_date: '2026-06-15',
     ...overrides,
   };
 }
@@ -71,9 +73,10 @@ describe('valueUninvoicedTime', () => {
     expect(valueUninvoicedTime([entry({ deleted: true })], PROJECT, [])).toBe(0);
   });
 
-  it('groups minutes per user before valuing, matching server month-at-once rounding', () => {
-    // 3 entries of 160 minutes each for the same user = 480 min = 1 day,
-    // valued as one lump sum rather than three separately-rounded fragments.
+  it('groups minutes per user within the same month before valuing, matching server month-at-once rounding', () => {
+    // 3 entries of 160 minutes each for the same user in the same month = 480
+    // min = 1 day, valued as one lump sum rather than three separately-rounded
+    // fragments.
     const total = valueUninvoicedTime(
       [
         entry({ duration_minutes: 160 }),
@@ -84,6 +87,23 @@ describe('valueUninvoicedTime', () => {
       [],
     );
     expect(total).toBe(60000);
+  });
+
+  it('values each calendar month separately, matching one-invoice-per-month rounding', () => {
+    // 7 minutes in June + 7 minutes in July at tjm 100000/8h-day: valuing the
+    // 14-minute total in one lump would round to 2917; the server generates
+    // one invoice per month, each rounding 7 min independently to 1458, so
+    // the correct preview is 1458 + 1458 = 2916.
+    const project = { default_tjm_cents: 100000, hours_per_day: 8 };
+    const total = valueUninvoicedTime(
+      [
+        entry({ duration_minutes: 7, entry_date: '2026-06-28' }),
+        entry({ duration_minutes: 7, entry_date: '2026-07-02' }),
+      ],
+      project,
+      [],
+    );
+    expect(total).toBe(2916);
   });
 
   it('values each user independently at their own effective rate', () => {
