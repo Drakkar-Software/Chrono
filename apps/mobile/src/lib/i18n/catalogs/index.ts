@@ -1,5 +1,6 @@
 import type { Catalog, Locale } from '../types';
 import { commonCatalog } from './common';
+import { blogCatalog } from './blog';
 import { landingCatalog } from './landing';
 import { onboardingCatalog } from './onboarding';
 import { tabsCatalog } from './tabs';
@@ -9,6 +10,7 @@ import { componentsBCatalog } from './componentsB';
 
 const slices = [
   commonCatalog,
+  blogCatalog,
   landingCatalog,
   onboardingCatalog,
   tabsCatalog,

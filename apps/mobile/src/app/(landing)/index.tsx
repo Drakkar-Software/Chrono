@@ -236,6 +236,11 @@ export default function Landing() {
             Chrono
           </Txt>
         </View>
+        <Link href="/blog" asChild>
+          <Txt variant="caption" weight="semibold" tone="accent" accessibilityRole="link">
+            {t('blog.eyebrow')}
+          </Txt>
+        </Link>
         <Txt variant="caption" tone="textFaint">
           {t('landing.footer.copyright', { year })}
         </Txt>

@@ -1,0 +1,37 @@
+import type { CatalogSlice } from '../types';
+
+// Translations for the public blog. Keys are namespaced "blog.*".
+export const blogCatalog: CatalogSlice = {
+  en: {
+    'blog.eyebrow': 'The Chrono blog',
+    'blog.title': 'Guides on freelance time, billing & revenue',
+    'blog.lede': 'Practical playbooks on tracking time, pricing by the day, invoicing freelancers and recognizing project revenue.',
+    'blog.metaTitle': 'Chrono blog — freelance time tracking, billing & revenue',
+    'blog.metaDescription': 'Guides and playbooks on freelance time tracking, day-rate (TJM) pricing, invoicing and project revenue recognition, from the team behind Chrono.',
+    'blog.readTime': '{n} min read',
+    'blog.by': 'By',
+    'blog.loading': 'Loading…',
+    'blog.empty': 'No articles yet — check back soon.',
+    'blog.back': 'All articles',
+    'blog.backHome': 'Back to home',
+    'blog.notFoundTitle': 'Article not found',
+    'blog.notFoundBody': 'This article may have moved or been unpublished.',
+    'blog.cta': 'Start tracking with Chrono',
+  },
+  fr: {
+    'blog.eyebrow': 'Le blog Chrono',
+    'blog.title': 'Guides sur le temps, la facturation et le revenu freelance',
+    'blog.lede': 'Des méthodes concrètes pour suivre le temps, tarifer à la journée, facturer les freelances et reconnaître le chiffre d’affaires des projets.',
+    'blog.metaTitle': 'Blog Chrono — suivi du temps, facturation et revenu freelance',
+    'blog.metaDescription': 'Guides et méthodes sur le suivi du temps freelance, la tarification au TJM, la facturation et la reconnaissance du chiffre d’affaires, par l’équipe Chrono.',
+    'blog.readTime': '{n} min de lecture',
+    'blog.by': 'Par',
+    'blog.loading': 'Chargement…',
+    'blog.empty': 'Pas encore d’articles — revenez bientôt.',
+    'blog.back': 'Tous les articles',
+    'blog.backHome': 'Retour à l’accueil',
+    'blog.notFoundTitle': 'Article introuvable',
+    'blog.notFoundBody': 'Cet article a peut-être été déplacé ou dépublié.',
+    'blog.cta': 'Commencer avec Chrono',
+  },
+};

@@ -33,6 +33,7 @@ export type NotificationType =
   | 'invoice_partially_paid'
   | 'referral_earned'
   | 'reminder';
+export type BlogArticleStatus = 'draft' | 'published';
 
 type Timestamps = {
   created_at: string;
@@ -43,6 +44,35 @@ type Timestamps = {
 export type Database = {
   public: {
     Tables: {
+      blog_articles: {
+        Row: {
+          id: string;
+          slug: string;
+          content: Json;
+          author: string;
+          image_url: string | null;
+          status: BlogArticleStatus;
+          read_time: number | null;
+          keywords: string[] | null;
+          published_at: string | null;
+        } & Timestamps;
+        Insert: {
+          id?: string;
+          slug: string;
+          content?: Json;
+          author?: string;
+          image_url?: string | null;
+          status?: BlogArticleStatus;
+          read_time?: number | null;
+          keywords?: string[] | null;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['blog_articles']['Insert']>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           user_id: string;
@@ -642,6 +672,7 @@ export type Database = {
       revenue_source_type: RevenueSourceType;
       invoice_status: InvoiceStatus;
       notification_type: NotificationType;
+      blog_article_status: BlogArticleStatus;
     };
     CompositeTypes: Record<string, never>;
   };
