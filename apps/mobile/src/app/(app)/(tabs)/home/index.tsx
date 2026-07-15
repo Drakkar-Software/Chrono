@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button, Card, EmptyState, IconButton, Money, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
@@ -16,18 +16,20 @@ import {
   monthBounds,
   monthKey,
   partialOffMinutesByDate,
+  shiftMonth,
   sumDurations,
   sumReferralEarnings,
 } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
-import { todayISO } from '@/lib/date';
+import { shortMonthLabel, todayISO } from '@/lib/date';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useVisibleProjects } from '@/lib/hooks/use-visible-projects';
 import { useCompanyProjectMembers } from '@/lib/hooks/use-project-members';
 import { useMaxBusinessDays } from '@/lib/hooks/use-max-business-days';
+import { useVacationPolicy } from '@/lib/hooks/use-vacation-policy';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
@@ -52,6 +54,11 @@ function rateForEntry(entry: TimeEntryWithProject, membersByProjectAndUser: Map<
   return effectiveTjm(member, { default_tjm_cents: entry.project?.default_tjm_cents ?? null });
 }
 
+/** A day count, trimmed to a whole number unless it's fractional (partial days off). */
+function fmtDays(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
 export default function HomeScreen() {
   const t = useT();
   const router = useRouter();
@@ -62,9 +69,13 @@ export default function HomeScreen() {
   const currency = companyCurrency(company);
   const userId = user?.id;
 
-  const month = useMemo(() => monthBounds(todayISO()), []);
-  const thisMonthKey = useMemo(() => monthKey(todayISO()), []);
+  const [selectedMonthKey, setSelectedMonthKey] = useState(() => monthKey(todayISO()));
+  const month = useMemo(() => monthBounds(selectedMonthKey), [selectedMonthKey]);
   const today = useMemo(() => todayISO(), []);
+  const monthLabel = useMemo(
+    () => `${shortMonthLabel(selectedMonthKey.slice(0, 7))} ${selectedMonthKey.slice(0, 4)}`,
+    [selectedMonthKey],
+  );
 
   const monthEntries = useTimeEntries({
     companyId: companyId ?? '',
@@ -95,7 +106,12 @@ export default function HomeScreen() {
   const { data: pending } = usePendingApprovals(manager ? companyId ?? undefined : undefined);
   const { netBusinessDays, netRemainingBusinessDays, workingWeekdays, holidayDates, timeOff } = useMaxBusinessDays(
     userId,
-    thisMonthKey,
+    selectedMonthKey,
+  );
+  const { maxVacationDaysPerYear, vacationDaysUsed, vacationDaysRemaining } = useVacationPolicy(
+    userId,
+    workingWeekdays,
+    holidayDates,
   );
   const { unread } = useNotificationsFeed();
 
@@ -143,12 +159,12 @@ export default function HomeScreen() {
   }, [monthEntries.data]);
 
   const fullDayOffDates = useMemo(
-    () => fullDayOffDatesInMonth(timeOff, thisMonthKey),
-    [timeOff, thisMonthKey],
+    () => fullDayOffDatesInMonth(timeOff, selectedMonthKey),
+    [timeOff, selectedMonthKey],
   );
   const partialOffDates = useMemo(
-    () => Object.keys(partialOffMinutesByDate(timeOff, thisMonthKey)),
-    [timeOff, thisMonthKey],
+    () => Object.keys(partialOffMinutesByDate(timeOff, selectedMonthKey)),
+    [timeOff, selectedMonthKey],
   );
 
   const pendingCount = (pending ?? []).length;
@@ -202,7 +218,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <SectionHeader eyebrow={t('tabs.home.overview')} title={t('tabs.home.yourActivity')} />
           <StatRow>
-            <StatTile label={t('tabs.home.thisMonth')}>
+            <StatTile label={monthLabel}>
               <View>
                 <Txt variant="heading" mono tabularNums tone="accent" numberOfLines={1}>
                   {formatDuration(monthMinutes)}
@@ -227,6 +243,14 @@ export default function HomeScreen() {
                 </Txt>
               </View>
             </StatTile>
+            {maxVacationDaysPerYear != null ? (
+              <StatTile
+                label={t('tabs.home.congesLeft')}
+                value={`${fmtDays(vacationDaysRemaining ?? 0)} / ${maxVacationDaysPerYear}`}
+              />
+            ) : (
+              <StatTile label={t('tabs.home.congesTaken')} value={fmtDays(vacationDaysUsed)} />
+            )}
           </StatRow>
           {manager ? (
             <StatRow>
@@ -264,10 +288,29 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.section}>
-          <SectionHeader eyebrow={t('tabs.home.thisMonth')} title={t('tabs.home.workCalendar')} />
+          <SectionHeader
+            eyebrow={monthLabel}
+            title={t('tabs.home.workCalendar')}
+            action={
+              <View style={styles.monthStepper}>
+                <IconButton
+                  name="chevron-back"
+                  size={18}
+                  onPress={() => setSelectedMonthKey((k) => shiftMonth(k, -1))}
+                  accessibilityLabel={t('tabs.home.prevMonth')}
+                />
+                <IconButton
+                  name="chevron-forward"
+                  size={18}
+                  onPress={() => setSelectedMonthKey((k) => shiftMonth(k, 1))}
+                  accessibilityLabel={t('tabs.home.nextMonth')}
+                />
+              </View>
+            }
+          />
           <Card padding="lg">
             <MonthCalendar
-              monthISO={thisMonthKey}
+              monthISO={selectedMonthKey}
               minutesByDay={minutesByDay}
               workingWeekdays={workingWeekdays}
               holidayDates={holidayDates}
@@ -305,7 +348,7 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <SectionHeader
-            eyebrow={t('tabs.home.thisMonth')}
+            eyebrow={monthLabel}
             title={t('tabs.home.recentEntries')}
             action={
               recentDays.length > 0 ? (
@@ -342,6 +385,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xl },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  monthStepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   section: { gap: spacing.md },
   actions: { gap: spacing.sm },
   actionsWide: { flexDirection: 'row' },

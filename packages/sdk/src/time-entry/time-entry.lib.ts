@@ -62,6 +62,13 @@ export function monthKey(dateISO: string): string {
   return `${dateISO.slice(0, 7)}-01`;
 }
 
+/** Shift a month key ('YYYY-MM-01') by `delta` whole months, year-rollover safe. */
+export function shiftMonth(monthISO: string, delta: number): string {
+  const [y, m] = monthISO.slice(0, 7).split('-').map(Number);
+  const dt = new Date(Date.UTC(y, (m ?? 1) - 1 + delta, 1));
+  return `${dt.toISOString().slice(0, 7)}-01`;
+}
+
 /** Monday-based week bounds { start, end } as 'YYYY-MM-DD'. */
 export function weekBounds(dateISO: string): { start: string; end: string } {
   const d = parseISO(dateISO);

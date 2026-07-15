@@ -9,6 +9,7 @@ import {
   monthKey,
   groupByDay,
   summarizeByProject,
+  shiftMonth,
   yearBounds,
 } from './time-entry.lib';
 
@@ -134,6 +135,33 @@ describe('monthBounds / monthKey', () => {
       start: '2028-02-01',
       end: '2028-02-29',
     });
+  });
+});
+
+describe('shiftMonth', () => {
+  it('shifts forward within a year', () => {
+    expect(shiftMonth('2026-07-01', 1)).toBe('2026-08-01');
+  });
+
+  it('shifts backward within a year', () => {
+    expect(shiftMonth('2026-07-01', -1)).toBe('2026-06-01');
+  });
+
+  it('rolls over into the next year', () => {
+    expect(shiftMonth('2026-12-01', 1)).toBe('2027-01-01');
+  });
+
+  it('rolls back into the previous year', () => {
+    expect(shiftMonth('2026-01-01', -1)).toBe('2025-12-01');
+  });
+
+  it('shifts by multiple months', () => {
+    expect(shiftMonth('2026-07-01', 6)).toBe('2027-01-01');
+    expect(shiftMonth('2026-07-01', -8)).toBe('2025-11-01');
+  });
+
+  it('is a no-op for delta 0', () => {
+    expect(shiftMonth('2026-07-14', 0)).toBe('2026-07-01');
   });
 });
 
