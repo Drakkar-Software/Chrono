@@ -17,8 +17,6 @@
 ![React Native](https://img.shields.io/badge/React_Native-0.86-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres_15-3ECF8E?logo=supabase&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-50_passing-brightgreen)
-![Offline-first](https://img.shields.io/badge/offline-first-0984E3)
 
 </div>
 
@@ -51,7 +49,7 @@ account, many companies), and is **responsive** from phone to desktop.
 | 🏢 **Multi-company** | Belong to many companies, switch between them, invite teammates with secure expiring links. |
 | 🔐 **Secure by construction** | Row-Level Security on every table; server-computed money; no client-trusted amounts. |
 | 📴 **Offline-first** | Backed by `@drakkar.software/anchor` — SQLite on native, localStorage on web, syncs on reconnect. |
-| 🎨 **Native feel, everywhere** | Native SwiftUI / Jetpack Compose controls via `@expo/ui`, with web fallbacks. |
+| 🎨 **Native controls** | SwiftUI / Jetpack Compose controls via `@expo/ui`, with web fallbacks. |
 
 ---
 
