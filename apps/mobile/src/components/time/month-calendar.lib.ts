@@ -2,6 +2,12 @@ import { monthBounds, shiftEntryDate, weekBounds } from '@chrono/sdk';
 
 export type CalendarCell = { date: string; inMonth: boolean };
 
+/** How much of a day's target is logged, clamped to [0, 1] for a fill indicator. */
+export function dayFillPct(minutes: number, targetMinutes: number): number {
+  if (targetMinutes <= 0) return 0;
+  return Math.max(0, Math.min(1, minutes / targetMinutes));
+}
+
 /**
  * Monday-first calendar grid (rows of 7 days) covering `monthISO`'s month,
  * padded with the leading/trailing days from adjacent months needed to

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMonthGrid } from './month-calendar.lib';
+import { buildMonthGrid, dayFillPct } from './month-calendar.lib';
 
 describe('buildMonthGrid', () => {
   it('builds Monday-first weeks covering the whole month', () => {
@@ -42,5 +42,32 @@ describe('buildMonthGrid', () => {
     const grid = buildMonthGrid('2026-02');
     const inMonthCount = grid.flat().filter((c) => c.inMonth).length;
     expect(inMonthCount).toBe(28);
+  });
+});
+
+describe('dayFillPct', () => {
+  it('is 0 for no minutes logged', () => {
+    expect(dayFillPct(0, 420)).toBe(0);
+  });
+
+  it('is fractional for partial minutes', () => {
+    expect(dayFillPct(210, 420)).toBe(0.5);
+  });
+
+  it('is 1 when minutes meet the target exactly', () => {
+    expect(dayFillPct(420, 420)).toBe(1);
+  });
+
+  it('clamps to 1 when minutes exceed the target', () => {
+    expect(dayFillPct(600, 420)).toBe(1);
+  });
+
+  it('clamps to 0 for negative minutes', () => {
+    expect(dayFillPct(-30, 420)).toBe(0);
+  });
+
+  it('is 0 when the target is zero or negative', () => {
+    expect(dayFillPct(120, 0)).toBe(0);
+    expect(dayFillPct(120, -10)).toBe(0);
   });
 });

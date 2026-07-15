@@ -1,8 +1,13 @@
 import { StyleSheet, View } from 'react-native';
 import { Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
-import { isoWeekday } from '@chrono/sdk';
+import { DEFAULT_HOURS_PER_DAY, isoWeekday } from '@chrono/sdk';
 import { useT } from '@/lib/i18n';
-import { buildMonthGrid } from './month-calendar.lib';
+import { buildMonthGrid, dayFillPct } from './month-calendar.lib';
+
+const DAILY_TARGET_MINUTES = DEFAULT_HOURS_PER_DAY * 60;
+// Above this fill level the liquid covers the digit's own row, so the day
+// number needs to switch to the on-accent color to stay readable.
+const READABLE_ON_FILL_THRESHOLD = 0.5;
 
 export interface MonthCalendarProps {
   /** Any date within the month to render, e.g. from `monthKey(todayISO())`. */
@@ -55,14 +60,13 @@ export function MonthCalendar({ monthISO, minutesByDay, workingWeekdays, holiday
             const isHoliday = holidaySet.has(day.date);
             const isWorkingDay = workSet.has(isoWeekday(day.date));
             const minutes = minutesByDay[day.date] ?? 0;
-            const logged = minutes > 0;
+            const pct = day.inMonth ? dayFillPct(minutes, DAILY_TARGET_MINUTES) : 0;
+            const logged = pct > 0;
             const bg = !day.inMonth
               ? 'transparent'
-              : logged
-                ? colors.accentBg
-                : isHoliday || !isWorkingDay
-                  ? colors.fill
-                  : colors.surface;
+              : isHoliday || !isWorkingDay
+                ? colors.fill
+                : colors.surface;
             return (
               <View key={day.date} style={styles.cell}>
                 <View
@@ -75,9 +79,20 @@ export function MonthCalendar({ monthISO, minutesByDay, workingWeekdays, holiday
                     },
                   ]}
                 >
+                  {logged ? (
+                    <View style={[styles.fill, { height: `${pct * 100}%`, backgroundColor: colors.accent }]} />
+                  ) : null}
                   <Txt
                     variant="caption"
-                    tone={!day.inMonth ? 'textFaint' : logged ? 'accent' : 'textMuted'}
+                    color={
+                      !day.inMonth
+                        ? colors.textFaint
+                        : !logged
+                          ? colors.textMuted
+                          : pct >= READABLE_ON_FILL_THRESHOLD
+                            ? colors.accentText
+                            : colors.accent
+                    }
                   >
                     {dayNum}
                   </Txt>
@@ -101,5 +116,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radii.pill,
+    overflow: 'hidden',
+  },
+  fill: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });

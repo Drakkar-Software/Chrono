@@ -16,7 +16,6 @@ import {
   monthKey,
   sumDurations,
   sumReferralEarnings,
-  weekBounds,
 } from '@chrono/sdk';
 import type { TimeEntryWithProject } from '@chrono/sdk';
 
@@ -27,7 +26,7 @@ import { useActiveCompany } from '@/lib/active-company-context';
 import { useVisibleProjects } from '@/lib/hooks/use-visible-projects';
 import { useCompanyProjectMembers } from '@/lib/hooks/use-project-members';
 import { useMaxBusinessDays } from '@/lib/hooks/use-max-business-days';
-import { useTimeEntries, useWeekEntries } from '@/lib/hooks/use-time-entries';
+import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { usePendingApprovals } from '@/lib/hooks/use-approvals';
@@ -63,7 +62,6 @@ export default function HomeScreen() {
 
   const month = useMemo(() => monthBounds(todayISO()), []);
   const thisMonthKey = useMemo(() => monthKey(todayISO()), []);
-  const weekStart = useMemo(() => weekBounds(todayISO()).start, []);
   const today = useMemo(() => todayISO(), []);
 
   const monthEntries = useTimeEntries({
@@ -72,7 +70,6 @@ export default function HomeScreen() {
     from: month.start,
     to: month.end,
   });
-  const week = useWeekEntries(userId, companyId ?? undefined, weekStart);
   const { data: invoices } = useInvoices({
     companyId: companyId ?? '',
     freelancerId: manager ? undefined : userId,
@@ -101,7 +98,6 @@ export default function HomeScreen() {
   const { unread } = useNotificationsFeed();
 
   const monthMinutes = useMemo(() => sumDurations(monthEntries.data ?? []), [monthEntries.data]);
-  const weekMinutes = useMemo(() => sumDurations(week.data ?? []), [week.data]);
   const workedDays = useMemo(
     () =>
       (monthEntries.data ?? []).reduce(
@@ -146,20 +142,18 @@ export default function HomeScreen() {
 
   const pendingCount = (pending ?? []).length;
 
-  // The 5 most recent week entries, grouped by day for the preview.
+  // The 5 most recent entries this month, grouped by day for the preview.
   const recentDays = useMemo(() => {
-    const sorted = [...(week.data ?? [])]
+    const sorted = [...(monthEntries.data ?? [])]
       .sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1))
       .slice(0, RECENT_LIMIT);
     const grouped = groupByDay(sorted);
     return Object.keys(grouped)
       .sort((a, b) => (a < b ? 1 : -1))
       .map((date) => ({ date, items: grouped[date] }));
-  }, [week.data]);
+  }, [monthEntries.data]);
 
-  const initialLoading =
-    (monthEntries.isLoading && monthEntries.data == null) ||
-    (week.isLoading && week.data == null);
+  const initialLoading = monthEntries.isLoading && monthEntries.data == null;
 
   if (initialLoading) {
     return (
@@ -171,16 +165,10 @@ export default function HomeScreen() {
 
   // A failed primary load must read as an error, not a zeroed-out dashboard
   // (0h / €0 / no projects) indistinguishable from a genuinely empty account.
-  if ((monthEntries.error && monthEntries.data == null) || (week.error && week.data == null)) {
+  if (monthEntries.error && monthEntries.data == null) {
     return (
       <StackScreen title={t('tabs.nav.home')}>
-        <ErrorState
-          error={monthEntries.error ?? week.error}
-          onRetry={() => {
-            void monthEntries.refetch();
-            void week.refetch();
-          }}
-        />
+        <ErrorState error={monthEntries.error} onRetry={() => void monthEntries.refetch()} />
       </StackScreen>
     );
   }
@@ -217,7 +205,6 @@ export default function HomeScreen() {
                 </Txt>
               </View>
             </StatTile>
-            <StatTile label={t('tabs.home.thisWeek')} value={formatDuration(weekMinutes)} />
             <StatTile label={t('tabs.home.outstanding')}>
               <View>
                 <Money cents={toCollectCents} currency={currency} variant="heading" mono />
@@ -305,7 +292,7 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <SectionHeader
-            eyebrow={t('tabs.home.thisWeek')}
+            eyebrow={t('tabs.home.thisMonth')}
             title={t('tabs.home.recentEntries')}
             action={
               recentDays.length > 0 ? (
