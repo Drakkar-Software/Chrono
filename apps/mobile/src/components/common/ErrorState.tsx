@@ -85,6 +85,7 @@ export function ErrorState({
       title={title ?? t('compb.error.title')}
       subtitle={message ?? describeError(error, describe)}
       action={onRetry ? <Button title={t('common.retry')} variant="secondary" onPress={onRetry} /> : undefined}
+      tone="danger"
     />
   );
 }

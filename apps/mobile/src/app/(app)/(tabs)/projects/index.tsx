@@ -66,7 +66,7 @@ export default function ProjectsScreen() {
   );
 
   return (
-    <StackScreen title={t('tabs.nav.projects')} headerRight={headerRight}>
+    <StackScreen title={t('tabs.nav.projects')} headerRight={headerRight} wide>
       <View style={styles.wrap}>
         {creating ? (
           <NewProjectForm onCreate={onCreate} onCancel={() => setCreating(false)} isSubmitting={isPending} />
@@ -88,10 +88,11 @@ export default function ProjectsScreen() {
             title={t('tabs.projects.empty')}
             subtitle={manager ? t('tabs.projects.emptyManager') : t('tabs.projects.emptyFreelancer')}
             action={manager ? <Button title={t('tabs.projects.newProject')} onPress={() => setCreating(true)} /> : undefined}
+            tone="accent"
           />
         ) : (
           <>
-            <CardGrid minColumnWidth={220}>
+            <CardGrid minColumnWidth={260}>
               {page.map((project) => (
                 <ProjectCard
                   key={project.id}

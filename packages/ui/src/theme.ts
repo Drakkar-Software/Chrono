@@ -270,6 +270,8 @@ export const opacity = {
 export const layout = {
   /** Cap reading width on large/web screens. */
   maxContentWidth: 720,
+  /** Wider cap for grid/dashboard screens (card lists) — opt in via `StackScreen wide`. */
+  maxContentWidthWide: 1100,
   /** At/above this viewport width the UI switches to the wide/desktop layout. */
   breakpointDesktop: 900,
   /** Minimum tappable control height. */

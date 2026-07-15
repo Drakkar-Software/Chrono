@@ -23,6 +23,8 @@ export interface StackScreenProps {
   scroll?: boolean;
   /** Background: `canvas` (default) or `surface`. */
   background?: 'canvas' | 'surface';
+  /** Use the wider dashboard cap (`layout.maxContentWidthWide`) instead of the reading-width cap. For card-grid screens on large viewports. Default false. */
+  wide?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
 }
 
@@ -42,6 +44,7 @@ export function StackScreen({
   children,
   scroll = true,
   background = 'canvas',
+  wide = false,
   contentStyle,
 }: StackScreenProps) {
   const { colors } = useTheme();
@@ -84,7 +87,14 @@ export function StackScreen({
       ) : null}
 
       <KAV style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.center, isWide && styles.centerCapped]}>{body}</View>
+        <View
+          style={[
+            styles.center,
+            isWide && { maxWidth: wide ? layout.maxContentWidthWide : layout.maxContentWidth, alignSelf: 'center' },
+          ]}
+        >
+          {body}
+        </View>
 
         {footer ? (
           <SafeAreaView edges={['left', 'right', 'bottom']} style={{ backgroundColor: colors.surface }}>
@@ -110,7 +120,6 @@ const styles = StyleSheet.create({
   headerRight: { alignItems: 'flex-end' },
   headerTitle: { flex: 1, alignItems: 'center' },
   center: { flex: 1, width: '100%' },
-  centerCapped: { maxWidth: layout.maxContentWidth, alignSelf: 'center' },
   scrollContent: { flexGrow: 1, padding: spacing.lg },
   footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
 });

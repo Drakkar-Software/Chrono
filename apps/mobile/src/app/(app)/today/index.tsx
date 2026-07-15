@@ -116,7 +116,12 @@ export default function TodayScreen() {
           }}
         />
       ) : days.length === 0 ? (
-        <EmptyState icon="time-outline" title={t('tabs.today.noEntries')} subtitle={t('tabs.today.noEntriesSubtitle')} />
+        <EmptyState
+          icon="time-outline"
+          title={t('tabs.today.noEntries')}
+          subtitle={t('tabs.today.noEntriesSubtitle')}
+          tone="accent"
+        />
       ) : (
         days.map((day) => (
           <View key={day.date} style={styles.day}>

@@ -182,6 +182,7 @@ export default function HomeScreen() {
               title={t('tabs.home.noEntries')}
               subtitle={t('tabs.home.noEntriesSubtitle')}
               action={<Button title={t('tabs.home.logTime')} onPress={() => router.push('/today')} />}
+              tone="accent"
             />
           ) : (
             <Card padding="lg" style={styles.recentCard}>

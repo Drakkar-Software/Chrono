@@ -77,6 +77,6 @@ export type { BadgeProps, BadgeStatus, PillProps } from './components/Badge';
 export { Money, formatMoney } from './components/Money';
 export type { MoneyProps } from './components/Money';
 export { EmptyState } from './components/EmptyState';
-export type { EmptyStateProps } from './components/EmptyState';
+export type { EmptyStateProps, EmptyStateTone } from './components/EmptyState';
 export { ListItem } from './components/ListItem';
 export type { ListItemProps } from './components/ListItem';

@@ -67,6 +67,7 @@ export default function TimeEntryDetail() {
               icon="close-circle-outline"
               title={t('details.rejectionReason')}
               subtitle={entry.rejection_reason}
+              tone="danger"
             />
           </Card>
         ) : (
@@ -75,6 +76,7 @@ export default function TimeEntryDetail() {
               icon="lock-closed-outline"
               title={t('details.locked')}
               subtitle={t('details.lockedSubtitle')}
+              tone="warning"
             />
           </Card>
         )}

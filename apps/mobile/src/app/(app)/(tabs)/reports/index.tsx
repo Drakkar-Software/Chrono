@@ -236,7 +236,12 @@ export default function ReportsScreen() {
               }}
             />
           ) : pendingList.length === 0 ? (
-            <EmptyState icon="checkmark-done-outline" title={t('tabs.reports.allCaughtUp')} subtitle={t('tabs.reports.allCaughtUpSubtitle')} />
+            <EmptyState
+              icon="checkmark-done-outline"
+              title={t('tabs.reports.allCaughtUp')}
+              subtitle={t('tabs.reports.allCaughtUpSubtitle')}
+              tone="success"
+            />
           ) : (
             <CardGrid minColumnWidth={280}>
               {pendingList.map((entry) => (

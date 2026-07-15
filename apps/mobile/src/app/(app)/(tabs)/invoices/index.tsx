@@ -156,6 +156,7 @@ export default function InvoicesScreen() {
             title={t('tabs.invoices.empty')}
             subtitle={manager ? t('tabs.invoices.emptyManager') : t('tabs.invoices.emptyFreelancer')}
             action={!manager ? <Button title={t('tabs.invoices.generateInvoice')} onPress={() => setPanel('generate')} /> : undefined}
+            tone="accent"
           />
         ) : (
           <>
