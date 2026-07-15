@@ -74,6 +74,7 @@ export const componentsBCatalog: CatalogSlice = {
     // reports/ProjectPnLCard
     'compb.pnl.revenue': 'Revenue',
     'compb.pnl.referrals': 'Referrals',
+    'compb.pnl.fixedCosts': 'Fixed costs',
     'compb.pnl.cost': 'Cost',
     'compb.pnl.margin': 'Margin',
     'compb.pnl.availableFunding': 'Available funding',
@@ -203,6 +204,7 @@ export const componentsBCatalog: CatalogSlice = {
     // reports/ProjectPnLCard
     'compb.pnl.revenue': 'Revenus',
     'compb.pnl.referrals': 'Parrainages',
+    'compb.pnl.fixedCosts': 'Coûts fixes',
     'compb.pnl.cost': 'Coût',
     'compb.pnl.margin': 'Marge',
     'compb.pnl.availableFunding': 'Financement disponible',

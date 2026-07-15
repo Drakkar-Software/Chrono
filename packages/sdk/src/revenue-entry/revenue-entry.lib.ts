@@ -34,6 +34,7 @@ export function selfBillingRevenue(
  * Funding still available in a project's pool:
  *   cumulative recognized revenue
  *   - cumulative referral payouts
+ *   - cumulative fixed costs (hosting, tooling, etc.)
  *   - cumulative invoice payments
  * Floored at zero (matches settle_project_month).
  */
@@ -41,6 +42,7 @@ export function availableFunding(
   revenueEntries: Array<Pick<RevenueEntry, 'amount_cents'>>,
   referralEarnings: Array<{ amount_cents: number }>,
   paidInvoices: Array<{ amount_paid_cents: number }>,
+  fixedCostCents = 0,
 ): number {
   const revenue = revenueEntries.reduce(
     (acc, r) => acc + (r.amount_cents ?? 0),
@@ -54,14 +56,15 @@ export function availableFunding(
     (acc, i) => acc + (i.amount_paid_cents ?? 0),
     0,
   );
-  return Math.max(0, revenue - referral - paid);
+  return Math.max(0, revenue - referral - fixedCostCents - paid);
 }
 
-/** Project margin = revenue - referral payouts - freelancer costs (cents). */
+/** Project margin = revenue - referral payouts - fixed costs - freelancer costs (cents). */
 export function projectMargin(
   revenueCents: number,
   referralCents: number,
   costCents: number,
+  fixedCostCents = 0,
 ): number {
-  return revenueCents - referralCents - costCents;
+  return revenueCents - referralCents - fixedCostCents - costCents;
 }

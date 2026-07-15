@@ -23,6 +23,7 @@ const TABLES = [
   'project_members',
   'revenue_sources',
   'revenue_entries',
+  'project_fixed_costs',
   'project_referrals',
   'referral_earnings',
   'time_entries',

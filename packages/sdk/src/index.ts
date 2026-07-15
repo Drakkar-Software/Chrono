@@ -44,6 +44,11 @@ export * from './revenue-entry/revenue-entry.entity';
 export * from './revenue-entry/revenue-entry.queries';
 export * from './revenue-entry/revenue-entry.lib';
 
+// Project fixed costs
+export * from './project-fixed-cost/project-fixed-cost.entity';
+export * from './project-fixed-cost/project-fixed-cost.queries';
+export * from './project-fixed-cost/project-fixed-cost.lib';
+
 // Project referrals
 export * from './project-referral/project-referral.entity';
 export * from './project-referral/project-referral.queries';

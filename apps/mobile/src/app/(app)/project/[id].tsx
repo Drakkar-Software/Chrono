@@ -12,21 +12,25 @@ import {
 import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
+import { todayISO } from '@/lib/date';
 import { useProject } from '@/lib/hooks/use-projects';
 import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
 import { useProjectMembers, useProjectMemberMutations } from '@/lib/hooks/use-project-members';
 import { useCompanyMembers } from '@/lib/hooks/use-company-members';
 import { useRevenueSources, useRevenueSourceMutations } from '@/lib/hooks/use-revenue-sources';
+import { useProjectFixedCosts, useProjectFixedCostMutations } from '@/lib/hooks/use-project-fixed-costs';
 import { useProjectReferrals, useProjectReferralMutations } from '@/lib/hooks/use-project-referrals';
-import { useRevenueEntries } from '@/lib/hooks/use-revenue-entries';
+import { useRevenueEntries, useRecognizeRevenue } from '@/lib/hooks/use-revenue-entries';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { projectBadge } from '@/lib/status';
 import { ProjectMemberRow } from '@/components/projects/ProjectMemberRow';
 import { RevenueSourceRow } from '@/components/projects/RevenueSourceRow';
+import { FixedCostRow } from '@/components/projects/FixedCostRow';
 import { ReferrerRow } from '@/components/projects/ReferrerRow';
 import { AddProjectMemberForm } from '@/components/projects/AddProjectMemberForm';
 import { AddRevenueSourceForm, type AddRevenueSourceValues } from '@/components/projects/AddRevenueSourceForm';
+import { AddFixedCostForm, type AddFixedCostValues } from '@/components/projects/AddFixedCostForm';
 import { AddReferrerForm } from '@/components/projects/AddReferrerForm';
 import { EditProjectForm, type EditProjectValues } from '@/components/projects/EditProjectForm';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
@@ -35,7 +39,7 @@ import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
-type Panel = 'none' | 'edit' | 'member' | 'source' | 'referrer';
+type Panel = 'none' | 'edit' | 'member' | 'source' | 'fixedCost' | 'referrer';
 
 export default function ProjectDetail() {
   const t = useT();
@@ -53,6 +57,7 @@ export default function ProjectDetail() {
   const { data: members } = useProjectMembers(id);
   const { data: companyMembers } = useCompanyMembers(companyId);
   const { data: sources } = useRevenueSources(id);
+  const { data: fixedCosts } = useProjectFixedCosts(id);
   const { data: referrals } = useProjectReferrals(id);
 
   // P&L data for this one project (single-project reads, not a fan-out).
@@ -67,8 +72,10 @@ export default function ProjectDetail() {
 
   const memberMut = useProjectMemberMutations();
   const sourceMut = useRevenueSourceMutations();
+  const fixedCostMut = useProjectFixedCostMutations();
   const referralMut = useProjectReferralMutations();
   const projectMut = useProjectMutations();
+  const { mutateAsync: recognizeRevenue, isPending: recognizing } = useRecognizeRevenue();
 
   const [panel, setPanel] = useState<Panel>('none');
 
@@ -132,6 +139,29 @@ export default function ProjectDetail() {
       type: values.type,
       name: values.name,
       content: values.content,
+    });
+    // Recognize the current month immediately so the funding pool (available
+    // balance) reflects the new source right away, instead of only at the
+    // next invoice settle.
+    await recognizeRevenue(project.id, todayISO());
+    setPanel('none');
+  };
+  const removeSource = async (sourceId: string) => {
+    await sourceMut.deactivate(sourceId);
+    // A deactivated/removed source's revenue must be retired from the pool
+    // right away too — recognize_project_revenue does that retirement.
+    await recognizeRevenue(project.id, todayISO());
+  };
+  const addFixedCost = async (values: AddFixedCostValues) => {
+    if (!companyId) return;
+    await fixedCostMut.create({
+      project_id: project.id,
+      company_id: companyId,
+      name: values.name,
+      cadence: values.cadence,
+      amount_cents: values.amountCents,
+      period_month: values.periodMonth ?? null,
+      starts_on: values.startsOn ?? null,
     });
     setPanel('none');
   };
@@ -256,7 +286,7 @@ export default function ProjectDetail() {
                 <AddRevenueSourceForm
                   onAdd={addSource}
                   onCancel={() => setPanel('none')}
-                  isSubmitting={sourceMut.isPending}
+                  isSubmitting={sourceMut.isPending || recognizing}
                 />
                 {sourceMut.error ? <InlineError error={sourceMut.error} /> : null}
               </>
@@ -266,11 +296,44 @@ export default function ProjectDetail() {
                 key={source.id}
                 source={source}
                 currency={currency}
-                onRemove={() => void sourceMut.deactivate(source.id)}
-                removing={sourceMut.isPending}
+                onRemove={() => void removeSource(source.id)}
+                removing={sourceMut.isPending || recognizing}
               />
             ))}
             {(sources ?? []).length === 0 && panel !== 'source' ? (
+              <Txt variant="body" tone="textMuted">
+                {t('common.noneYet')}
+              </Txt>
+            ) : null}
+          </Section>
+        ) : null}
+
+        {/* Period fixed costs (hosting, tooling, etc.) subtract from the funding pool. */}
+        {manager ? (
+          <Section
+            title={t('details.fixedCosts')}
+            action={panel !== 'fixedCost' ? () => setPanel('fixedCost') : undefined}
+          >
+            {panel === 'fixedCost' ? (
+              <>
+                <AddFixedCostForm
+                  onAdd={addFixedCost}
+                  onCancel={() => setPanel('none')}
+                  isSubmitting={fixedCostMut.isPending}
+                />
+                {fixedCostMut.error ? <InlineError error={fixedCostMut.error} /> : null}
+              </>
+            ) : null}
+            {(fixedCosts ?? []).map((cost) => (
+              <FixedCostRow
+                key={cost.id}
+                cost={cost}
+                currency={currency}
+                onRemove={() => void fixedCostMut.remove(cost.id)}
+                removing={fixedCostMut.isPending}
+              />
+            ))}
+            {(fixedCosts ?? []).length === 0 && panel !== 'fixedCost' ? (
               <Txt variant="body" tone="textMuted">
                 {t('common.noneYet')}
               </Txt>
@@ -318,6 +381,7 @@ export default function ProjectDetail() {
             revenueEntries={pnlRevenue ?? []}
             referralEarnings={pnlReferrals ?? []}
             invoices={pnlInvoices ?? []}
+            fixedCosts={fixedCosts ?? []}
           />
         ) : null}
       </View>

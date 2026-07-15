@@ -31,7 +31,7 @@ export function useRevenueSourceMutations() {
     [update],
   );
   const deactivate = useCallback(
-    (id: string) => update(id, { active: false }),
+    (id: string) => update(id, { deleted: true }),
     [update],
   );
 

@@ -62,7 +62,8 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
 /**
  * Persistent desktop navigation rail, rendered by the (app) layout on wide web
  * in place of the bottom tab bar. Mirrors the tab destinations (Reports is
- * manager-only) and adds Search + Notifications, with the active route pilled.
+ * manager-only) and pins Search, Notifications, and Settings to the bottom
+ * behind a separator, with the active route pilled.
  */
 export function DesktopSidebar() {
   const t = useT();
@@ -78,7 +79,6 @@ export function DesktopSidebar() {
     ...(canManage(role)
       ? [{ key: 'reports', label: t('tabs.nav.reports'), icon: 'bar-chart-outline' as IoniconName, path: '/reports', match: ['/reports', '/audit'] }]
       : []),
-    { key: 'settings', label: t('tabs.nav.settings'), icon: 'settings-outline', path: '/settings', match: ['/settings'] },
   ];
 
   const secondary: NavItem[] = [
@@ -91,6 +91,7 @@ export function DesktopSidebar() {
       match: ['/notifications'],
       badge: unread,
     },
+    { key: 'settings', label: t('tabs.nav.settings'), icon: 'settings-outline', path: '/settings', match: ['/settings'] },
   ];
 
   const isActive = (item: NavItem) =>
@@ -118,12 +119,14 @@ export function DesktopSidebar() {
         ))}
       </View>
 
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      <View style={styles.bottomGroup}>
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-      <View style={styles.group}>
-        {secondary.map((item) => (
-          <SidebarLink key={item.key} item={item} active={isActive(item)} />
-        ))}
+        <View style={styles.group}>
+          {secondary.map((item) => (
+            <SidebarLink key={item.key} item={item} active={isActive(item)} />
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -141,6 +144,7 @@ const styles = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm },
   brandText: { flex: 1, gap: 0 },
   group: { gap: spacing.xs },
+  bottomGroup: { marginTop: 'auto', gap: spacing.lg },
   link: {
     flexDirection: 'row',
     alignItems: 'center',

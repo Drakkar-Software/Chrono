@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { Button, CardGrid, EmptyState, Segmented, StackScreen, Txt, spacing } from '@chrono/ui';
 import { canManage, companyCurrency } from '@chrono/sdk';
-import type { InvoiceWithRelations, ReferralEarning, RevenueEntry } from '@chrono/sdk';
+import type { InvoiceWithRelations, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
@@ -12,6 +12,7 @@ import { exportCsv, invoicesCsv, timeEntriesCsv } from '@/lib/csv-export';
 import { usePendingApprovals, useApproveEntry, useRejectEntry } from '@/lib/hooks/use-approvals';
 import { useProjects } from '@/lib/hooks/use-projects';
 import { useCompanyRevenueEntries } from '@/lib/hooks/use-revenue-entries';
+import { useCompanyProjectFixedCosts } from '@/lib/hooks/use-project-fixed-costs';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
@@ -78,6 +79,7 @@ export default function ReportsScreen() {
   const { data: revenueEntries } = useCompanyRevenueEntries(companyId ?? undefined);
   const { data: referralEarnings } = useReferralEarnings(companyId ? { companyId } : {});
   const { data: invoices } = useInvoices({ companyId: companyId ?? '' });
+  const { data: fixedCosts } = useCompanyProjectFixedCosts(companyId ?? undefined);
 
   // Approved billable time in-range — one company-scoped query, sliced per user.
   const { data: approvedEntries, isLoading: loadingApproved } = useTimeEntries({
@@ -101,6 +103,10 @@ export default function ReportsScreen() {
     () => groupByProject<InvoiceWithRelations>(invoices ?? []),
     [invoices],
   );
+  const fixedCostsByProject = useMemo(
+    () => groupByProject<ProjectFixedCost>(fixedCosts ?? []),
+    [fixedCosts],
+  );
 
   const freelancerRows = useMemo(() => {
     const invoicesInRange = (invoices ?? []).filter((inv) => inRange(inv.period_month, range));
@@ -110,8 +116,8 @@ export default function ReportsScreen() {
   // Six-month revenue/cost/margin trend — independent of the range preset above,
   // built from the company-wide data already fetched (no extra queries).
   const trend = useMemo(
-    () => monthlyTrend(revenueEntries ?? [], referralEarnings ?? [], invoices ?? [], todayISO(), 6),
-    [revenueEntries, referralEarnings, invoices],
+    () => monthlyTrend(revenueEntries ?? [], referralEarnings ?? [], invoices ?? [], fixedCosts ?? [], todayISO(), 6),
+    [revenueEntries, referralEarnings, invoices, fixedCosts],
   );
 
   const pendingList = pending ?? [];
@@ -306,6 +312,7 @@ export default function ReportsScreen() {
                   revenueEntries={revenueByProject.get(project.id) ?? []}
                   referralEarnings={referralsByProject.get(project.id) ?? []}
                   invoices={invoicesByProject.get(project.id) ?? []}
+                  fixedCosts={fixedCostsByProject.get(project.id) ?? []}
                 />
               ))}
             </CardGrid>

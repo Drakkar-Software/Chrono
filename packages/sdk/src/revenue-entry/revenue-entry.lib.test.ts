@@ -79,6 +79,20 @@ describe('availableFunding', () => {
     );
     expect(funding).toBe(300000);
   });
+
+  it('subtracts fixed costs (e.g. hosting) from the pool', () => {
+    const funding = availableFunding(
+      [{ amount_cents: 500000 }, { amount_cents: 300000 }],
+      [{ amount_cents: 80000 }],
+      [{ amount_paid_cents: 200000 }],
+      20000,
+    );
+    expect(funding).toBe(500000); // 800000 - 80000 - 20000 - 200000
+  });
+
+  it('defaults fixed costs to 0 when omitted', () => {
+    expect(availableFunding([{ amount_cents: 100000 }], [], [])).toBe(100000);
+  });
 });
 
 describe('projectMargin', () => {
@@ -89,5 +103,10 @@ describe('projectMargin', () => {
   it('goes negative when cost exceeds revenue net of referral', () => {
     // 100000 - 20000 - 200000 = -120000
     expect(projectMargin(100000, 20000, 200000)).toBe(-120000);
+  });
+
+  it('subtracts fixed costs when provided', () => {
+    // 800000 - 80000 - 20000 (fixed) - 500000 = 200000
+    expect(projectMargin(800000, 80000, 500000, 20000)).toBe(200000);
   });
 });

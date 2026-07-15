@@ -77,13 +77,12 @@ export default function SettingsScreen() {
   };
 
   const hasCompanies = companies.length > 0;
-  const topColStyle = isWide ? styles.colWide : styles.colFull;
 
   return (
     <StackScreen title={t('tabs.nav.settings')}>
       <View style={styles.wrap}>
-        <View style={[styles.grid, isWide && styles.gridRow]}>
-          <View style={topColStyle}>
+        <View style={styles.grid}>
+          <View style={styles.colFull}>
             <TitledCard title={t('tabs.settings.profile')}>
               <AvatarUpload
                 imageUrl={profile?.avatar_url}
@@ -119,7 +118,7 @@ export default function SettingsScreen() {
             </TitledCard>
           </View>
 
-          <View style={topColStyle}>
+          <View style={styles.colFull}>
             <TitledCard title={t('tabs.settings.appearance')}>
               <ThemeToggle />
               <Txt variant="caption" tone="textMuted">
@@ -202,7 +201,5 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
   grid: { gap: spacing.lg },
-  gridRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  colWide: { flex: 1 },
   colFull: { width: '100%' },
 });

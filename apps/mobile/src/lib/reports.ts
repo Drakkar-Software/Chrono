@@ -1,5 +1,5 @@
-import { DEFAULT_HOURS_PER_DAY, isActiveInvoice, minutesToDays, monthBounds } from '@chrono/sdk';
-import type { InvoiceStatus } from '@chrono/sdk';
+import { DEFAULT_HOURS_PER_DAY, isActiveInvoice, minutesToDays, monthBounds, totalFixedCostForMonth } from '@chrono/sdk';
+import type { InvoiceStatus, ProjectFixedCost } from '@chrono/sdk';
 
 /** Date-range presets for scoping report figures. */
 export type RangePreset = 'this_month' | 'last_month' | 'this_quarter' | 'all';
@@ -58,6 +58,7 @@ export interface MonthlyPoint {
   month: string;
   revenueCents: number;
   costCents: number;
+  fixedCostCents: number;
   marginCents: number;
 }
 
@@ -78,14 +79,16 @@ export function lastMonths(todayISO: string, count: number): string[] {
 
 /**
  * Monthly revenue / cost / margin series over the last `count` months. Revenue
- * is recognized revenue; cost is earned on real (submitted+) invoices; margin =
- * revenue − referrals − cost. Buckets by `period_month`, so it's independent of
- * the screen's date-range preset.
+ * is recognized revenue; cost is earned on real (submitted+) invoices; fixed
+ * costs (hosting, tooling, etc.) are each month's applicable amount from
+ * `fixedCosts`; margin = revenue − referrals − fixed costs − cost. Buckets by
+ * `period_month`, so it's independent of the screen's date-range preset.
  */
 export function monthlyTrend(
   revenueEntries: TrendRevenue[],
   referralEarnings: TrendReferral[],
   invoices: TrendInvoice[],
+  fixedCosts: ProjectFixedCost[],
   todayISO: string,
   count = 6,
 ): MonthlyPoint[] {
@@ -106,8 +109,9 @@ export function monthlyTrend(
   return months.map((month) => {
     const revenueCents = revenue.get(month) ?? 0;
     const costCents = cost.get(month) ?? 0;
-    const marginCents = revenueCents - (referral.get(month) ?? 0) - costCents;
-    return { month, revenueCents, costCents, marginCents };
+    const fixedCostCents = totalFixedCostForMonth(fixedCosts, month);
+    const marginCents = revenueCents - (referral.get(month) ?? 0) - fixedCostCents - costCents;
+    return { month, revenueCents, costCents, fixedCostCents, marginCents };
   });
 }
 

@@ -100,6 +100,21 @@ export const componentsACatalog: CatalogSlice = {
     'comp.revsource.errNegative': '{label} cannot be negative',
     'comp.revsource.errMarkupMin': 'Markup % cannot be below -100',
 
+    // Fixed costs
+    'comp.fixedcost.title': 'Add fixed cost',
+    'comp.fixedcost.cadence': 'Cadence',
+    'comp.fixedcost.cadenceRecurring': 'Recurring',
+    'comp.fixedcost.cadenceOneOff': 'One-off',
+    'comp.fixedcost.amount': 'Amount',
+    'comp.fixedcost.namePlaceholder': 'Hosting',
+    'comp.fixedcost.startsOn': 'Starts on',
+    'comp.fixedcost.periodMonth': 'Month',
+    'comp.fixedcost.addCost': 'Add cost',
+    'comp.fixedcost.monthly': 'monthly',
+    'comp.fixedcost.oneOff': 'one-off',
+    'comp.fixedcost.errName': 'Enter a name',
+    'comp.fixedcost.errNegative': 'Amount cannot be negative',
+
     // Referrers
     'comp.referrer.title': 'Add referrer',
     'comp.referrer.percent': 'Percent',
@@ -204,6 +219,20 @@ export const componentsACatalog: CatalogSlice = {
     'comp.revsource.errName': 'Saisissez un nom',
     'comp.revsource.errNegative': '{label} ne peut pas être négatif',
     'comp.revsource.errMarkupMin': 'La marge % ne peut pas être inférieure à -100',
+
+    'comp.fixedcost.title': 'Ajouter un coût fixe',
+    'comp.fixedcost.cadence': 'Cadence',
+    'comp.fixedcost.cadenceRecurring': 'Récurrent',
+    'comp.fixedcost.cadenceOneOff': 'Ponctuel',
+    'comp.fixedcost.amount': 'Montant',
+    'comp.fixedcost.namePlaceholder': 'Hébergement',
+    'comp.fixedcost.startsOn': 'Débute le',
+    'comp.fixedcost.periodMonth': 'Mois',
+    'comp.fixedcost.addCost': 'Ajouter le coût',
+    'comp.fixedcost.monthly': 'mensuel',
+    'comp.fixedcost.oneOff': 'ponctuel',
+    'comp.fixedcost.errName': 'Saisissez un nom',
+    'comp.fixedcost.errNegative': 'Le montant ne peut pas être négatif',
 
     'comp.referrer.title': 'Ajouter un apporteur',
     'comp.referrer.percent': 'Pourcentage',

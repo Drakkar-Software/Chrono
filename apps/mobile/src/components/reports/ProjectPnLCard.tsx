@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Money, Row, TitledCard, spacing, useTheme } from '@chrono/ui';
-import { availableFunding, projectMargin, sumReferralEarnings } from '@chrono/sdk';
-import type { Invoice, Project, ReferralEarning, RevenueEntry } from '@chrono/sdk';
+import { availableFunding, fixedCostCumulative, projectMargin, sumReferralEarnings } from '@chrono/sdk';
+import type { Invoice, Project, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
+import { todayISO } from '@/lib/date';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 import { BudgetMeter } from '@/components/reports/BudgetMeter';
 
@@ -17,12 +18,14 @@ export interface ProjectPnLCardProps {
   referralEarnings: ReferralEarning[];
   /** This project's invoices (pre-filtered by the reports screen). */
   invoices: Invoice[];
+  /** This project's fixed cost definitions (hosting, tooling, etc.), pre-filtered by the reports screen. */
+  fixedCosts?: ProjectFixedCost[];
 }
 
 /**
- * Presentational per-project profit & loss: revenue − referrals − freelancer
- * cost, + funding. Data is fetched once at the screen and sliced per project —
- * this component holds no hooks so it never fans out into an N+1.
+ * Presentational per-project profit & loss: revenue − referrals − fixed costs
+ * − freelancer cost, + funding. Data is fetched once at the screen and sliced
+ * per project — this component holds no hooks so it never fans out into an N+1.
  */
 export function ProjectPnLCard({
   project,
@@ -30,6 +33,7 @@ export function ProjectPnLCard({
   revenueEntries,
   referralEarnings,
   invoices,
+  fixedCosts = [],
 }: ProjectPnLCardProps) {
   const t = useT();
   const { colors } = useTheme();
@@ -55,9 +59,14 @@ export function ProjectPnLCard({
     () => invoices.map((i) => ({ amount_paid_cents: i.amount_paid_cents ?? 0 })),
     [invoices],
   );
+  // Cumulative through the current month, matching settle_project_month's pool math.
+  const fixedCostCents = useMemo(
+    () => fixedCostCumulative(fixedCosts, todayISO()),
+    [fixedCosts],
+  );
 
-  const margin = projectMargin(revenueCents, referralCents, costCents);
-  const funding = availableFunding(revenueEntries, referralEarnings, paidInvoices);
+  const margin = projectMargin(revenueCents, referralCents, costCents, fixedCostCents);
+  const funding = availableFunding(revenueEntries, referralEarnings, paidInvoices, fixedCostCents);
 
   return (
     <TitledCard title={project.name} titleNumberOfLines={1}>
@@ -67,6 +76,9 @@ export function ProjectPnLCard({
         </StatTile>
         <StatTile label={t('compb.pnl.referrals')}>
           <Money cents={referralCents} currency={currency} variant="heading" tone="textMuted" />
+        </StatTile>
+        <StatTile label={t('compb.pnl.fixedCosts')}>
+          <Money cents={fixedCostCents} currency={currency} variant="heading" tone="textMuted" />
         </StatTile>
         <StatTile label={t('compb.pnl.cost')}>
           <Money cents={costCents} currency={currency} variant="heading" tone="textMuted" />

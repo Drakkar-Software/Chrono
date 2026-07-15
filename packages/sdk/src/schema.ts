@@ -19,6 +19,7 @@ export type AppRole = 'freelancer' | 'manager' | 'admin';
 export type ProjectStatus = 'active' | 'archived';
 export type TimeEntryStatus = 'pending' | 'approved' | 'rejected';
 export type RevenueSourceType = 'time_based' | 'recurring' | 'self_billing';
+export type FixedCostCadence = 'recurring' | 'one_off';
 export type InvoiceStatus =
   | 'draft'
   | 'submitted'
@@ -370,6 +371,46 @@ export type Database = {
           },
         ];
       };
+      project_fixed_costs: {
+        Row: {
+          id: string;
+          project_id: string;
+          company_id: string;
+          name: string;
+          cadence: FixedCostCadence;
+          amount_cents: number;
+          active: boolean;
+          period_month: string | null;
+          starts_on: string | null;
+          ends_on: string | null;
+          created_by: string | null;
+        } & Timestamps;
+        Insert: {
+          id?: string;
+          project_id: string;
+          company_id: string;
+          name: string;
+          cadence: FixedCostCadence;
+          amount_cents: number;
+          active?: boolean;
+          period_month?: string | null;
+          starts_on?: string | null;
+          ends_on?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['project_fixed_costs']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'project_fixed_costs_project_id_fkey';
+            columns: ['project_id'];
+            referencedRelation: 'projects';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       project_referrals: {
         Row: {
           id: string;
@@ -670,6 +711,7 @@ export type Database = {
       project_status: ProjectStatus;
       time_entry_status: TimeEntryStatus;
       revenue_source_type: RevenueSourceType;
+      fixed_cost_cadence: FixedCostCadence;
       invoice_status: InvoiceStatus;
       notification_type: NotificationType;
       blog_article_status: BlogArticleStatus;

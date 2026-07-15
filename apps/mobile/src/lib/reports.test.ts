@@ -23,18 +23,47 @@ describe('monthlyTrend', () => {
         { period_month: '2026-03-01', earned_cents: 40000, status: 'paid' },
         { period_month: '2026-03-01', earned_cents: 99999, status: 'draft' }, // excluded
       ],
+      [],
       '2026-03-10',
       2,
     );
     expect(rows).toEqual([
-      { month: '2026-02', revenueCents: 50000, costCents: 0, marginCents: 50000 },
+      { month: '2026-02', revenueCents: 50000, costCents: 0, fixedCostCents: 0, marginCents: 50000 },
       // margin = 100000 revenue - 10000 referral - 40000 cost = 50000
-      { month: '2026-03', revenueCents: 100000, costCents: 40000, marginCents: 50000 },
+      { month: '2026-03', revenueCents: 100000, costCents: 40000, fixedCostCents: 0, marginCents: 50000 },
+    ]);
+  });
+
+  it('subtracts each month\'s applicable fixed cost from margin', () => {
+    const rows = monthlyTrend(
+      [{ period_month: '2026-03-01', amount_cents: 100000 }],
+      [],
+      [],
+      [
+        {
+          cadence: 'recurring',
+          amount_cents: 2000,
+          active: true,
+          period_month: null,
+          starts_on: '2026-01-01',
+          ends_on: null,
+        } as unknown as import('@chrono/sdk').ProjectFixedCost,
+      ],
+      '2026-03-10',
+      2,
+    );
+    expect(rows).toEqual([
+      { month: '2026-02', revenueCents: 0, costCents: 0, fixedCostCents: 2000, marginCents: -2000 },
+      { month: '2026-03', revenueCents: 100000, costCents: 0, fixedCostCents: 2000, marginCents: 98000 },
     ]);
   });
 
   it('yields zeroed months with no activity', () => {
-    const rows = monthlyTrend([], [], [], '2026-03-10', 2);
-    expect(rows.every((r) => r.revenueCents === 0 && r.costCents === 0 && r.marginCents === 0)).toBe(true);
+    const rows = monthlyTrend([], [], [], [], '2026-03-10', 2);
+    expect(
+      rows.every(
+        (r) => r.revenueCents === 0 && r.costCents === 0 && r.fixedCostCents === 0 && r.marginCents === 0,
+      ),
+    ).toBe(true);
   });
 });

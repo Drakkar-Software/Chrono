@@ -1,61 +1,61 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, TablesInsert, TablesUpdate } from '../schema';
-import type { RevenueSource } from './revenue-source.entity';
+import type { ProjectFixedCost } from './project-fixed-cost.entity';
 
 type Client = SupabaseClient<Database>;
 
-export async function fetchRevenueSources(
+export async function fetchProjectFixedCosts(
   client: Client,
   projectId: string,
-): Promise<RevenueSource[]> {
+): Promise<ProjectFixedCost[]> {
   const { data, error } = await client
-    .from('revenue_sources')
+    .from('project_fixed_costs')
     .select('*')
     .eq('project_id', projectId)
     .eq('deleted', false)
     .order('created_at', { ascending: true });
   if (error) throw error;
-  return (data ?? []) as RevenueSource[];
+  return (data ?? []) as ProjectFixedCost[];
 }
 
-export async function createRevenueSource(
+export async function createProjectFixedCost(
   client: Client,
-  input: TablesInsert<'revenue_sources'>,
-): Promise<RevenueSource> {
+  input: TablesInsert<'project_fixed_costs'>,
+): Promise<ProjectFixedCost> {
   const { data, error } = await client
-    .from('revenue_sources')
+    .from('project_fixed_costs')
     .insert(input)
     .select('*')
     .single();
   if (error) throw error;
-  return data as RevenueSource;
+  return data as ProjectFixedCost;
 }
 
-export async function updateRevenueSource(
+export async function updateProjectFixedCost(
   client: Client,
   id: string,
-  patch: TablesUpdate<'revenue_sources'>,
-): Promise<RevenueSource> {
+  patch: TablesUpdate<'project_fixed_costs'>,
+): Promise<ProjectFixedCost> {
   const { data, error } = await client
-    .from('revenue_sources')
+    .from('project_fixed_costs')
     .update(patch)
     .eq('id', id)
     .select('*')
     .single();
   if (error) throw error;
-  return data as RevenueSource;
+  return data as ProjectFixedCost;
 }
 
-export async function deactivateRevenueSource(
+export async function removeProjectFixedCost(
   client: Client,
   id: string,
-): Promise<RevenueSource> {
+): Promise<ProjectFixedCost> {
   const { data, error } = await client
-    .from('revenue_sources')
+    .from('project_fixed_costs')
     .update({ deleted: true })
     .eq('id', id)
     .select('*')
     .single();
   if (error) throw error;
-  return data as RevenueSource;
+  return data as ProjectFixedCost;
 }
