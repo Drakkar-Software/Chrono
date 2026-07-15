@@ -14,6 +14,7 @@ export type TimeEntryWithProject = TimeEntry & {
     name: string;
     color: string | null;
     hours_per_day: number;
+    default_tjm_cents: number | null;
   } | null;
 };
 
@@ -25,4 +26,6 @@ export type TimeEntryFilters = {
   to?: string;
   status?: TimeEntryStatus;
   billable?: boolean;
+  /** When true, only entries not yet attached to an invoice (`invoice_id IS NULL`). */
+  uninvoiced?: boolean;
 };

@@ -7,8 +7,16 @@ import {
   totalFixedCostForMonth,
   utilization,
   utilizationStatus,
+  valueUninvoicedTime,
 } from '@chrono/sdk';
-import type { CompanyMemberWithProfile, InvoiceStatus, ProjectFixedCost, UtilizationStatus } from '@chrono/sdk';
+import type {
+  CompanyMemberWithProfile,
+  InvoiceStatus,
+  ProjectFixedCost,
+  ProjectMember,
+  TimeEntryWithProject,
+  UtilizationStatus,
+} from '@chrono/sdk';
 
 /** Date-range presets for scoping report figures. */
 export type RangePreset = 'this_month' | 'last_month' | 'this_quarter' | 'all';
@@ -217,4 +225,31 @@ export function summarizeUtilization(
       status: utilizationStatus(utilizationPct),
     };
   });
+}
+
+/**
+ * Approved billable time not yet invoiced, valued per project at each
+ * freelancer's effective day rate (see `valueUninvoicedTime`). Buckets
+ * `entries` by `project_id` and reads each project's rate straight off its
+ * join (`entry.project`), so no separate per-project fetch is needed —
+ * `membersByProject` only needs to supply per-freelancer rate overrides.
+ */
+export function uninvoicedTimeByProject(
+  entries: TimeEntryWithProject[],
+  membersByProject: Map<string, ProjectMember[]>,
+): Map<string, number> {
+  const byProject = new Map<string, TimeEntryWithProject[]>();
+  for (const e of entries) {
+    const arr = byProject.get(e.project_id);
+    if (arr) arr.push(e);
+    else byProject.set(e.project_id, [e]);
+  }
+
+  const out = new Map<string, number>();
+  for (const [projectId, projectEntries] of byProject) {
+    const project = projectEntries[0].project;
+    if (!project) continue;
+    out.set(projectId, valueUninvoicedTime(projectEntries, project, membersByProject.get(projectId) ?? []));
+  }
+  return out;
 }

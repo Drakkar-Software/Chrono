@@ -5,9 +5,11 @@ import {
   availableFunding,
   dueRevenue,
   fixedCostCumulative,
+  netAvailableFunding,
   projectMargin,
   sumApprovedExpenses,
   sumReferralEarnings,
+  totalOutstanding,
 } from '@chrono/sdk';
 import type { Invoice, Project, ProjectExpense, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
@@ -29,6 +31,11 @@ export interface ProjectPnLCardProps {
   fixedCosts?: ProjectFixedCost[];
   /** This project's expenses, pre-filtered by the reports screen. */
   expenses?: ProjectExpense[];
+  /**
+   * Approved billable time not yet attached to an invoice, valued at each
+   * freelancer's effective day rate (see `valueUninvoicedTime`). Cents.
+   */
+  uninvoicedTimeCents?: number;
 }
 
 /**
@@ -44,6 +51,7 @@ export function ProjectPnLCard({
   invoices,
   fixedCosts = [],
   expenses = [],
+  uninvoicedTimeCents = 0,
 }: ProjectPnLCardProps) {
   const t = useT();
   const { colors } = useTheme();
@@ -83,6 +91,15 @@ export function ProjectPnLCard({
   // Recognized revenue the client hasn't paid yet — it doesn't count toward
   // `funding` until a manager marks it paid (see revenue-entry.lib#dueRevenue).
   const dueCents = useMemo(() => dueRevenue(revenueEntries), [revenueEntries]);
+  // What's still owed to freelancers but hasn't left the pool: issued-but-unpaid
+  // invoice balances plus approved time not yet invoiced. `totalOutstanding` and
+  // `uninvoicedTimeCents` cover disjoint sets (on-an-invoice vs invoice_id IS
+  // NULL), so summing them never double-counts.
+  const owedCents = useMemo(
+    () => totalOutstanding(invoices) + uninvoicedTimeCents,
+    [invoices, uninvoicedTimeCents],
+  );
+  const netFunding = netAvailableFunding(funding, owedCents);
 
   return (
     <TitledCard title={project.name} titleNumberOfLines={1}>
@@ -109,6 +126,14 @@ export function ProjectPnLCard({
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <Row label={t('compb.pnl.availableFunding')}>
         <Money cents={funding} currency={currency} tone="textMuted" />
+      </Row>
+      {owedCents > 0 ? (
+        <Row label={t('compb.pnl.owedToFreelancers')}>
+          <Money cents={-owedCents} currency={currency} tone="warning" />
+        </Row>
+      ) : null}
+      <Row label={t('compb.pnl.netAvailableFunding')}>
+        <Money cents={netFunding} currency={currency} variant="heading" tone={netFunding >= 0 ? 'success' : 'danger'} />
       </Row>
       {dueCents > 0 ? (
         <Row label={t('compb.pnl.dueByClient')}>

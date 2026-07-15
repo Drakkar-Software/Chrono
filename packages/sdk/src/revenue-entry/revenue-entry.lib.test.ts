@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   availableFunding,
   dueRevenue,
+  netAvailableFunding,
   projectMargin,
   recurringRevenue,
   revenueEntryPaid,
@@ -150,5 +151,33 @@ describe('projectMargin', () => {
   it('subtracts reimbursable expenses when provided', () => {
     // 800000 - 80000 - 20000 (fixed) - 500000 - 15000 (expenses) = 185000
     expect(projectMargin(800000, 80000, 500000, 20000, 15000)).toBe(185000);
+  });
+});
+
+describe('netAvailableFunding', () => {
+  it('is the funding when nothing is pending', () => {
+    expect(netAvailableFunding(200000, 0)).toBe(200000);
+  });
+
+  it('subtracts what is owed to freelancers from the funding pool', () => {
+    expect(netAvailableFunding(200000, 50000)).toBe(150000);
+  });
+
+  it('is 0 when funding exactly covers what is owed', () => {
+    expect(netAvailableFunding(200000, 200000)).toBe(0);
+  });
+
+  it('goes negative when what is owed exceeds the funding pool — NOT floored, unlike availableFunding', () => {
+    expect(netAvailableFunding(100000, 150000)).toBe(-50000);
+  });
+
+  it('composes with availableFunding as the funding input', () => {
+    const funding = availableFunding(
+      [{ amount_cents: 500000, paid_at: PAID }],
+      [{ amount_cents: 80000 }],
+      [{ amount_paid_cents: 200000 }],
+    );
+    // funding = 220000; owed (unpaid invoice balance + uninvoiced time) = 100000
+    expect(netAvailableFunding(funding, 100000)).toBe(120000);
   });
 });

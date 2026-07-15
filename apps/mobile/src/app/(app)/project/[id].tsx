@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Badge, Button, Card, EmptyState, ListItem, Money, StackScreen, Txt, formatMoney, spacing } from '@chrono/ui';
 import {
   canManage,
@@ -7,6 +7,7 @@ import {
   monthlyRecurringAmount,
   sourceClientTjm,
   sourceManualAmount,
+  valueUninvoicedTime,
 } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
@@ -22,13 +23,14 @@ import { useProjectReferrals } from '@/lib/hooks/use-project-referrals';
 import { useRevenueEntries } from '@/lib/hooks/use-revenue-entries';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
+import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { projectBadge } from '@/lib/status';
 import { EditProjectForm, type EditProjectValues } from '@/components/projects/EditProjectForm';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 export default function ProjectDetail() {
   const t = useT();
@@ -44,22 +46,68 @@ export default function ProjectDetail() {
 
   // Fetched here only for the entry-row counts/summaries below — each
   // sub-screen fetches its own full data independently.
-  const { data: members } = useProjectMembers(id);
-  const { data: sources } = useRevenueSources(id);
-  const { data: fixedCosts } = useProjectFixedCosts(id);
-  const { data: expenses } = useProjectExpenses(id, companyId);
-  const { data: referrals } = useProjectReferrals(id);
+  const { data: members, refetch: refetchMembers } = useProjectMembers(id);
+  const { data: sources, refetch: refetchSources } = useRevenueSources(id);
+  const { data: fixedCosts, refetch: refetchFixedCosts } = useProjectFixedCosts(id);
+  const { data: expenses, refetch: refetchExpenses } = useProjectExpenses(id, companyId);
+  const { data: referrals, refetch: refetchReferrals } = useProjectReferrals(id);
   const isProjectMember = (members ?? []).some((m) => m.user_id === user?.id);
 
   // P&L data for this one project (single-project reads, not a fan-out).
-  const { data: pnlRevenue } = useRevenueEntries(manager ? id : undefined);
-  const { data: pnlReferrals } = useReferralEarnings(
+  const { data: pnlRevenue, refetch: refetchPnlRevenue } = useRevenueEntries(manager ? id : undefined);
+  const { data: pnlReferrals, refetch: refetchPnlReferrals } = useReferralEarnings(
     manager ? { projectId: id, companyId: companyId ?? undefined } : {},
   );
-  const { data: pnlInvoices } = useInvoices({
+  const { data: pnlInvoices, refetch: refetchPnlInvoices } = useInvoices({
     companyId: manager ? companyId ?? '' : '',
     projectId: id,
   });
+  // Approved billable time not yet invoiced, valued into the P&L card's "net
+  // available funding" — a live preview of what's really left to spend.
+  const { data: uninvoicedEntries, refetch: refetchUninvoiced } = useTimeEntries({
+    companyId: manager ? companyId ?? '' : '',
+    projectId: id,
+    status: 'approved',
+    billable: true,
+    uninvoiced: true,
+  });
+
+  // Sub-screens (revenue sources, fixed costs, expenses, ...) are separate
+  // routes reached via router.push, and RPCs run there (payments, settlement,
+  // revenue recognition) don't always go through a store this screen
+  // subscribes to. Refetch everything on refocus so the figures shown here
+  // are current when the user comes back. Skip the very first focus — mount
+  // already fetched.
+  const firstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
+      void refetchProject();
+      void refetchMembers();
+      void refetchSources();
+      void refetchFixedCosts();
+      void refetchExpenses();
+      void refetchReferrals();
+      void refetchPnlRevenue();
+      void refetchPnlReferrals();
+      void refetchPnlInvoices();
+      void refetchUninvoiced();
+    }, [
+      refetchProject,
+      refetchMembers,
+      refetchSources,
+      refetchFixedCosts,
+      refetchExpenses,
+      refetchReferrals,
+      refetchPnlRevenue,
+      refetchPnlReferrals,
+      refetchPnlInvoices,
+      refetchUninvoiced,
+    ]),
+  );
 
   const projectMut = useProjectMutations();
   const [editing, setEditing] = useState(false);
@@ -129,6 +177,7 @@ export default function ProjectDetail() {
   const fixedCostsTotalCents = (fixedCosts ?? [])
     .filter((c) => c.cadence === 'recurring')
     .reduce((acc, c) => acc + c.amount_cents, 0);
+  const uninvoicedTimeCents = valueUninvoicedTime(uninvoicedEntries ?? [], project, members ?? []);
 
   return (
     <StackScreen title={project.name} onBack={() => router.back()}>
@@ -180,6 +229,7 @@ export default function ProjectDetail() {
             invoices={pnlInvoices ?? []}
             fixedCosts={fixedCosts ?? []}
             expenses={expenses ?? []}
+            uninvoicedTimeCents={uninvoicedTimeCents}
           />
         ) : null}
 

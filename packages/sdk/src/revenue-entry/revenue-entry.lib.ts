@@ -91,3 +91,16 @@ export function projectMargin(
 ): number {
   return revenueCents - referralCents - fixedCostCents - costCents - expenseCents;
 }
+
+/**
+ * Funding genuinely free to spend right now: the pool (`availableFunding`)
+ * minus everything already owed to freelancers that hasn't left the pool yet
+ * (issued-but-unpaid invoice balances + approved time not yet invoiced).
+ * NOT floored — a negative result means the pool can't cover what's owed.
+ */
+export function netAvailableFunding(
+  fundingCents: number,
+  pendingPayableCents: number,
+): number {
+  return fundingCents - pendingPayableCents;
+}

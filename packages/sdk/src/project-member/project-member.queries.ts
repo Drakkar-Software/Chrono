@@ -26,6 +26,25 @@ export async function fetchProjectMembers(
   return (data ?? []) as unknown as ProjectMemberWithProfile[];
 }
 
+/**
+ * All project-member rows across a company's projects (id + tjm_cents +
+ * project_id + user_id are what callers need to resolve `effectiveTjm` per
+ * project without a per-project fetch). Filters by `projects.company_id` via
+ * the join, so RLS project-membership scoping still applies per row.
+ */
+export async function fetchCompanyProjectMembers(
+  client: Client,
+  companyId: string,
+): Promise<ProjectMember[]> {
+  const { data, error } = await client
+    .from('project_members')
+    .select('*, project:projects!inner(company_id)')
+    .eq('project.company_id', companyId)
+    .eq('deleted', false);
+  if (error) throw error;
+  return (data ?? []) as unknown as ProjectMember[];
+}
+
 export async function addProjectMember(
   client: Client,
   input: TablesInsert<'project_members'>,

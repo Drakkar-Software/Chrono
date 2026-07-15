@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { lastMonths, monthlyTrend, summarizeUtilization } from './reports';
-import type { CompanyMemberWithProfile } from '@chrono/sdk';
+import { lastMonths, monthlyTrend, summarizeUtilization, uninvoicedTimeByProject } from './reports';
+import type { CompanyMemberWithProfile, ProjectMember, TimeEntryWithProject } from '@chrono/sdk';
 
 describe('lastMonths', () => {
   it('returns N ascending month keys ending at today', () => {
@@ -77,6 +77,7 @@ function member(userId: string, weeklyCapacityDays: number): CompanyMemberWithPr
     role: 'freelancer',
     default_hourly_rate_cents: null,
     weekly_capacity_days: weeklyCapacityDays,
+    working_weekdays: null,
     created_at: '',
     updated_at: '',
     deleted: false,
@@ -117,5 +118,101 @@ describe('summarizeUtilization', () => {
 
   it('is empty for an open-ended range', () => {
     expect(summarizeUtilization([], [member('a', 5)], {})).toEqual([]);
+  });
+});
+
+function timeEntry(
+  overrides: Partial<{
+    project_id: string;
+    user_id: string;
+    duration_minutes: number;
+    status: 'pending' | 'approved' | 'rejected';
+    billable: boolean;
+    invoice_id: string | null;
+    project: { name: string; color: string | null; hours_per_day: number; default_tjm_cents: number | null } | null;
+  }> = {},
+): TimeEntryWithProject {
+  return {
+    id: 'e1',
+    project_id: 'p1',
+    user_id: 'u1',
+    company_id: 'c1',
+    entry_date: '2026-07-06',
+    duration_minutes: 480,
+    description: null,
+    billable: true,
+    status: 'approved',
+    approved_by: null,
+    approved_at: null,
+    rejection_reason: null,
+    invoice_id: null,
+    tags: [],
+    created_at: '',
+    updated_at: '',
+    deleted: false,
+    project: { name: 'Project 1', color: null, hours_per_day: 8, default_tjm_cents: 60000 },
+    ...overrides,
+  };
+}
+
+function projectMember(userId: string, projectId: string, tjmCents: number | null): ProjectMember {
+  return {
+    id: `${projectId}:${userId}`,
+    project_id: projectId,
+    user_id: userId,
+    tjm_cents: tjmCents,
+    role_on_project: 'member',
+    created_at: '',
+    updated_at: '',
+    deleted: false,
+  };
+}
+
+describe('uninvoicedTimeByProject', () => {
+  it('values approved uninvoiced time at the project default rate', () => {
+    const totals = uninvoicedTimeByProject([timeEntry()], new Map());
+    expect(totals.get('p1')).toBe(60000); // 1 day (8h/480min) * 60000
+  });
+
+  it('buckets by project and uses each project s own rate', () => {
+    const totals = uninvoicedTimeByProject(
+      [
+        timeEntry({ project_id: 'p1', project: { name: 'P1', color: null, hours_per_day: 8, default_tjm_cents: 60000 } }),
+        timeEntry({ project_id: 'p2', project: { name: 'P2', color: null, hours_per_day: 8, default_tjm_cents: 40000 } }),
+      ],
+      new Map(),
+    );
+    expect(totals.get('p1')).toBe(60000);
+    expect(totals.get('p2')).toBe(40000);
+  });
+
+  it("uses a freelancer's per-project tjm override over the project default", () => {
+    const totals = uninvoicedTimeByProject(
+      [timeEntry({ project_id: 'p1', user_id: 'u1' })],
+      new Map([['p1', [projectMember('u1', 'p1', 50000)]]]),
+    );
+    expect(totals.get('p1')).toBe(50000);
+  });
+
+  it('excludes pending, non-billable, invoiced and deleted entries', () => {
+    const totals = uninvoicedTimeByProject(
+      [
+        timeEntry({ status: 'pending' }),
+        timeEntry({ billable: false }),
+        timeEntry({ invoice_id: 'inv-1' }),
+        { ...timeEntry(), deleted: true },
+      ],
+      new Map(),
+    );
+    expect(totals.get('p1') ?? 0).toBe(0);
+  });
+
+  it('ignores entries whose project join is missing', () => {
+    const totals = uninvoicedTimeByProject([timeEntry({ project: null })], new Map());
+    expect(totals.size).toBe(0);
+  });
+
+  it('is empty for no entries', () => {
+    expect(uninvoicedTimeByProject([], new Map()).size).toBe(0);
   });
 });

@@ -11,7 +11,7 @@ type Client = SupabaseClient<Database>;
 
 export const TIME_ENTRY_SELECT = `
   *,
-  project:projects(name, color, hours_per_day)
+  project:projects(name, color, hours_per_day, default_tjm_cents)
 ` as const;
 
 export async function fetchTimeEntries(
@@ -30,6 +30,7 @@ export async function fetchTimeEntries(
   if (filters.status) query = query.eq('status', filters.status);
   if (filters.billable !== undefined)
     query = query.eq('billable', filters.billable);
+  if (filters.uninvoiced) query = query.is('invoice_id', null);
   if (filters.from) query = query.gte('entry_date', filters.from);
   if (filters.to) query = query.lte('entry_date', filters.to);
 

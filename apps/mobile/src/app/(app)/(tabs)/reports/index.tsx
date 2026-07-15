@@ -18,7 +18,7 @@ import {
   useTheme,
 } from '@chrono/ui';
 import { canManage, companyCurrency, displayName, expensesOwedByUser } from '@chrono/sdk';
-import type { InvoiceWithRelations, ProjectExpense, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
+import type { InvoiceWithRelations, ProjectExpense, ProjectFixedCost, ProjectMember, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
@@ -33,6 +33,7 @@ import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { useCompanyMembers } from '@/lib/hooks/use-company-members';
+import { useCompanyProjectMembers } from '@/lib/hooks/use-project-members';
 import {
   RANGE_OPTIONS,
   inRange,
@@ -40,6 +41,7 @@ import {
   rangeBounds,
   summarizeFreelancers,
   summarizeUtilization,
+  uninvoicedTimeByProject,
   type RangePreset,
 } from '@/lib/reports';
 import { ApprovalRow } from '@/components/approvals/ApprovalRow';
@@ -150,6 +152,25 @@ export default function ReportsScreen() {
     refetch: refetchMembers,
   } = useCompanyMembers(companyId ?? undefined);
 
+  // Approved billable time not yet invoiced, valued into each project's "net
+  // available funding" — a live preview of what's really left to spend.
+  // All-time (no range): what's owed doesn't reset with the report's window.
+  const {
+    data: uninvoicedTimeEntries,
+    error: uninvoicedTimeError,
+    refetch: refetchUninvoicedTime,
+  } = useTimeEntries({
+    companyId: companyId ?? '',
+    status: 'approved',
+    billable: true,
+    uninvoiced: true,
+  });
+  const {
+    data: projectMembers,
+    error: projectMembersError,
+    refetch: refetchProjectMembers,
+  } = useCompanyProjectMembers(companyId ?? undefined);
+
   const revenueByProject = useMemo(
     () => groupByProject<RevenueEntry>(revenueEntries ?? []),
     [revenueEntries],
@@ -169,6 +190,14 @@ export default function ReportsScreen() {
   const expensesByProject = useMemo(
     () => groupByProject<ProjectExpense>(expenses ?? []),
     [expenses],
+  );
+  const projectMembersByProject = useMemo(
+    () => groupByProject<ProjectMember>(projectMembers ?? []),
+    [projectMembers],
+  );
+  const uninvoicedTimeByProjectId = useMemo(
+    () => uninvoicedTimeByProject(uninvoicedTimeEntries ?? [], projectMembersByProject),
+    [uninvoicedTimeEntries, projectMembersByProject],
   );
 
   const freelancerRows = useMemo(() => {
@@ -208,6 +237,8 @@ export default function ReportsScreen() {
     { error: approvedError, refetch: refetchApproved },
     { error: membersError, refetch: refetchMembers },
     { error: pendingExpensesError, refetch: refetchPendingExpenses },
+    { error: uninvoicedTimeError, refetch: refetchUninvoicedTime },
+    { error: projectMembersError, refetch: refetchProjectMembers },
   ];
   const dataError = dataSources.find((d) => d.error)?.error;
   const retryAllData = () => {
@@ -444,6 +475,7 @@ export default function ReportsScreen() {
                   invoices={invoicesByProject.get(project.id) ?? []}
                   fixedCosts={fixedCostsByProject.get(project.id) ?? []}
                   expenses={expensesByProject.get(project.id) ?? []}
+                  uninvoicedTimeCents={uninvoicedTimeByProjectId.get(project.id) ?? 0}
                 />
               ))}
             </CardGrid>

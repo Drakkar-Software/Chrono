@@ -3,8 +3,8 @@ import { useMutation } from '@drakkar.software/anchor/hooks';
 import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
-import { fetchProjectMembers } from '@chrono/sdk';
-import type { ProjectMemberWithProfile, TablesInsert } from '@chrono/sdk';
+import { fetchCompanyProjectMembers, fetchProjectMembers } from '@chrono/sdk';
+import type { ProjectMember, ProjectMemberWithProfile, TablesInsert } from '@chrono/sdk';
 
 export function useProjectMembers(projectId: string | undefined) {
   return linkedQuery<ProjectMemberWithProfile[]>(
@@ -15,6 +15,22 @@ export function useProjectMembers(projectId: string | undefined) {
       deps: [projectId],
       staleTime: 60_000,
       queryKey: `project-members:${projectId}`,
+    },
+  );
+}
+
+/** All project-member rows across a company's projects — used to resolve each
+ * freelancer's effective day rate without a per-project fetch (e.g. valuing
+ * uninvoiced time on the company-wide reports screen). */
+export function useCompanyProjectMembers(companyId: string | undefined) {
+  return linkedQuery<ProjectMember[]>(
+    () => fetchCompanyProjectMembers(globalSupabaseClient, companyId!),
+    {
+      stores: [stores.project_members],
+      enabled: !!companyId,
+      deps: [companyId],
+      staleTime: 60_000,
+      queryKey: `company-project-members:${companyId}`,
     },
   );
 }
