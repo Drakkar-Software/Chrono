@@ -227,6 +227,17 @@ export function summarizeUtilization(
   });
 }
 
+/** Bucket rows by their `project_id` for O(1) per-project lookup. */
+export function groupByProject<T extends { project_id: string }>(rows: T[]): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const row of rows) {
+    const arr = map.get(row.project_id);
+    if (arr) arr.push(row);
+    else map.set(row.project_id, [row]);
+  }
+  return map;
+}
+
 /**
  * Approved billable time not yet invoiced, valued per project at each
  * freelancer's effective day rate (see `valueUninvoicedTime`). Buckets

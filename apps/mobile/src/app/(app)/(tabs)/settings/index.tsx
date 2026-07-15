@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, EmptyState, Picker, Row, StackScreen, TextField, TitledCard, Txt, spacing, useResponsive } from '@chrono/ui';
+import { useRouter } from 'expo-router';
+import { Button, Card, EmptyState, ListItem, Picker, StackScreen, TextField, TitledCard, Txt, spacing, useResponsive } from '@chrono/ui';
 import { DEFAULT_WORKING_WEEKDAYS, canManage, companyName } from '@chrono/sdk';
 import type { AppRole } from '@chrono/sdk';
 
@@ -15,11 +16,9 @@ import {
 } from '@/lib/hooks/use-profile';
 import { useCompanyMembers, useCompanyMemberMutations } from '@/lib/hooks/use-company-members';
 import { MemberRow } from '@/components/settings/MemberRow';
-import { WorkingDaysCard } from '@/components/settings/WorkingDaysCard';
 import { AvatarUpload } from '@/components/settings/AvatarUpload';
 import { ThemeToggle } from '@/components/settings/ThemeToggle';
 import { LanguageToggle } from '@/components/settings/LanguageToggle';
-import { EditCompanyForm } from '@/components/settings/EditCompanyForm';
 import { JoinCompanyForm } from '@/components/settings/JoinCompanyForm';
 import { InvitesCard } from '@/components/settings/InvitesCard';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
@@ -27,6 +26,7 @@ import { InlineError } from '@/components/common/ErrorState';
 
 export default function SettingsScreen() {
   const t = useT();
+  const router = useRouter();
   const { isWide } = useResponsive();
   const { user, signOut } = useAppAuth();
   const { companyId, company, companies, role, setCompanyId, refresh } = useActiveCompany();
@@ -147,19 +147,22 @@ export default function SettingsScreen() {
         ) : null}
 
         {company ? (
-          <TitledCard title={t('tabs.settings.company')}>
-            {isAdmin ? (
-              <EditCompanyForm company={company} onSaved={refresh} />
-            ) : (
-              <Row label={t('tabs.settings.name')} value={companyName(company)} />
-            )}
-          </TitledCard>
-        ) : null}
-
-        {manager && company ? (
-          <TitledCard title={t('tabs.settings.workingDaysAndHolidays')}>
-            <WorkingDaysCard company={company} />
-          </TitledCard>
+          <Card padding="none">
+            <ListItem
+              title={t('tabs.settings.company')}
+              subtitle={t('tabs.settings.companyNavHint')}
+              onPress={() => router.push('/settings/enterprise')}
+              divider={manager}
+            />
+            {manager ? (
+              <ListItem
+                title={t('tabs.settings.workingDaysAndHolidays')}
+                subtitle={t('tabs.settings.workingDaysNavHint')}
+                onPress={() => router.push('/settings/working-days')}
+                divider={false}
+              />
+            ) : null}
+          </Card>
         ) : null}
 
         {manager && company && user?.id ? (
