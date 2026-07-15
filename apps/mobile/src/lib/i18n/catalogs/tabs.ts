@@ -23,7 +23,6 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.home.workCalendar': 'Work calendar',
     'tabs.home.myProjects': 'My projects',
     'tabs.home.noProjects': 'No projects yet',
-    'tabs.home.pendingApprovals': 'Pending approvals',
     'tabs.home.logTime': 'Log time',
     'tabs.home.viewHistory': 'View history',
     'tabs.home.recentEntries': 'Recent entries',
@@ -95,6 +94,10 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.reports.profitability': 'Profitability',
     'tabs.reports.projectPnl': 'Project P&L',
     'tabs.reports.projectsEmptySubtitle': 'Create a project to see its profit and loss.',
+    'tabs.reports.thisMonthRevenue': 'This month revenue',
+    'tabs.reports.projects': 'Projects',
+    'tabs.reports.projectsInDeficit': 'In deficit',
+    'tabs.reports.seeMore': 'See more',
 
     // Settings
     'tabs.settings.profile': 'Profile',
@@ -176,7 +179,6 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.home.workCalendar': 'Calendrier de travail',
     'tabs.home.myProjects': 'Mes projets',
     'tabs.home.noProjects': 'Aucun projet',
-    'tabs.home.pendingApprovals': 'Validations en attente',
     'tabs.home.logTime': 'Saisir du temps',
     'tabs.home.viewHistory': 'Voir l’historique',
     'tabs.home.recentEntries': 'Saisies récentes',
@@ -248,6 +250,10 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.reports.profitability': 'Rentabilité',
     'tabs.reports.projectPnl': 'Résultat par projet',
     'tabs.reports.projectsEmptySubtitle': 'Créez un projet pour voir son résultat.',
+    'tabs.reports.thisMonthRevenue': 'Revenu de ce mois',
+    'tabs.reports.projects': 'Projets',
+    'tabs.reports.projectsInDeficit': 'En déficit',
+    'tabs.reports.seeMore': 'Voir plus',
 
     // Settings
     'tabs.settings.profile': 'Profil',

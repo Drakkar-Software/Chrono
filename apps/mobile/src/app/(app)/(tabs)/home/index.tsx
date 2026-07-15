@@ -33,7 +33,6 @@ import { useVacationPolicy } from '@/lib/hooks/use-vacation-policy';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
-import { usePendingApprovals } from '@/lib/hooks/use-approvals';
 import { useNotificationsFeed } from '@/lib/notifications-context';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
@@ -103,7 +102,6 @@ export default function HomeScreen() {
     referrerId: manager ? undefined : userId,
   });
   const visibleProjects = useVisibleProjects(role, userId, companyId ?? undefined);
-  const { data: pending } = usePendingApprovals(manager ? companyId ?? undefined : undefined);
   const { netBusinessDays, netRemainingBusinessDays, workingWeekdays, holidayDates, timeOff } = useMaxBusinessDays(
     userId,
     selectedMonthKey,
@@ -166,8 +164,6 @@ export default function HomeScreen() {
     () => Object.keys(partialOffMinutesByDate(timeOff, selectedMonthKey)),
     [timeOff, selectedMonthKey],
   );
-
-  const pendingCount = (pending ?? []).length;
 
   // The 5 most recent entries this month, grouped by day for the preview.
   const recentDays = useMemo(() => {
@@ -252,15 +248,6 @@ export default function HomeScreen() {
               <StatTile label={t('tabs.home.congesTaken')} value={fmtDays(vacationDaysUsed)} />
             )}
           </StatRow>
-          {manager ? (
-            <StatRow>
-              <StatTile
-                label={t('tabs.home.pendingApprovals')}
-                value={String(pendingCount)}
-                tone={pendingCount > 0 ? 'warning' : 'text'}
-              />
-            </StatRow>
-          ) : null}
         </View>
 
         <View style={[styles.actions, isWide && styles.actionsWide]}>
@@ -275,16 +262,6 @@ export default function HomeScreen() {
               onPress={() => router.push('/history')}
             />
           </View>
-          {manager ? (
-            <View style={styles.action}>
-              <Button
-                title={t('tabs.nav.reports')}
-                variant="secondary"
-                fullWidth
-                onPress={() => router.push('/reports')}
-              />
-            </View>
-          ) : null}
         </View>
 
         <View style={styles.section}>

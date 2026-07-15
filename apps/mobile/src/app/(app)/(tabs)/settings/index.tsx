@@ -1,7 +1,21 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Card, EmptyState, ListItem, Picker, StackScreen, TextField, TitledCard, Txt, spacing, useResponsive } from '@chrono/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ListItem,
+  Picker,
+  StackScreen,
+  TextField,
+  TitledCard,
+  Txt,
+  borders,
+  spacing,
+  useResponsive,
+  useTheme,
+} from '@chrono/ui';
 import { DEFAULT_WORKING_WEEKDAYS, canManage, companyName } from '@chrono/sdk';
 import type { AppRole } from '@chrono/sdk';
 
@@ -28,6 +42,7 @@ export default function SettingsScreen() {
   const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
+  const { colors } = useTheme();
   const { user, signOut } = useAppAuth();
   const { companyId, company, companies, role, setCompanyId, refresh } = useActiveCompany();
   const manager = canManage(role);
@@ -133,34 +148,43 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {hasCompanies ? (
-          <TitledCard title={t('tabs.settings.activeCompany')}>
-            <Picker
-              value={companyId ?? ''}
-              onValueChange={setCompanyId}
-              options={companies.map((c) => ({ label: companyName(c), value: c.id }))}
-            />
-            <Txt variant="caption" tone="textMuted">
-              {t('tabs.settings.activeCompanyHint')}
-            </Txt>
-          </TitledCard>
-        ) : null}
-
-        {company ? (
+        {hasCompanies || company ? (
           <Card padding="none">
-            <ListItem
-              title={t('tabs.settings.company')}
-              subtitle={t('tabs.settings.companyNavHint')}
-              onPress={() => router.push('/settings/enterprise')}
-              divider={manager}
-            />
-            {manager ? (
-              <ListItem
-                title={t('tabs.settings.workingDaysAndHolidays')}
-                subtitle={t('tabs.settings.workingDaysNavHint')}
-                onPress={() => router.push('/settings/working-days')}
-                divider={false}
-              />
+            {hasCompanies ? (
+              <View
+                style={[
+                  styles.companyHeader,
+                  company ? { borderBottomColor: colors.border, borderBottomWidth: borders.hairline } : null,
+                ]}
+              >
+                <Txt variant="heading">{t('tabs.settings.activeCompany')}</Txt>
+                <Picker
+                  value={companyId ?? ''}
+                  onValueChange={setCompanyId}
+                  options={companies.map((c) => ({ label: companyName(c), value: c.id }))}
+                />
+                <Txt variant="caption" tone="textMuted">
+                  {t('tabs.settings.activeCompanyHint')}
+                </Txt>
+              </View>
+            ) : null}
+            {company ? (
+              <>
+                <ListItem
+                  title={t('tabs.settings.company')}
+                  subtitle={t('tabs.settings.companyNavHint')}
+                  onPress={() => router.push('/settings/enterprise')}
+                  divider={manager}
+                />
+                {manager ? (
+                  <ListItem
+                    title={t('tabs.settings.workingDaysAndHolidays')}
+                    subtitle={t('tabs.settings.workingDaysNavHint')}
+                    onPress={() => router.push('/settings/working-days')}
+                    divider={false}
+                  />
+                ) : null}
+              </>
             ) : null}
           </Card>
         ) : null}
@@ -215,4 +239,5 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
   grid: { gap: spacing.lg },
   colFull: { width: '100%' },
+  companyHeader: { padding: spacing.lg, gap: spacing.sm },
 });
