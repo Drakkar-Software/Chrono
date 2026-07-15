@@ -131,6 +131,8 @@ export type Database = {
           registration_id: string | null;
           vat_rate: number | null;
           invoice_numbering_enabled: boolean;
+          working_weekdays: number[];
+          max_holidays_per_year: number | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -144,6 +146,8 @@ export type Database = {
           registration_id?: string | null;
           vat_rate?: number | null;
           invoice_numbering_enabled?: boolean;
+          working_weekdays?: number[];
+          max_holidays_per_year?: number | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -159,6 +163,7 @@ export type Database = {
           role: AppRole;
           default_hourly_rate_cents: number | null;
           weekly_capacity_days: number;
+          working_weekdays: number[] | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -167,6 +172,7 @@ export type Database = {
           role?: AppRole;
           default_hourly_rate_cents?: number | null;
           weekly_capacity_days?: number;
+          working_weekdays?: number[] | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -175,6 +181,33 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'company_members_company_id_fkey';
+            columns: ['company_id'];
+            referencedRelation: 'companies';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      company_holidays: {
+        Row: {
+          id: string;
+          company_id: string;
+          holiday_date: string;
+          name: string | null;
+          recurring: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          holiday_date: string;
+          name?: string | null;
+          recurring?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['company_holidays']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'company_holidays_company_id_fkey';
             columns: ['company_id'];
             referencedRelation: 'companies';
             referencedColumns: ['id'];

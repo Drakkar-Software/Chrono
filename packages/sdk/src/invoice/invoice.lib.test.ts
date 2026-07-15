@@ -2,12 +2,42 @@ import { describe, expect, it } from 'vitest';
 import type { InvoiceStatus } from '../schema';
 import type { Invoice } from './invoice.entity';
 import {
+  approvedUnpaidCents,
   formatMoney,
   invoiceAmounts,
   invoiceStatusLabel,
   isActiveInvoice,
   totalOutstanding,
 } from './invoice.lib';
+
+// Minimal invoice-shaped fixture — only the fields totalOutstanding /
+// approvedUnpaidCents read.
+type OutInv = Pick<
+  Invoice,
+  | 'project_id'
+  | 'freelancer_id'
+  | 'period_month'
+  | 'status'
+  | 'amount_due_cents'
+  | 'amount_paid_cents'
+>;
+function inv(
+  project_id: string,
+  freelancer_id: string,
+  period_month: string,
+  status: InvoiceStatus,
+  amount_due_cents: number,
+  amount_paid_cents: number,
+): OutInv {
+  return {
+    project_id,
+    freelancer_id,
+    period_month,
+    status,
+    amount_due_cents,
+    amount_paid_cents,
+  };
+}
 
 describe('formatMoney', () => {
   it('formats integer cents as currency (deterministic en-US locale)', () => {
@@ -89,34 +119,6 @@ describe('isActiveInvoice', () => {
 });
 
 describe('totalOutstanding', () => {
-  // Minimal invoice-shaped fixture — only the fields totalOutstanding reads.
-  type OutInv = Pick<
-    Invoice,
-    | 'project_id'
-    | 'freelancer_id'
-    | 'period_month'
-    | 'status'
-    | 'amount_due_cents'
-    | 'amount_paid_cents'
-  >;
-  function inv(
-    project_id: string,
-    freelancer_id: string,
-    period_month: string,
-    status: InvoiceStatus,
-    amount_due_cents: number,
-    amount_paid_cents: number,
-  ): OutInv {
-    return {
-      project_id,
-      freelancer_id,
-      period_month,
-      status,
-      amount_due_cents,
-      amount_paid_cents,
-    };
-  }
-
   it('(a) sums a single submitted invoice outstanding', () => {
     expect(
       totalOutstanding([inv('p', 'f', '2026-01-01', 'submitted', 1000, 0)]),
@@ -164,5 +166,72 @@ describe('totalOutstanding', () => {
 
   it('is 0 for an empty list', () => {
     expect(totalOutstanding([])).toBe(0);
+  });
+
+  it('a draft-only latest invoice contributes 0 — this is the "impayé" bug approvedUnpaidCents fixes', () => {
+    expect(
+      totalOutstanding([inv('p', 'f', '2026-01-01', 'draft', 1000, 0)]),
+    ).toBe(0);
+  });
+});
+
+describe('approvedUnpaidCents', () => {
+  it('agrees with totalOutstanding for a plain submitted invoice', () => {
+    const invoices = [inv('p', 'f', '2026-01-01', 'submitted', 1000, 0)];
+    expect(approvedUnpaidCents(invoices)).toBe(totalOutstanding(invoices));
+  });
+
+  it('includes a draft invoice, unlike totalOutstanding', () => {
+    const invoices = [inv('p', 'f', '2026-01-01', 'draft', 1000, 0)];
+    expect(totalOutstanding(invoices)).toBe(0);
+    expect(approvedUnpaidCents(invoices)).toBe(1000);
+  });
+
+  it('nets a partial payment on a draft invoice', () => {
+    const invoices = [inv('p', 'f', '2026-01-01', 'draft', 1000, 400)];
+    expect(approvedUnpaidCents(invoices)).toBe(600);
+  });
+
+  it('still excludes a cancelled or fully-paid latest invoice', () => {
+    expect(approvedUnpaidCents([inv('p', 'f', '2026-01-01', 'cancelled', 1000, 0)])).toBe(0);
+    expect(approvedUnpaidCents([inv('p', 'f', '2026-01-01', 'paid', 1000, 1000)])).toBe(0);
+  });
+
+  it('applies the same latest-per-stream FIFO rule as totalOutstanding', () => {
+    const invoices = [
+      inv('p', 'f', '2026-01-01', 'partially_paid', 1000, 600),
+      inv('p', 'f', '2026-02-01', 'draft', 400, 0),
+    ];
+    expect(approvedUnpaidCents(invoices)).toBe(400);
+  });
+
+  it('values uninvoiced approved entries at the day rate (minutes -> days -> cents)', () => {
+    // 420 minutes at 7h/day = exactly 1 day; 1 day * 50000 cents = 50000.
+    const entries = [{ project_id: 'p', duration_minutes: 420, hours_per_day: 7, rate_cents: 50000 }];
+    expect(approvedUnpaidCents([], entries)).toBe(50000);
+  });
+
+  it('combines invoice outstanding and uninvoiced entries without double counting', () => {
+    const invoices = [inv('p', 'f', '2026-01-01', 'draft', 1000, 0)];
+    const entries = [{ project_id: 'p2', duration_minutes: 420, hours_per_day: 7, rate_cents: 50000 }];
+    expect(approvedUnpaidCents(invoices, entries)).toBe(51000);
+  });
+
+  it('a zero-rate entry contributes 0', () => {
+    const entries = [{ project_id: 'p', duration_minutes: 420, hours_per_day: 7, rate_cents: 0 }];
+    expect(approvedUnpaidCents([], entries)).toBe(0);
+  });
+
+  it('sums multiple uninvoiced entries across different projects', () => {
+    const entries = [
+      { project_id: 'p1', duration_minutes: 420, hours_per_day: 7, rate_cents: 50000 }, // 1 day -> 50000
+      { project_id: 'p2', duration_minutes: 240, hours_per_day: 8, rate_cents: 40000 }, // 0.5 day -> 20000
+    ];
+    expect(approvedUnpaidCents([], entries)).toBe(70000);
+  });
+
+  it('is 0 for no invoices and no entries', () => {
+    expect(approvedUnpaidCents([])).toBe(0);
+    expect(approvedUnpaidCents([], [])).toBe(0);
   });
 });

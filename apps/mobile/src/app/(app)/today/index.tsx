@@ -2,16 +2,28 @@ import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button, EmptyState, StackScreen, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
-import { buildCopiedEntries, groupByDay, shiftEntryDate, sumDurations, formatDuration, weekBounds } from '@chrono/sdk';
+import {
+  DEFAULT_HOURS_PER_DAY,
+  buildCopiedEntries,
+  groupByDay,
+  minutesToDays,
+  monthBounds,
+  monthKey,
+  shiftEntryDate,
+  sumDurations,
+  formatDuration,
+  weekBounds,
+} from '@chrono/sdk';
 import type { TablesInsert } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
-import { toISODate, todayISO } from '@/lib/date';
+import { shortMonthLabel, toISODate, todayISO } from '@/lib/date';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useMyProjects } from '@/lib/hooks/use-projects';
-import { useWeekEntries } from '@/lib/hooks/use-time-entries';
+import { useTimeEntries, useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
+import { useMaxBusinessDays } from '@/lib/hooks/use-max-business-days';
 import { LogEntryForm, type LogEntryValues } from '@/components/time/LogEntryForm';
 import { DayGroupHeader } from '@/components/time/DayGroupHeader';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
@@ -31,9 +43,19 @@ export default function TodayScreen() {
 
   const weekStart = useMemo(() => weekBounds(todayISO()).start, []);
   const lastWeekStart = useMemo(() => shiftEntryDate(weekStart, -7), [weekStart]);
+  const month = useMemo(() => monthBounds(todayISO()), []);
+  const thisMonthKey = useMemo(() => monthKey(todayISO()), []);
+  const monthLabel = useMemo(() => shortMonthLabel(thisMonthKey.slice(0, 7)), [thisMonthKey]);
   const { data: projects } = useMyProjects(userId, companyId ?? undefined);
   const { data: entries, isLoading, error, refetch } = useWeekEntries(userId, companyId ?? undefined, weekStart);
   const { data: lastWeekEntries } = useWeekEntries(userId, companyId ?? undefined, lastWeekStart);
+  const { data: monthEntries } = useTimeEntries({
+    companyId: companyId ?? '',
+    userId,
+    from: month.start,
+    to: month.end,
+  });
+  const { maxBusinessDays } = useMaxBusinessDays(userId, thisMonthKey);
   const { create, isPending } = useTimeEntryMutations();
   const [copying, setCopying] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
@@ -53,6 +75,18 @@ export default function TodayScreen() {
   const projectOptions = useMemo(
     () => (projects ?? []).map((p) => ({ label: p.name, value: p.id })),
     [projects],
+  );
+  const hoursPerDayByProject = useMemo(
+    () => Object.fromEntries((projects ?? []).map((p) => [p.id, p.hours_per_day])),
+    [projects],
+  );
+  const monthDaysLogged = useMemo(
+    () =>
+      (monthEntries ?? []).reduce(
+        (acc, e) => acc + minutesToDays(e.duration_minutes, e.project?.hours_per_day ?? DEFAULT_HOURS_PER_DAY),
+        0,
+      ),
+    [monthEntries],
   );
 
   const todayKey = useMemo(() => todayISO(), []);
@@ -194,7 +228,15 @@ export default function TodayScreen() {
               contentContainerStyle={styles.sheetContent}
               keyboardShouldPersistTaps="handled"
             >
-              <LogEntryForm projectOptions={projectOptions} onSubmit={onSubmit} isSubmitting={isPending} />
+              <LogEntryForm
+                projectOptions={projectOptions}
+                onSubmit={onSubmit}
+                isSubmitting={isPending}
+                hoursPerDayByProject={hoursPerDayByProject}
+                monthDaysLogged={monthDaysLogged}
+                maxBusinessDays={maxBusinessDays}
+                monthLabel={monthLabel}
+              />
             </ScrollView>
           </Pressable>
         </Pressable>

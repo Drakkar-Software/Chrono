@@ -57,6 +57,14 @@ export * from './project-expense/project-expense.lib';
 // Capacity / utilization
 export * from './capacity/capacity.lib';
 
+// Business days (working-weekday cap math)
+export * from './business-days/business-days.lib';
+
+// Company holidays
+export * from './company-holiday/company-holiday.entity';
+export * from './company-holiday/company-holiday.queries';
+export * from './company-holiday/company-holiday.lib';
+
 // Project referrals
 export * from './project-referral/project-referral.entity';
 export * from './project-referral/project-referral.queries';

@@ -10,6 +10,15 @@ export const componentsACatalog: CatalogSlice = {
     'comp.field.member': 'Member',
     'comp.field.selectMember': 'Select a member',
 
+    // Weekday abbreviations (single letter, for the working-days toggle)
+    'comp.weekday.monShort': 'M',
+    'comp.weekday.tueShort': 'T',
+    'comp.weekday.wedShort': 'W',
+    'comp.weekday.thuShort': 'T',
+    'comp.weekday.friShort': 'F',
+    'comp.weekday.satShort': 'S',
+    'comp.weekday.sunShort': 'S',
+
     // Projects
     'comp.project.fallbackName': 'Project',
     'comp.project.dayRate': 'Day rate',
@@ -58,6 +67,7 @@ export const componentsACatalog: CatalogSlice = {
     'comp.time.addEntry': 'Add entry',
     'comp.time.errPickProject': 'Pick a project',
     'comp.time.errEnterDuration': 'Enter a duration in hours',
+    'comp.time.errDayCapExceeded': 'This would put you at {logged} of {max} business days for {month}',
     'comp.time.noProjectsHint': "You're not assigned to any project yet — ask a manager to add you.",
     'comp.time.quickDuration': 'Quick add',
 
@@ -166,6 +176,14 @@ export const componentsACatalog: CatalogSlice = {
     'comp.field.member': 'Membre',
     'comp.field.selectMember': 'Sélectionner un membre',
 
+    'comp.weekday.monShort': 'L',
+    'comp.weekday.tueShort': 'M',
+    'comp.weekday.wedShort': 'M',
+    'comp.weekday.thuShort': 'J',
+    'comp.weekday.friShort': 'V',
+    'comp.weekday.satShort': 'S',
+    'comp.weekday.sunShort': 'D',
+
     'comp.project.fallbackName': 'Projet',
     'comp.project.dayRate': 'Taux journalier',
     'comp.project.referralCut': 'Commission d’apport',
@@ -212,6 +230,7 @@ export const componentsACatalog: CatalogSlice = {
     'comp.time.addEntry': 'Ajouter l’entrée',
     'comp.time.errPickProject': 'Choisissez un projet',
     'comp.time.errEnterDuration': 'Saisissez une durée en heures',
+    'comp.time.errDayCapExceeded': 'Cela vous mènerait à {logged} sur {max} jours ouvrés pour {month}',
     'comp.time.noProjectsHint': "Vous n’êtes assigné à aucun projet — demandez à un manager de vous ajouter.",
     'comp.time.quickDuration': 'Ajout rapide',
 

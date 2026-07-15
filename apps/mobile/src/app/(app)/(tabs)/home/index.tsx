@@ -1,36 +1,55 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Card, EmptyState, IconButton, Money, StackScreen, spacing, useResponsive } from '@chrono/ui';
+import { Button, Card, EmptyState, IconButton, Money, StackScreen, Txt, spacing, useResponsive } from '@chrono/ui';
 import {
+  DEFAULT_HOURS_PER_DAY,
+  approvedUnpaidCents,
   canManage,
   companyCurrency,
+  effectiveTjm,
   formatDuration,
+  formatMoney,
   groupByDay,
+  minutesToDays,
   monthBounds,
+  monthKey,
   sumDurations,
-  totalOutstanding,
+  sumReferralEarnings,
   weekBounds,
 } from '@chrono/sdk';
+import type { TimeEntryWithProject } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { todayISO } from '@/lib/date';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
-import { useMyProjects, useProjects } from '@/lib/hooks/use-projects';
+import { useVisibleProjects } from '@/lib/hooks/use-visible-projects';
+import { useCompanyProjectMembers } from '@/lib/hooks/use-project-members';
+import { useMaxBusinessDays } from '@/lib/hooks/use-max-business-days';
 import { useTimeEntries, useWeekEntries } from '@/lib/hooks/use-time-entries';
 import { useInvoices } from '@/lib/hooks/use-invoices';
+import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { usePendingApprovals } from '@/lib/hooks/use-approvals';
 import { useNotificationsFeed } from '@/lib/notifications-context';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { DayGroupHeader } from '@/components/time/DayGroupHeader';
+import { MonthCalendar } from '@/components/time/MonthCalendar';
+import { ProjectCard } from '@/components/projects/ProjectCard';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 const RECENT_LIMIT = 5;
+const MY_PROJECTS_LIMIT = 4;
+
+/** Effective day rate for one of this person's time entries, resolved from their project-member override, else the project default. */
+function rateForEntry(entry: TimeEntryWithProject, membersByProjectAndUser: Map<string, { tjm_cents: number | null }>): number {
+  const member = membersByProjectAndUser.get(`${entry.project_id}:${entry.user_id}`);
+  return effectiveTjm(member, { default_tjm_cents: entry.project?.default_tjm_cents ?? null });
+}
 
 export default function HomeScreen() {
   const t = useT();
@@ -43,7 +62,9 @@ export default function HomeScreen() {
   const userId = user?.id;
 
   const month = useMemo(() => monthBounds(todayISO()), []);
+  const thisMonthKey = useMemo(() => monthKey(todayISO()), []);
   const weekStart = useMemo(() => weekBounds(todayISO()).start, []);
+  const today = useMemo(() => todayISO(), []);
 
   const monthEntries = useTimeEntries({
     companyId: companyId ?? '',
@@ -56,19 +77,73 @@ export default function HomeScreen() {
     companyId: companyId ?? '',
     freelancerId: manager ? undefined : userId,
   });
-  // Managers see the company's active projects; freelancers see the ones
-  // they're assigned to. Only one of these queries is enabled per role.
-  const { data: myProjects } = useMyProjects(!manager ? userId : undefined, !manager ? companyId ?? undefined : undefined);
-  const { data: companyProjects } = useProjects(manager ? companyId ?? undefined : undefined);
+  // Approved billable work not yet invoiced counts toward "to collect" too —
+  // fetched company-wide for managers, personal-only for freelancers, same
+  // split as the invoices query above.
+  const uninvoicedEntries = useTimeEntries({
+    companyId: companyId ?? '',
+    userId: manager ? undefined : userId,
+    status: 'approved',
+    billable: true,
+    uninvoiced: true,
+  });
+  const { data: companyProjectMembers } = useCompanyProjectMembers(companyId ?? undefined);
+  const { data: referralEarnings } = useReferralEarnings({
+    companyId: companyId ?? undefined,
+    referrerId: manager ? undefined : userId,
+  });
+  const visibleProjects = useVisibleProjects(role, userId, companyId ?? undefined);
   const { data: pending } = usePendingApprovals(manager ? companyId ?? undefined : undefined);
+  const { maxBusinessDays, remainingBusinessDays, workingWeekdays, holidayDates } = useMaxBusinessDays(
+    userId,
+    thisMonthKey,
+  );
   const { unread } = useNotificationsFeed();
 
   const monthMinutes = useMemo(() => sumDurations(monthEntries.data ?? []), [monthEntries.data]);
   const weekMinutes = useMemo(() => sumDurations(week.data ?? []), [week.data]);
-  const outstandingCents = useMemo(() => totalOutstanding(invoices ?? []), [invoices]);
-  const activeProjects = manager
-    ? (companyProjects ?? []).filter((p) => p.status === 'active').length
-    : (myProjects ?? []).length;
+  const workedDays = useMemo(
+    () =>
+      (monthEntries.data ?? []).reduce(
+        (acc, e) => acc + minutesToDays(e.duration_minutes, e.project?.hours_per_day ?? DEFAULT_HOURS_PER_DAY),
+        0,
+      ),
+    [monthEntries.data],
+  );
+
+  const membersByProjectAndUser = useMemo(() => {
+    const map = new Map<string, { tjm_cents: number | null }>();
+    for (const m of companyProjectMembers ?? []) map.set(`${m.project_id}:${m.user_id}`, m);
+    return map;
+  }, [companyProjectMembers]);
+  const uninvoicedApproved = useMemo(
+    () =>
+      (uninvoicedEntries.data ?? []).map((e) => ({
+        project_id: e.project_id,
+        duration_minutes: e.duration_minutes,
+        hours_per_day: e.project?.hours_per_day ?? DEFAULT_HOURS_PER_DAY,
+        rate_cents: rateForEntry(e, membersByProjectAndUser),
+      })),
+    [uninvoicedEntries.data, membersByProjectAndUser],
+  );
+  const invoicedOnlyCents = useMemo(() => approvedUnpaidCents(invoices ?? []), [invoices]);
+  const dueReferralCents = useMemo(
+    () => sumReferralEarnings((referralEarnings ?? []).filter((e) => e.settled_at == null)),
+    [referralEarnings],
+  );
+  const toCollectCents = useMemo(
+    () => approvedUnpaidCents(invoices ?? [], uninvoicedApproved) + dueReferralCents,
+    [invoices, uninvoicedApproved, dueReferralCents],
+  );
+  const pendingCollectionCents = toCollectCents - invoicedOnlyCents;
+
+  const minutesByDay = useMemo(() => {
+    const grouped = groupByDay(monthEntries.data ?? []);
+    const out: Record<string, number> = {};
+    for (const [date, entries] of Object.entries(grouped)) out[date] = sumDurations(entries);
+    return out;
+  }, [monthEntries.data]);
+
   const pendingCount = (pending ?? []).length;
 
   // The 5 most recent week entries, grouped by day for the preview.
@@ -110,6 +185,10 @@ export default function HomeScreen() {
     );
   }
 
+  const visibleProjectsList = (visibleProjects.data ?? [])
+    .filter((p) => p.status === 'active')
+    .slice(0, MY_PROJECTS_LIMIT);
+
   return (
     <StackScreen
       title={t('tabs.nav.home')}
@@ -124,12 +203,32 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <SectionHeader eyebrow={t('tabs.home.overview')} title={t('tabs.home.yourActivity')} />
           <StatRow>
-            <StatTile label={t('tabs.home.thisMonth')} value={formatDuration(monthMinutes)} tone="accent" />
+            <StatTile label={t('tabs.home.thisMonth')}>
+              <View>
+                <Txt variant="heading" mono tabularNums tone="accent" numberOfLines={1}>
+                  {formatDuration(monthMinutes)}
+                </Txt>
+                <Txt variant="caption" tone="textMuted" mono numberOfLines={1}>
+                  {t('tabs.home.periodDays', {
+                    worked: workedDays.toFixed(1),
+                    max: maxBusinessDays,
+                    remaining: remainingBusinessDays,
+                  })}
+                </Txt>
+              </View>
+            </StatTile>
             <StatTile label={t('tabs.home.thisWeek')} value={formatDuration(weekMinutes)} />
             <StatTile label={t('tabs.home.outstanding')}>
-              <Money cents={outstandingCents} currency={currency} variant="heading" mono />
+              <View>
+                <Money cents={toCollectCents} currency={currency} variant="heading" mono />
+                <Txt variant="caption" tone="textMuted" numberOfLines={1}>
+                  {t('tabs.home.toCollectBreakdown', {
+                    invoiced: formatMoney(invoicedOnlyCents, currency),
+                    pending: formatMoney(pendingCollectionCents, currency),
+                  })}
+                </Txt>
+              </View>
             </StatTile>
-            <StatTile label={t('tabs.home.activeProjects')} value={String(activeProjects)} />
           </StatRow>
           {manager ? (
             <StatRow>
@@ -164,6 +263,44 @@ export default function HomeScreen() {
               />
             </View>
           ) : null}
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader eyebrow={t('tabs.home.thisMonth')} title={t('tabs.home.workCalendar')} />
+          <Card padding="lg">
+            <MonthCalendar
+              monthISO={thisMonthKey}
+              minutesByDay={minutesByDay}
+              workingWeekdays={workingWeekdays}
+              holidayDates={holidayDates}
+              today={today}
+            />
+          </Card>
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader
+            title={t('tabs.home.myProjects')}
+            action={
+              visibleProjectsList.length > 0 ? (
+                <Button title={t('tabs.home.viewAll')} variant="ghost" size="sm" onPress={() => router.push('/projects')} />
+              ) : undefined
+            }
+          />
+          {visibleProjectsList.length === 0 ? (
+            <EmptyState icon="folder-outline" title={t('tabs.home.noProjects')} tone="accent" />
+          ) : (
+            <View style={styles.projectList}>
+              {visibleProjectsList.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  currency={currency}
+                  onPress={() => router.push(`/project/${project.id}`)}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -211,4 +348,5 @@ const styles = StyleSheet.create({
   action: { flexGrow: 1, flexBasis: 0, minWidth: 160 },
   recentCard: { gap: spacing.xs },
   day: { gap: spacing.xs },
+  projectList: { gap: spacing.sm },
 });

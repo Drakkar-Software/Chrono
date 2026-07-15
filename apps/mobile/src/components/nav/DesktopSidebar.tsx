@@ -62,8 +62,9 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
 /**
  * Persistent desktop navigation rail, rendered by the (app) layout on wide web
  * in place of the bottom tab bar. Mirrors the tab destinations (Reports is
- * manager-only) and pins Search, Notifications, and Settings to the bottom
- * behind a separator, with the active route pilled.
+ * manager-only) and pins Notifications and Settings to the bottom behind a
+ * separator, with the active route pilled. Search is reachable from the Home
+ * header instead — it isn't a first-class destination.
  */
 export function DesktopSidebar() {
   const t = useT();
@@ -82,7 +83,6 @@ export function DesktopSidebar() {
   ];
 
   const secondary: NavItem[] = [
-    { key: 'search', label: t('common.search'), icon: 'search-outline', path: '/search', match: ['/search'] },
     {
       key: 'notifications',
       label: t('details.notifications'),

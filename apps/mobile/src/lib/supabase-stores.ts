@@ -30,6 +30,7 @@ const TABLES = [
   'time_entries',
   'invoices',
   'notifications',
+  'company_holidays',
   'company_invites',
   'invoice_payments',
   'audit_log',

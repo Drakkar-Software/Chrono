@@ -1,3 +1,5 @@
+import { exceedsBusinessDayCap, minutesToDays } from '@chrono/sdk';
+
 /** Parse a locale-decimal hours string ("7,5" or "7.5") into whole minutes. */
 export function parseHoursToMinutes(input: string): number {
   const parsed = parseFloat(input.replace(',', '.'));
@@ -8,4 +10,20 @@ export function parseHoursToMinutes(input: string): number {
 export function formatMinutesAsHoursInput(minutes: number): string {
   const hours = minutes / 60;
   return Number.isInteger(hours) ? String(hours) : String(Math.round(hours * 100) / 100);
+}
+
+/**
+ * Whether logging `candidateMinutes` (at `hoursPerDay`) on top of what the
+ * person has already logged this period (`loggedDaysExcludingThis` — the
+ * period total, minus this entry's own days when editing) would push them
+ * past the period's business-day cap.
+ */
+export function dayCapExceeded(
+  candidateMinutes: number,
+  hoursPerDay: number,
+  loggedDaysExcludingThis: number,
+  maxBusinessDays: number,
+): boolean {
+  const candidateDays = minutesToDays(candidateMinutes, hoursPerDay);
+  return exceedsBusinessDayCap(loggedDaysExcludingThis, candidateDays, maxBusinessDays);
 }

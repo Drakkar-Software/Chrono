@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, EmptyState, Picker, Row, StackScreen, TextField, TitledCard, Txt, spacing, useResponsive } from '@chrono/ui';
-import { canManage, companyName } from '@chrono/sdk';
+import { DEFAULT_WORKING_WEEKDAYS, canManage, companyName } from '@chrono/sdk';
 import type { AppRole } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
@@ -15,6 +15,7 @@ import {
 } from '@/lib/hooks/use-profile';
 import { useCompanyMembers, useCompanyMemberMutations } from '@/lib/hooks/use-company-members';
 import { MemberRow } from '@/components/settings/MemberRow';
+import { WorkingDaysCard } from '@/components/settings/WorkingDaysCard';
 import { AvatarUpload } from '@/components/settings/AvatarUpload';
 import { ThemeToggle } from '@/components/settings/ThemeToggle';
 import { LanguageToggle } from '@/components/settings/LanguageToggle';
@@ -37,7 +38,7 @@ export default function SettingsScreen() {
   const { data: billing } = useProfileBilling();
   const { saveBilling, isPending: savingBilling } = useProfileBillingMutations();
   const { data: members, isLoading: loadingMembers } = useCompanyMembers(companyId ?? undefined);
-  const { updateRole, updateCapacity, error: roleError } = useCompanyMemberMutations();
+  const { updateRole, updateCapacity, updateWorkingWeekdays, error: roleError } = useCompanyMemberMutations();
 
   // Seed the editable name field once the profile loads asynchronously, while
   // still letting the user type over it. This intentional prop->state sync is a
@@ -155,6 +156,12 @@ export default function SettingsScreen() {
           </TitledCard>
         ) : null}
 
+        {manager && company ? (
+          <TitledCard title={t('tabs.settings.workingDaysAndHolidays')}>
+            <WorkingDaysCard company={company} />
+          </TitledCard>
+        ) : null}
+
         {manager && company && user?.id ? (
           <TitledCard title={t('tabs.settings.inviteTeammates')}>
             <InvitesCard companyId={company.id} invitedBy={user.id} canGrantElevated={isAdmin} />
@@ -187,6 +194,8 @@ export default function SettingsScreen() {
                 canGrantAdmin={isAdmin}
                 onRoleChange={(next: AppRole) => updateRole(member.id, next)}
                 onCapacityChange={(days) => updateCapacity(member.id, days)}
+                companyDefaultWeekdays={company?.working_weekdays ?? DEFAULT_WORKING_WEEKDAYS}
+                onWorkingWeekdaysChange={(weekdays) => updateWorkingWeekdays(member.id, weekdays)}
               />
             ))
           )}

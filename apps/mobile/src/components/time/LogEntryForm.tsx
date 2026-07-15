@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { DatePicker, Segmented, TextField, Txt, TitledCard, borders, radii, spacing, useTheme } from '@chrono/ui';
 import type { PickerOption } from '@chrono/ui';
-import { parseTags } from '@chrono/sdk';
+import { DEFAULT_HOURS_PER_DAY, minutesToDays, parseTags } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
 import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
-import { parseHoursToMinutes } from './time-entry-form.lib';
+import { dayCapExceeded, parseHoursToMinutes } from './time-entry-form.lib';
 
 export interface LogEntryValues {
   projectId: string;
@@ -23,6 +23,14 @@ export interface LogEntryFormProps {
   onSubmit: (values: LogEntryValues) => void;
   isSubmitting?: boolean;
   defaultBillable?: boolean;
+  /** hours_per_day for each project in `projectOptions`, keyed by project id. */
+  hoursPerDayByProject?: Record<string, number>;
+  /** Days already logged this month (all projects), for the business-day cap guard. */
+  monthDaysLogged?: number;
+  /** Max business days for the month being logged into; the cap is skipped when 0/undefined. */
+  maxBusinessDays?: number;
+  /** Human label for the capped month, e.g. "July 2026" — used in the cap error message. */
+  monthLabel?: string;
 }
 
 const QUICK_HOURS = ['0.5', '1', '2', '4', '8'];
@@ -33,6 +41,10 @@ export function LogEntryForm({
   onSubmit,
   isSubmitting = false,
   defaultBillable = true,
+  hoursPerDayByProject = {},
+  monthDaysLogged = 0,
+  maxBusinessDays = 0,
+  monthLabel = '',
 }: LogEntryFormProps) {
   const t = useT();
   const billableOptions = [
@@ -56,6 +68,21 @@ export function LogEntryForm({
     }
     if (durationMinutes <= 0) {
       setError(t('comp.time.errEnterDuration'));
+      return;
+    }
+    const hoursPerDay = hoursPerDayByProject[projectId] ?? DEFAULT_HOURS_PER_DAY;
+    if (
+      maxBusinessDays > 0 &&
+      dayCapExceeded(durationMinutes, hoursPerDay, monthDaysLogged, maxBusinessDays)
+    ) {
+      const loggedAfter = monthDaysLogged + minutesToDays(durationMinutes, hoursPerDay);
+      setError(
+        t('comp.time.errDayCapExceeded', {
+          logged: loggedAfter.toFixed(1),
+          max: maxBusinessDays,
+          month: monthLabel,
+        }),
+      );
       return;
     }
     setError(undefined);

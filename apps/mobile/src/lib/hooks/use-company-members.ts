@@ -57,7 +57,12 @@ export function useCompanyMemberMutations() {
     (id: string, weeklyCapacityDays: number) => update(id, { weekly_capacity_days: weeklyCapacityDays }),
     [update],
   );
+  /** Set (or clear, with null) this member's personal working-weekdays override. */
+  const updateWorkingWeekdays = useCallback(
+    (id: string, workingWeekdays: number[] | null) => update(id, { working_weekdays: workingWeekdays }),
+    [update],
+  );
   const remove = useCallback((id: string) => update(id, { deleted: true }), [update]);
 
-  return { add, updateRole, updateRate, updateCapacity, remove, isPending: isLoading, error };
+  return { add, updateRole, updateRate, updateCapacity, updateWorkingWeekdays, remove, isPending: isLoading, error };
 }

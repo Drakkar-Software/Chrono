@@ -1,4 +1,5 @@
 import { DEFAULT_CURRENCY, DEFAULT_LOCALE } from '../constants';
+import { computeEarnedCents } from '../time-entry/time-entry.lib';
 import type { InvoiceStatus } from '../schema';
 import type { Invoice } from './invoice.entity';
 
@@ -103,7 +104,7 @@ export function invoiceAmounts(
   };
 }
 
-type OutstandingInvoice = Pick<
+export type OutstandingInvoice = Pick<
   Invoice,
   | 'project_id'
   | 'freelancer_id'
@@ -112,6 +113,18 @@ type OutstandingInvoice = Pick<
   | 'amount_due_cents'
   | 'amount_paid_cents'
 >;
+
+function latestPerStream<T extends Pick<OutstandingInvoice, 'project_id' | 'freelancer_id' | 'period_month'>>(
+  invoices: T[],
+): Map<string, T> {
+  const latest = new Map<string, T>();
+  for (const inv of invoices) {
+    const key = `${inv.project_id}:${inv.freelancer_id}`;
+    const cur = latest.get(key);
+    if (!cur || inv.period_month > cur.period_month) latest.set(key, inv);
+  }
+  return latest;
+}
 
 /**
  * Total money still owed across a set of invoices, correct under FIFO
@@ -124,17 +137,48 @@ type OutstandingInvoice = Pick<
  * contribute nothing.
  */
 export function totalOutstanding(invoices: OutstandingInvoice[]): number {
-  const latest = new Map<string, OutstandingInvoice>();
-  for (const inv of invoices) {
-    const key = `${inv.project_id}:${inv.freelancer_id}`;
-    const cur = latest.get(key);
-    if (!cur || inv.period_month > cur.period_month) latest.set(key, inv);
-  }
+  const latest = latestPerStream(invoices);
   let total = 0;
   for (const inv of latest.values()) {
     if (inv.status === 'submitted' || inv.status === 'partially_paid') {
       total += Math.max(0, (inv.amount_due_cents ?? 0) - (inv.amount_paid_cents ?? 0));
     }
+  }
+  return total;
+}
+
+/** Approved billable work not yet invoiced, keyed by project (for `approvedUnpaidCents`). */
+export type UninvoicedApprovedEntry = {
+  project_id: string;
+  duration_minutes: number;
+  hours_per_day: number;
+  /** The freelancer's day rate for this entry's project (member override, falling back to the project default). */
+  rate_cents: number;
+};
+
+/**
+ * All approved billable work not yet paid — the honest "impayé" figure.
+ * Unlike `totalOutstanding` (submitted/partially_paid invoices only), this
+ * also counts:
+ *  - `draft` invoices (money genuinely owed, just not yet submitted), and
+ *  - approved, billable time entries that haven't been rolled into ANY
+ *    invoice yet (`invoice_id IS NULL`), valued at the entry's day rate.
+ * Still applies the same latest-per-stream FIFO rule as `totalOutstanding`
+ * so a stream's carried-forward chain isn't double-counted.
+ */
+export function approvedUnpaidCents(
+  invoices: OutstandingInvoice[],
+  uninvoicedEntries: UninvoicedApprovedEntry[] = [],
+): number {
+  const latest = latestPerStream(invoices);
+  let total = 0;
+  for (const inv of latest.values()) {
+    if (inv.status === 'draft' || inv.status === 'submitted' || inv.status === 'partially_paid') {
+      total += Math.max(0, (inv.amount_due_cents ?? 0) - (inv.amount_paid_cents ?? 0));
+    }
+  }
+  for (const entry of uninvoicedEntries) {
+    total += computeEarnedCents(entry.duration_minutes, entry.hours_per_day, entry.rate_cents);
   }
   return total;
 }
