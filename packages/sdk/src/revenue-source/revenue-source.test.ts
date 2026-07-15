@@ -4,6 +4,8 @@ import {
   monthlyRecurringAmount,
   revenueSourceLabel,
   sourceClientTjm,
+  sourceManualAmount,
+  sourceManualDays,
 } from './revenue-source.lib';
 
 // Minimal helper: only `type` and `content` are read by these functions.
@@ -68,5 +70,43 @@ describe('monthlyRecurringAmount', () => {
     expect(monthlyRecurringAmount(src('recurring', null))).toBe(0);
     expect(monthlyRecurringAmount(src('recurring', {}))).toBe(0);
     expect(monthlyRecurringAmount(src('recurring', { other: 1 }))).toBe(0);
+  });
+});
+
+describe('sourceManualAmount', () => {
+  it('reads manual_amount_cents for a time_based source with an override', () => {
+    expect(
+      sourceManualAmount(
+        src('time_based', { client_tjm_cents: 50000, manual_amount_cents: 500000, manual_days: 10 }),
+      ),
+    ).toBe(500000);
+  });
+
+  it('is undefined for a time_based source with no override', () => {
+    expect(sourceManualAmount(src('time_based', { client_tjm_cents: 50000 }))).toBeUndefined();
+  });
+
+  it('is undefined for non-time_based sources', () => {
+    expect(
+      sourceManualAmount(src('recurring', { monthly_amount_cents: 300000 })),
+    ).toBeUndefined();
+    expect(
+      sourceManualAmount(src('self_billing', { client_tjm_cents: 50000, manual_amount_cents: 500000 })),
+    ).toBeUndefined();
+  });
+});
+
+describe('sourceManualDays', () => {
+  it('reads manual_days for a time_based source with an override', () => {
+    expect(
+      sourceManualDays(src('time_based', { client_tjm_cents: 50000, manual_amount_cents: 500000, manual_days: 10 })),
+    ).toBe(10);
+  });
+
+  it('is undefined when there is no override or the source is not time_based', () => {
+    expect(sourceManualDays(src('time_based', { client_tjm_cents: 50000 }))).toBeUndefined();
+    expect(
+      sourceManualDays(src('recurring', { monthly_amount_cents: 300000 })),
+    ).toBeUndefined();
   });
 });

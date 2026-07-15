@@ -35,3 +35,25 @@ export function monthlyRecurringAmount(
   const content = (source.content ?? {}) as RecurringContent;
   return content.monthly_amount_cents ?? 0;
 }
+
+/**
+ * Manual invoice override for a time-based source (days × client TJM entered
+ * directly instead of derived from approved time entries). `undefined` when
+ * the source has no override — recognition falls back to logged time.
+ */
+export function sourceManualAmount(
+  source: Pick<RevenueSource, 'type' | 'content'>,
+): number | undefined {
+  if (source.type !== 'time_based') return undefined;
+  const content = (source.content ?? {}) as TimeBasedContent;
+  return content.manual_amount_cents;
+}
+
+/** Days behind a time-based source's manual override, for display. */
+export function sourceManualDays(
+  source: Pick<RevenueSource, 'type' | 'content'>,
+): number | undefined {
+  if (source.type !== 'time_based') return undefined;
+  const content = (source.content ?? {}) as TimeBasedContent;
+  return content.manual_days;
+}
