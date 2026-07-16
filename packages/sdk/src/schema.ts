@@ -40,6 +40,8 @@ export type NotificationType =
   | 'expense_rejected';
 export type BlogArticleStatus = 'draft' | 'published';
 export type TimeOffKind = 'vacation' | 'sick' | 'personal' | 'holiday';
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'expired';
+export type SubscriptionPlan = 'trial' | 'solo' | 'team' | 'scale';
 
 type Timestamps = {
   created_at: string;
@@ -184,6 +186,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'company_members_company_id_fkey';
+            columns: ['company_id'];
+            referencedRelation: 'companies';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      company_subscriptions: {
+        Row: {
+          company_id: string;
+          status: SubscriptionStatus;
+          plan: SubscriptionPlan;
+          seat_limit: number;
+          store: string | null;
+          rc_app_user_id: string | null;
+          trial_ends_at: string | null;
+          current_period_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          company_id: string;
+          status?: SubscriptionStatus;
+          plan?: SubscriptionPlan;
+          seat_limit?: number;
+          store?: string | null;
+          rc_app_user_id?: string | null;
+          trial_ends_at?: string | null;
+          current_period_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['company_subscriptions']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'company_subscriptions_company_id_fkey';
             columns: ['company_id'];
             referencedRelation: 'companies';
             referencedColumns: ['id'];
@@ -859,6 +896,8 @@ export type Database = {
       notification_type: NotificationType;
       blog_article_status: BlogArticleStatus;
       time_off_kind: TimeOffKind;
+      subscription_status: SubscriptionStatus;
+      subscription_plan: SubscriptionPlan;
     };
     CompositeTypes: Record<string, never>;
   };

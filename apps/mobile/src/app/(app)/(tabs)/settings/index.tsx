@@ -181,6 +181,14 @@ export default function SettingsScreen() {
                     title={t('tabs.settings.workingDaysAndHolidays')}
                     subtitle={t('tabs.settings.workingDaysNavHint')}
                     onPress={() => router.push('/settings/working-days')}
+                    divider={isAdmin}
+                  />
+                ) : null}
+                {isAdmin ? (
+                  <ListItem
+                    title={t('tabs.settings.billing')}
+                    subtitle={t('tabs.settings.billingNavHint')}
+                    onPress={() => router.push('/settings/billing')}
                     divider={false}
                   />
                 ) : null}

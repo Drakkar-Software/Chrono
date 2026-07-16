@@ -24,6 +24,11 @@ export * from './company-member/company-member.entity';
 export * from './company-member/company-member.queries';
 export * from './company-member/company-member.lib';
 
+// Company subscriptions (Chrono Pro billing state)
+export * from './subscription/subscription.entity';
+export * from './subscription/subscription.queries';
+export * from './subscription/subscription.lib';
+
 // Projects
 export * from './project/project.entity';
 export * from './project/project.queries';

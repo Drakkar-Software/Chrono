@@ -14,6 +14,9 @@ import { useAppAuth } from '@/lib/supabase-stores';
 import { usePushRegistration } from '@/lib/hooks/use-push';
 import { useInviteMutations } from '@/lib/hooks/use-invites';
 import { clearPendingInvite, getPendingInvite } from '@/lib/pending-invite';
+import { companyAppUserId } from '@/lib/revenuecat-constants';
+import { configureRevenueCat, subscribeCustomerInfo } from '@/lib/revenuecat';
+import { setIsProLive } from '@/lib/revenuecat-live-state';
 
 // Keep the splash up until auth resolves (see the effect below).
 void SplashScreen.preventAutoHideAsync();
@@ -83,6 +86,7 @@ function ThemedApp() {
       <I18nProvider>
         <ActiveCompanyProvider>
           <PendingInviteRedeemer />
+          <RevenueCatInitializer />
           <Stack screenOptions={{ headerShown: false }} />
         </ActiveCompanyProvider>
       </I18nProvider>
@@ -110,14 +114,40 @@ function PendingInviteRedeemer() {
         const companyId = await accept(token);
         await refresh();
         setCompanyId(companyId);
-      } catch {
-        // Used/expired/invalid — nothing to do.
-      } finally {
-        // Clear after one attempt so a bad token doesn't retry every launch.
         await clearPendingInvite();
+      } catch (e) {
+        // Seat limit hit (enforce_seat_limit_trigger) is recoverable once the
+        // company frees a seat or upgrades — keep the token so this retries
+        // on next launch instead of discarding an otherwise-valid invite.
+        // Any other failure (used/expired/invalid) is not recoverable, so
+        // clear it — a bad token must not retry every launch.
+        const message = e instanceof Error ? e.message : '';
+        if (!message.includes('seat limit')) {
+          await clearPendingInvite();
+        }
       }
     })();
   }, [user?.id, accept, refresh, setCompanyId]);
+
+  return null;
+}
+
+/**
+ * Configures RevenueCat under the active COMPANY's app-user-id (not the
+ * signed-in user's) — every member of a company purchases into and reads the
+ * same entitlement. Re-identifies on company switch and resets the live flag
+ * immediately so a fast switch never briefly shows the previous company's Pro
+ * status (`applyCustomerInfo`'s `originalAppUserId` guard covers the async race).
+ */
+function RevenueCatInitializer() {
+  const { companyId } = useActiveCompany();
+
+  useEffect(() => {
+    if (!companyId) return;
+    setIsProLive(false);
+    configureRevenueCat(companyAppUserId(companyId));
+    return subscribeCustomerInfo();
+  }, [companyId]);
 
   return null;
 }

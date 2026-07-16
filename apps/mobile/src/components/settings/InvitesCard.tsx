@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Platform, Share, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Badge, Button, Picker, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
 import { inviteState } from '@chrono/sdk';
 import type { AppRole, CompanyInvite } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useCompanyInvites, useInviteMutations } from '@/lib/hooks/use-invites';
+import { useChronoPro } from '@/lib/hooks/use-subscription';
 import { InlineError } from '@/components/common/ErrorState';
 
 /**
@@ -43,15 +45,25 @@ export interface InvitesCardProps {
 /** Manager tool: invite teammates by email, and manage pending invites. */
 export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesCardProps) {
   const t = useT();
+  const router = useRouter();
   const { isWide } = useResponsive();
   const { data: invites } = useCompanyInvites(companyId);
   const { create, revoke, isPending, error } = useInviteMutations();
+  const { seatLimit, seatCount } = useChronoPro(companyId);
 
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<AppRole>('freelancer');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const now = useMemo(() => new Date().toISOString(), []);
+  // Outstanding pending invites also claim a seat once accepted — counting
+  // only current members here would let an admin send more invites than
+  // seats remain, deferring the block to each invitee's (unexplained) accept
+  // failure instead of this form.
+  const pendingInviteCount = (invites ?? []).filter((i) => inviteState(i, now) === 'pending').length;
+  // Only block once we know the actual limit — an unloaded subscription
+  // (seatLimit null) must never look like a zero-seat company.
+  const atSeatLimit = seatLimit != null && seatCount + pendingInviteCount >= seatLimit;
   const roleOptions = canGrantElevated
     ? [
         { label: t('role.freelancer'), value: 'freelancer' },
@@ -82,24 +94,39 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.form, isWide && styles.formWide]}>
-        <View style={styles.emailField}>
-          <TextField
-            label={t('compb.invites.emailLabel')}
-            value={email}
-            onChangeText={setEmail}
-            placeholder={t('compb.invites.emailPlaceholder')}
-            autoCapitalize="none"
-            keyboardType="email-address"
+      {atSeatLimit ? (
+        <View style={styles.seatLimitNotice}>
+          <Txt variant="bodyMedium">{t('tabs.billing.seatLimitTitle')}</Txt>
+          <Txt variant="caption" tone="textMuted">
+            {t('tabs.billing.seatLimitSubtitle')}
+          </Txt>
+          <Button
+            title={t('tabs.billing.upgradePlan')}
+            size="sm"
+            variant="secondary"
+            onPress={() => router.push('/paywall')}
           />
         </View>
-        {canGrantElevated ? (
-          <View style={styles.roleField}>
-            <Picker label={t('compb.invites.roleLabel')} value={role} onValueChange={(v) => setRole(v as AppRole)} options={roleOptions} />
+      ) : (
+        <View style={[styles.form, isWide && styles.formWide]}>
+          <View style={styles.emailField}>
+            <TextField
+              label={t('compb.invites.emailLabel')}
+              value={email}
+              onChangeText={setEmail}
+              placeholder={t('compb.invites.emailPlaceholder')}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
           </View>
-        ) : null}
-        <Button title={t('compb.invites.send')} onPress={send} loading={isPending} disabled={!email.trim()} fullWidth={!isWide} />
-      </View>
+          {canGrantElevated ? (
+            <View style={styles.roleField}>
+              <Picker label={t('compb.invites.roleLabel')} value={role} onValueChange={(v) => setRole(v as AppRole)} options={roleOptions} />
+            </View>
+          ) : null}
+          <Button title={t('compb.invites.send')} onPress={send} loading={isPending} disabled={!email.trim()} fullWidth={!isWide} />
+        </View>
+      )}
       {error ? <InlineError error={error} describe={{ fallback: t('compb.invites.createFail') }} /> : null}
 
       {list.length === 0 ? (
@@ -152,6 +179,7 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
+  seatLimitNotice: { gap: spacing.xs, alignItems: 'flex-start' },
   form: { gap: spacing.md },
   formWide: { flexDirection: 'row', alignItems: 'flex-end' },
   emailField: { flex: 1 },

@@ -19,6 +19,7 @@ const TABLES = [
   'profile_billing',
   'companies',
   'company_members',
+  'company_subscriptions',
   'projects',
   'project_members',
   'revenue_sources',
@@ -56,6 +57,7 @@ function getStores() {
       tableOptions: {
         profiles: { primaryKey: 'user_id' },
         profile_billing: { primaryKey: 'user_id' },
+        company_subscriptions: { primaryKey: 'company_id' },
         projects: { defaultSelect: PROJECT_SELECT },
         time_entries: { defaultSelect: TIME_ENTRY_SELECT },
         invoices: { defaultSelect: INVOICE_SELECT },

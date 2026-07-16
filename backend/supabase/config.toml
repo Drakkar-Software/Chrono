@@ -46,3 +46,8 @@ enable_confirmations = false
 
 [analytics]
 enabled = false
+
+# RevenueCat calls this with its own shared-secret Authorization header, not a
+# Supabase user JWT — Supabase's own JWT check must be off for this function.
+[functions.revenuecat-webhook]
+verify_jwt = false
