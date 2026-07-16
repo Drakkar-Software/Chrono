@@ -1,12 +1,15 @@
 name: Chrono - Supabase
 
-# Deploys the Postgres schema (migrations under backend/supabase/migrations) to
-# the linked hosted Supabase project. Mirrors the Aesthemedstaff workflow, minus
-# edge functions (Chrono has none — push dispatch is a pg_net trigger).
+# Deploys the Postgres schema (migrations under backend/supabase/migrations)
+# and edge functions (backend/supabase/functions) to the linked hosted
+# Supabase project.
 #
 # Requires, on the `Production - Supabase` environment:
 #   secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD
 #   vars:    SUPABASE_PROJECT_ID   (the hosted project ref)
+#
+# REVENUECAT_WEBHOOK_SECRET is set manually via `supabase secrets set` (not
+# synced from CI) — see backend/supabase/functions/revenuecat-webhook/index.ts.
 
 on:
   push:
@@ -73,3 +76,6 @@ jobs:
 
       - name: Migration state after push
         run: supabase --workdir backend migration list
+
+      - name: Deploy edge functions
+        run: supabase --workdir backend functions deploy revenuecat-webhook
