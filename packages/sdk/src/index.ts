@@ -49,15 +49,10 @@ export * from './revenue-entry/revenue-entry.entity';
 export * from './revenue-entry/revenue-entry.queries';
 export * from './revenue-entry/revenue-entry.lib';
 
-// Project fixed costs
-export * from './project-fixed-cost/project-fixed-cost.entity';
-export * from './project-fixed-cost/project-fixed-cost.queries';
-export * from './project-fixed-cost/project-fixed-cost.lib';
-
-// Project expenses
-export * from './project-expense/project-expense.entity';
-export * from './project-expense/project-expense.queries';
-export * from './project-expense/project-expense.lib';
+// Project costs (recurring / one_off / reimbursable)
+export * from './project-cost/project-cost.entity';
+export * from './project-cost/project-cost.queries';
+export * from './project-cost/project-cost.lib';
 
 // Capacity / utilization
 export * from './capacity/capacity.lib';

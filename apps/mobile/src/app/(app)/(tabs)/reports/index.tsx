@@ -5,7 +5,7 @@ import { Badge, Button, Card, ListItem, Money, StackScreen, Txt, spacing } from 
 import {
   canManage,
   companyCurrency,
-  fixedCostCumulative,
+  costCumulative,
   projectMargin,
   sumApprovedExpenses,
   sumReferralEarnings,
@@ -15,11 +15,10 @@ import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { todayISO } from '@/lib/date';
 import { usePendingApprovals } from '@/lib/hooks/use-approvals';
-import { usePendingExpenses, useCompanyExpenses } from '@/lib/hooks/use-project-expenses';
+import { usePendingExpenses, useCompanyProjectCosts } from '@/lib/hooks/use-project-costs';
 import { useCompanyRevenueEntries } from '@/lib/hooks/use-revenue-entries';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
-import { useCompanyProjectFixedCosts } from '@/lib/hooks/use-project-fixed-costs';
 import { useProjects } from '@/lib/hooks/use-projects';
 import { groupByProject, monthlyTrend } from '@/lib/reports';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
@@ -40,13 +39,12 @@ export default function ReportsScreen() {
   const { data: revenueEntries } = useCompanyRevenueEntries(companyId ?? undefined);
   const { data: referralEarnings } = useReferralEarnings(companyId ? { companyId } : {});
   const { data: invoices } = useInvoices({ companyId: companyId ?? '' });
-  const { data: fixedCosts } = useCompanyProjectFixedCosts(companyId ?? undefined);
-  const { data: expenses } = useCompanyExpenses(companyId ?? undefined);
+  const { data: costs } = useCompanyProjectCosts(companyId ?? undefined);
   const { data: projects } = useProjects(companyId ?? undefined);
 
   const monthPoint = useMemo(
-    () => monthlyTrend(revenueEntries ?? [], referralEarnings ?? [], invoices ?? [], fixedCosts ?? [], todayISO(), 1)[0],
-    [revenueEntries, referralEarnings, invoices, fixedCosts],
+    () => monthlyTrend(revenueEntries ?? [], referralEarnings ?? [], invoices ?? [], costs ?? [], todayISO(), 1)[0],
+    [revenueEntries, referralEarnings, invoices, costs],
   );
 
   // Projects currently running at a loss — the one number a manager actually
@@ -55,8 +53,7 @@ export default function ReportsScreen() {
     const revenueByProject = groupByProject(revenueEntries ?? []);
     const referralsByProject = groupByProject(referralEarnings ?? []);
     const invoicesByProject = groupByProject(invoices ?? []);
-    const fixedCostsByProject = groupByProject(fixedCosts ?? []);
-    const expensesByProject = groupByProject(expenses ?? []);
+    const costsByProject = groupByProject(costs ?? []);
     const today = todayISO();
     return (projects ?? []).filter((p) => {
       const revenueCents = (revenueByProject.get(p.id) ?? []).reduce((acc, r) => acc + (r.amount_cents ?? 0), 0);
@@ -64,11 +61,12 @@ export default function ReportsScreen() {
       const costCents = (invoicesByProject.get(p.id) ?? [])
         .filter((i) => i.status === 'submitted' || i.status === 'partially_paid' || i.status === 'paid')
         .reduce((acc, i) => acc + (i.earned_cents ?? 0), 0);
-      const fixedCostCents = fixedCostCumulative(fixedCostsByProject.get(p.id) ?? [], today);
-      const expenseCents = sumApprovedExpenses(expensesByProject.get(p.id) ?? []);
+      const projectCosts = costsByProject.get(p.id) ?? [];
+      const fixedCostCents = costCumulative(projectCosts, today);
+      const expenseCents = sumApprovedExpenses(projectCosts);
       return projectMargin(revenueCents, referralCents, costCents, fixedCostCents, expenseCents) < 0;
     }).length;
-  }, [revenueEntries, referralEarnings, invoices, fixedCosts, expenses, projects]);
+  }, [revenueEntries, referralEarnings, invoices, costs, projects]);
 
   // Manager/admin only. Guard the direct-URL case (the tab is already hidden for
   // freelancers) — all hooks above run so hook order stays stable.

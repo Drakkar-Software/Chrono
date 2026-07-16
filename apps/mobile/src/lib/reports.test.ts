@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { lastMonths, monthlyTrend, summarizeUtilization, uninvoicedTimeByProject } from './reports';
-import type { CompanyMemberWithProfile, ProjectMember, TimeEntryWithProject } from '@chrono/sdk';
+import type {
+  CompanyMemberWithProfile,
+  ProjectCost,
+  ProjectMember,
+  TimeEntryWithProject,
+} from '@chrono/sdk';
 
 describe('lastMonths', () => {
   it('returns N ascending month keys ending at today', () => {
@@ -11,6 +16,32 @@ describe('lastMonths', () => {
     expect(lastMonths('2026-01-10', 3)).toEqual(['2025-11', '2025-12', '2026-01']);
   });
 });
+
+/** An auto-deducting recurring pool cost of 2000 running from Jan 2026. */
+const recurringCost = () =>
+  ({
+    kind: 'recurring',
+    amount_cents: 2000,
+    active: true,
+    paid_at: null,
+    auto_deduct: true,
+    period_month: null,
+    starts_on: '2026-01-01',
+    ends_on: null,
+    status: null,
+  }) as unknown as ProjectCost;
+
+const approvedExpense = (spentOn: string, cents: number) =>
+  ({
+    kind: 'reimbursable',
+    amount_cents: cents,
+    active: true,
+    paid_at: null,
+    auto_deduct: false,
+    status: 'approved',
+    spent_on: spentOn,
+    user_id: 'u1',
+  }) as unknown as ProjectCost;
 
 describe('monthlyTrend', () => {
   it('buckets revenue, cost and margin by period_month', () => {
@@ -29,9 +60,9 @@ describe('monthlyTrend', () => {
       2,
     );
     expect(rows).toEqual([
-      { month: '2026-02', revenueCents: 50000, costCents: 0, fixedCostCents: 0, marginCents: 50000 },
+      { month: '2026-02', revenueCents: 50000, costCents: 0, fixedCostCents: 0, expenseCents: 0, marginCents: 50000 },
       // margin = 100000 revenue - 10000 referral - 40000 cost = 50000
-      { month: '2026-03', revenueCents: 100000, costCents: 40000, fixedCostCents: 0, marginCents: 50000 },
+      { month: '2026-03', revenueCents: 100000, costCents: 40000, fixedCostCents: 0, expenseCents: 0, marginCents: 50000 },
     ]);
   });
 
@@ -40,30 +71,55 @@ describe('monthlyTrend', () => {
       [{ period_month: '2026-03-01', amount_cents: 100000 }],
       [],
       [],
+      [recurringCost()],
+      '2026-03-10',
+      2,
+    );
+    expect(rows).toEqual([
+      { month: '2026-02', revenueCents: 0, costCents: 0, fixedCostCents: 2000, expenseCents: 0, marginCents: -2000 },
+      { month: '2026-03', revenueCents: 100000, costCents: 0, fixedCostCents: 2000, expenseCents: 0, marginCents: 98000 },
+    ]);
+  });
+
+  // Regression: the trend used to omit expenses entirely while projectMargin
+  // subtracted them, so the Trends card and the P&L card disagreed for any
+  // project with approved reimbursables.
+  it('subtracts approved reimbursables from margin, bucketed by spent_on', () => {
+    const rows = monthlyTrend(
+      [{ period_month: '2026-03-01', amount_cents: 100000 }],
+      [],
+      [],
       [
-        {
-          cadence: 'recurring',
-          amount_cents: 2000,
-          active: true,
-          period_month: null,
-          starts_on: '2026-01-01',
-          ends_on: null,
-        } as unknown as import('@chrono/sdk').ProjectFixedCost,
+        approvedExpense('2026-03-04', 5000),
+        approvedExpense('2026-02-04', 1000),
+        // Not approved -> not a cost yet.
+        { ...approvedExpense('2026-03-05', 9999), status: 'pending' },
       ],
       '2026-03-10',
       2,
     );
     expect(rows).toEqual([
-      { month: '2026-02', revenueCents: 0, costCents: 0, fixedCostCents: 2000, marginCents: -2000 },
-      { month: '2026-03', revenueCents: 100000, costCents: 0, fixedCostCents: 2000, marginCents: 98000 },
+      { month: '2026-02', revenueCents: 0, costCents: 0, fixedCostCents: 0, expenseCents: 1000, marginCents: -1000 },
+      { month: '2026-03', revenueCents: 100000, costCents: 0, fixedCostCents: 0, expenseCents: 5000, marginCents: 95000 },
     ]);
+  });
+
+  it('never counts a reimbursable as a pool (fixed) cost', () => {
+    const rows = monthlyTrend([], [], [], [approvedExpense('2026-03-04', 5000)], '2026-03-10', 1);
+    expect(rows[0].fixedCostCents).toBe(0);
+    expect(rows[0].expenseCents).toBe(5000);
   });
 
   it('yields zeroed months with no activity', () => {
     const rows = monthlyTrend([], [], [], [], '2026-03-10', 2);
     expect(
       rows.every(
-        (r) => r.revenueCents === 0 && r.costCents === 0 && r.fixedCostCents === 0 && r.marginCents === 0,
+        (r) =>
+          r.revenueCents === 0 &&
+          r.costCents === 0 &&
+          r.fixedCostCents === 0 &&
+          r.expenseCents === 0 &&
+          r.marginCents === 0,
       ),
     ).toBe(true);
   });

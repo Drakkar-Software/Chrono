@@ -3,15 +3,15 @@ import { StyleSheet, View } from 'react-native';
 import { Money, Row, TitledCard, spacing, useTheme } from '@chrono/ui';
 import {
   availableFunding,
+  costCumulative,
   dueRevenue,
-  fixedCostCumulative,
   netAvailableFunding,
   projectMargin,
   sumApprovedExpenses,
   sumReferralEarnings,
   totalOutstanding,
 } from '@chrono/sdk';
-import type { Invoice, Project, ProjectExpense, ProjectFixedCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
+import type { Invoice, Project, ProjectCost, ReferralEarning, RevenueEntry } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { todayISO } from '@/lib/date';
@@ -27,10 +27,12 @@ export interface ProjectPnLCardProps {
   referralEarnings: ReferralEarning[];
   /** This project's invoices (pre-filtered by the reports screen). */
   invoices: Invoice[];
-  /** This project's fixed cost definitions (hosting, tooling, etc.), pre-filtered by the reports screen. */
-  fixedCosts?: ProjectFixedCost[];
-  /** This project's expenses, pre-filtered by the reports screen. */
-  expenses?: ProjectExpense[];
+  /**
+   * This project's costs of every kind, pre-filtered by the reports screen.
+   * The pool kinds (recurring / one_off) and reimbursables are separated here,
+   * since only the former reach the funding pool.
+   */
+  costs?: ProjectCost[];
   /**
    * Approved billable time not yet attached to an invoice, valued at each
    * freelancer's effective day rate (see `valueUninvoicedTime`). Cents.
@@ -49,8 +51,7 @@ export function ProjectPnLCard({
   revenueEntries,
   referralEarnings,
   invoices,
-  fixedCosts = [],
-  expenses = [],
+  costs = [],
   uninvoicedTimeCents = 0,
 }: ProjectPnLCardProps) {
   const t = useT();
@@ -77,14 +78,12 @@ export function ProjectPnLCard({
     () => invoices.map((i) => ({ amount_paid_cents: i.amount_paid_cents ?? 0 })),
     [invoices],
   );
-  // Cumulative through the current month, matching settle_project_month's pool math.
-  const fixedCostCents = useMemo(
-    () => fixedCostCumulative(fixedCosts, todayISO()),
-    [fixedCosts],
-  );
-  // Reimbursable expenses are a real cost but, unlike fixed costs, are paid
-  // outside the FIFO pool — they affect margin only, not availableFunding.
-  const expenseCents = useMemo(() => sumApprovedExpenses(expenses), [expenses]);
+  // Cumulative PAID pool cost through the current month, matching
+  // settle_project_month's pool math (an unpaid cost hasn't left the pool yet).
+  const fixedCostCents = useMemo(() => costCumulative(costs, todayISO()), [costs]);
+  // Reimbursables are a real cost but, unlike pool costs, are paid outside the
+  // FIFO pool — they affect margin only, not availableFunding.
+  const expenseCents = useMemo(() => sumApprovedExpenses(costs), [costs]);
 
   const margin = projectMargin(revenueCents, referralCents, costCents, fixedCostCents, expenseCents);
   const funding = availableFunding(revenueEntries, referralEarnings, paidInvoices, fixedCostCents);

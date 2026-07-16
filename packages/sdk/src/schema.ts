@@ -19,7 +19,7 @@ export type AppRole = 'freelancer' | 'manager' | 'admin';
 export type ProjectStatus = 'active' | 'archived';
 export type TimeEntryStatus = 'pending' | 'approved' | 'rejected';
 export type RevenueSourceType = 'time_based' | 'recurring' | 'self_billing';
-export type FixedCostCadence = 'recurring' | 'one_off';
+export type ProjectCostKind = 'recurring' | 'one_off' | 'reimbursable';
 export type ExpenseStatus = 'pending' | 'approved' | 'rejected';
 export type InvoiceStatus =
   | 'draft'
@@ -490,88 +490,67 @@ export type Database = {
           },
         ];
       };
-      project_fixed_costs: {
+      project_costs: {
         Row: {
           id: string;
           project_id: string;
           company_id: string;
-          name: string;
-          cadence: FixedCostCadence;
+          kind: ProjectCostKind;
+          label: string;
           amount_cents: number;
           active: boolean;
+          /** Pool kinds only — a reimbursable uses reimbursed_at instead. */
+          paid_at: string | null;
+          /** Recurring only: every elapsed month counts as paid. */
+          auto_deduct: boolean;
           period_month: string | null;
           starts_on: string | null;
           ends_on: string | null;
+          // Reimbursable only, from here down.
+          user_id: string | null;
+          spent_on: string | null;
+          category: string | null;
+          receipt_url: string | null;
+          status: ExpenseStatus | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          rejection_reason: string | null;
+          reimbursed_at: string | null;
+          reimbursed_by: string | null;
           created_by: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
           project_id: string;
           company_id: string;
-          name: string;
-          cadence: FixedCostCadence;
+          kind: ProjectCostKind;
+          label: string;
           amount_cents: number;
           active?: boolean;
+          paid_at?: string | null;
+          auto_deduct?: boolean;
           period_month?: string | null;
           starts_on?: string | null;
           ends_on?: string | null;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          deleted?: boolean;
-        };
-        Update: Partial<Database['public']['Tables']['project_fixed_costs']['Insert']>;
-        Relationships: [
-          {
-            foreignKeyName: 'project_fixed_costs_project_id_fkey';
-            columns: ['project_id'];
-            referencedRelation: 'projects';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      project_expenses: {
-        Row: {
-          id: string;
-          project_id: string;
-          company_id: string;
-          user_id: string;
-          description: string;
-          amount_cents: number;
-          spent_on: string;
-          category: string | null;
-          receipt_url: string | null;
-          status: ExpenseStatus;
-          approved_by: string | null;
-          approved_at: string | null;
-          rejection_reason: string | null;
-          reimbursed_at: string | null;
-          reimbursed_by: string | null;
-        } & Timestamps;
-        Insert: {
-          id?: string;
-          project_id: string;
-          company_id: string;
-          user_id: string;
-          description: string;
-          amount_cents: number;
-          spent_on?: string;
+          user_id?: string | null;
+          spent_on?: string | null;
           category?: string | null;
           receipt_url?: string | null;
-          status?: ExpenseStatus;
+          status?: ExpenseStatus | null;
           approved_by?: string | null;
           approved_at?: string | null;
           rejection_reason?: string | null;
           reimbursed_at?: string | null;
           reimbursed_by?: string | null;
+          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
         };
-        Update: Partial<Database['public']['Tables']['project_expenses']['Insert']>;
+        Update: Partial<Database['public']['Tables']['project_costs']['Insert']>;
         Relationships: [
           {
-            foreignKeyName: 'project_expenses_project_id_fkey';
+            foreignKeyName: 'project_costs_project_id_fkey';
             columns: ['project_id'];
             referencedRelation: 'projects';
             referencedColumns: ['id'];
@@ -880,6 +859,10 @@ export type Database = {
         Args: { p_entry_ids: string[]; p_paid?: boolean };
         Returns: undefined;
       };
+      mark_project_costs_paid: {
+        Args: { p_cost_ids: string[]; p_paid?: boolean };
+        Returns: undefined;
+      };
       is_company_member: { Args: { cid: string }; Returns: boolean };
       is_company_manager: { Args: { cid: string }; Returns: boolean };
       is_company_admin: { Args: { cid: string }; Returns: boolean };
@@ -890,7 +873,7 @@ export type Database = {
       project_status: ProjectStatus;
       time_entry_status: TimeEntryStatus;
       revenue_source_type: RevenueSourceType;
-      fixed_cost_cadence: FixedCostCadence;
+      project_cost_kind: ProjectCostKind;
       expense_status: ExpenseStatus;
       invoice_status: InvoiceStatus;
       notification_type: NotificationType;

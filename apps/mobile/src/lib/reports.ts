@@ -4,7 +4,7 @@ import {
   isActiveInvoice,
   minutesToDays,
   monthBounds,
-  totalFixedCostForMonth,
+  totalCostForMonth,
   utilization,
   utilizationStatus,
   valueUninvoicedTime,
@@ -12,7 +12,7 @@ import {
 import type {
   CompanyMemberWithProfile,
   InvoiceStatus,
-  ProjectFixedCost,
+  ProjectCost,
   ProjectMember,
   TimeEntryWithProject,
   UtilizationStatus,
@@ -76,6 +76,8 @@ export interface MonthlyPoint {
   revenueCents: number;
   costCents: number;
   fixedCostCents: number;
+  /** Approved reimbursables spent in the month. */
+  expenseCents: number;
   marginCents: number;
 }
 
@@ -97,15 +99,17 @@ export function lastMonths(todayISO: string, count: number): string[] {
 /**
  * Monthly revenue / cost / margin series over the last `count` months. Revenue
  * is recognized revenue; cost is earned on real (submitted+) invoices; fixed
- * costs (hosting, tooling, etc.) are each month's applicable amount from
- * `fixedCosts`; margin = revenue − referrals − fixed costs − cost. Buckets by
+ * costs (hosting, tooling, etc.) are each month's applicable amount from the
+ * pool kinds in `costs`; expenses are approved reimbursables bucketed by
+ * `spent_on`. margin = revenue − referrals − fixed costs − cost − expenses,
+ * matching `projectMargin` so the trend card and the P&L card agree. Buckets by
  * `period_month`, so it's independent of the screen's date-range preset.
  */
 export function monthlyTrend(
   revenueEntries: TrendRevenue[],
   referralEarnings: TrendReferral[],
   invoices: TrendInvoice[],
-  fixedCosts: ProjectFixedCost[],
+  costs: ProjectCost[],
   todayISO: string,
   count = 6,
 ): MonthlyPoint[] {
@@ -113,6 +117,7 @@ export function monthlyTrend(
   const revenue = new Map<string, number>();
   const referral = new Map<string, number>();
   const cost = new Map<string, number>();
+  const expense = new Map<string, number>();
   const bump = (m: Map<string, number>, key: string, v: number) => m.set(key, (m.get(key) ?? 0) + v);
 
   for (const r of revenueEntries) bump(revenue, r.period_month.slice(0, 7), r.amount_cents ?? 0);
@@ -122,13 +127,20 @@ export function monthlyTrend(
       bump(cost, i.period_month.slice(0, 7), i.earned_cents ?? 0);
     }
   }
+  for (const c of costs) {
+    if (c.kind === 'reimbursable' && c.status === 'approved' && c.spent_on) {
+      bump(expense, c.spent_on.slice(0, 7), c.amount_cents ?? 0);
+    }
+  }
 
   return months.map((month) => {
     const revenueCents = revenue.get(month) ?? 0;
     const costCents = cost.get(month) ?? 0;
-    const fixedCostCents = totalFixedCostForMonth(fixedCosts, month);
-    const marginCents = revenueCents - (referral.get(month) ?? 0) - fixedCostCents - costCents;
-    return { month, revenueCents, costCents, fixedCostCents, marginCents };
+    const fixedCostCents = totalCostForMonth(costs, month);
+    const expenseCents = expense.get(month) ?? 0;
+    const marginCents =
+      revenueCents - (referral.get(month) ?? 0) - fixedCostCents - costCents - expenseCents;
+    return { month, revenueCents, costCents, fixedCostCents, expenseCents, marginCents };
   });
 }
 

@@ -7,10 +7,10 @@ import { canManage, companyCurrency } from '@chrono/sdk';
 import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { usePendingApprovals, useApproveEntry, useRejectEntry } from '@/lib/hooks/use-approvals';
-import { usePendingExpenses, useExpenseMutations } from '@/lib/hooks/use-project-expenses';
+import { usePendingExpenses, useProjectCostMutations } from '@/lib/hooks/use-project-costs';
 import { useCompanyMembers } from '@/lib/hooks/use-company-members';
 import { ApprovalRow } from '@/components/approvals/ApprovalRow';
-import { ExpenseRow } from '@/components/expenses/ExpenseRow';
+import { CostRow } from '@/components/costs/CostRow';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
@@ -37,7 +37,7 @@ export default function ApprovalsScreen() {
   const reject = useRejectEntry();
 
   const { data: pendingExpenses, refetch: refetchPendingExpenses } = usePendingExpenses(companyId ?? undefined);
-  const expenseMut = useExpenseMutations();
+  const expenseMut = useProjectCostMutations();
 
   const { data: members } = useCompanyMembers(companyId ?? undefined);
 
@@ -160,12 +160,16 @@ export default function ApprovalsScreen() {
             {pendingExpenseList.length > 0 ? (
               <CardGrid minColumnWidth={280}>
                 {pendingExpenseList.map((expense) => (
-                  <ExpenseRow
+                  <CostRow
                     key={expense.id}
-                    expense={expense}
+                    cost={expense}
                     currency={currency}
-                    submitter={(members ?? []).find((m) => m.user_id === expense.user_id)?.profile}
-                    canModerate
+                    submitter={
+                      expense.user_id
+                        ? (members ?? []).find((m) => m.user_id === expense.user_id)?.profile
+                        : null
+                    }
+                    canManage
                     onApprove={() => void expenseMut.approve(expense.id).then(() => refetchPendingExpenses())}
                     onReject={(reason) => void expenseMut.reject(expense.id, reason).then(() => refetchPendingExpenses())}
                     isBusy={expenseMut.isPending}

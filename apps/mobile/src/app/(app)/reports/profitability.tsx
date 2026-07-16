@@ -8,8 +8,7 @@ import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useProjects } from '@/lib/hooks/use-projects';
 import { useCompanyRevenueEntries } from '@/lib/hooks/use-revenue-entries';
-import { useCompanyProjectFixedCosts } from '@/lib/hooks/use-project-fixed-costs';
-import { useCompanyExpenses } from '@/lib/hooks/use-project-expenses';
+import { useCompanyProjectCosts } from '@/lib/hooks/use-project-costs';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
@@ -38,8 +37,7 @@ export default function ProfitabilityScreen() {
   const { data: revenueEntries } = useCompanyRevenueEntries(companyId ?? undefined);
   const { data: referralEarnings } = useReferralEarnings(companyId ? { companyId } : {});
   const { data: invoices } = useInvoices({ companyId: companyId ?? '' });
-  const { data: fixedCosts } = useCompanyProjectFixedCosts(companyId ?? undefined);
-  const { data: expenses } = useCompanyExpenses(companyId ?? undefined);
+  const { data: costs } = useCompanyProjectCosts(companyId ?? undefined);
 
   // Approved billable time not yet invoiced, valued into each project's "net
   // available funding" — a live preview of what's really left to spend.
@@ -55,8 +53,7 @@ export default function ProfitabilityScreen() {
   const revenueByProject = useMemo(() => groupByProject(revenueEntries ?? []), [revenueEntries]);
   const referralsByProject = useMemo(() => groupByProject(referralEarnings ?? []), [referralEarnings]);
   const invoicesByProject = useMemo(() => groupByProject(invoices ?? []), [invoices]);
-  const fixedCostsByProject = useMemo(() => groupByProject(fixedCosts ?? []), [fixedCosts]);
-  const expensesByProject = useMemo(() => groupByProject(expenses ?? []), [expenses]);
+  const costsByProject = useMemo(() => groupByProject(costs ?? []), [costs]);
   const projectMembersByProject = useMemo(() => groupByProject(projectMembers ?? []), [projectMembers]);
   const uninvoicedTimeByProjectId = useMemo(
     () => uninvoicedTimeByProject(uninvoicedTimeEntries ?? [], projectMembersByProject),
@@ -95,8 +92,7 @@ export default function ProfitabilityScreen() {
                 revenueEntries={revenueByProject.get(project.id) ?? []}
                 referralEarnings={referralsByProject.get(project.id) ?? []}
                 invoices={invoicesByProject.get(project.id) ?? []}
-                fixedCosts={fixedCostsByProject.get(project.id) ?? []}
-                expenses={expensesByProject.get(project.id) ?? []}
+                costs={costsByProject.get(project.id) ?? []}
                 uninvoicedTimeCents={uninvoicedTimeByProjectId.get(project.id) ?? 0}
               />
             ))}

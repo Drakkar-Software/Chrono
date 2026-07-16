@@ -7,6 +7,7 @@ import {
   monthlyRecurringAmount,
   sourceClientTjm,
   sourceManualAmount,
+  totalCostForMonth,
   valueUninvoicedTime,
 } from '@chrono/sdk';
 
@@ -17,14 +18,14 @@ import { useProject } from '@/lib/hooks/use-projects';
 import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
 import { useProjectMembers } from '@/lib/hooks/use-project-members';
 import { useRevenueSources } from '@/lib/hooks/use-revenue-sources';
-import { useProjectFixedCosts } from '@/lib/hooks/use-project-fixed-costs';
-import { useProjectExpenses } from '@/lib/hooks/use-project-expenses';
+import { useProjectCosts } from '@/lib/hooks/use-project-costs';
 import { useProjectReferrals } from '@/lib/hooks/use-project-referrals';
 import { useRevenueEntries } from '@/lib/hooks/use-revenue-entries';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { projectBadge } from '@/lib/status';
+import { todayISO } from '@/lib/date';
 import { EditProjectForm, type EditProjectValues } from '@/components/projects/EditProjectForm';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
@@ -48,8 +49,7 @@ export default function ProjectDetail() {
   // sub-screen fetches its own full data independently.
   const { data: members, refetch: refetchMembers } = useProjectMembers(id);
   const { data: sources, refetch: refetchSources } = useRevenueSources(id);
-  const { data: fixedCosts, refetch: refetchFixedCosts } = useProjectFixedCosts(id);
-  const { data: expenses, refetch: refetchExpenses } = useProjectExpenses(id, companyId);
+  const { data: costs, refetch: refetchCosts } = useProjectCosts(id, companyId);
   const { data: referrals, refetch: refetchReferrals } = useProjectReferrals(id);
   const isProjectMember = (members ?? []).some((m) => m.user_id === user?.id);
 
@@ -88,8 +88,7 @@ export default function ProjectDetail() {
       void refetchProject();
       void refetchMembers();
       void refetchSources();
-      void refetchFixedCosts();
-      void refetchExpenses();
+      void refetchCosts();
       void refetchReferrals();
       void refetchPnlRevenue();
       void refetchPnlReferrals();
@@ -99,8 +98,7 @@ export default function ProjectDetail() {
       refetchProject,
       refetchMembers,
       refetchSources,
-      refetchFixedCosts,
-      refetchExpenses,
+      refetchCosts,
       refetchReferrals,
       refetchPnlRevenue,
       refetchPnlReferrals,
@@ -174,9 +172,11 @@ export default function ProjectDetail() {
         : (sourceManualAmount(source) ?? sourceClientTjm(source));
     return acc + amount;
   }, 0);
-  const fixedCostsTotalCents = (fixedCosts ?? [])
-    .filter((c) => c.cadence === 'recurring')
-    .reduce((acc, c) => acc + c.amount_cents, 0);
+  // This month's applicable pool cost — the counterpart to the monthly RATE in
+  // `revenueSourcesTotalCents` above, so the two figures compare like for like.
+  // A raw sum of recurring rows would ignore `active`, the [starts_on, ends_on]
+  // window, and any one_off landing this month.
+  const costsTotalCents = totalCostForMonth(costs ?? [], todayISO());
   const uninvoicedTimeCents = valueUninvoicedTime(uninvoicedEntries ?? [], project, members ?? []);
 
   return (
@@ -227,8 +227,7 @@ export default function ProjectDetail() {
             revenueEntries={pnlRevenue ?? []}
             referralEarnings={pnlReferrals ?? []}
             invoices={pnlInvoices ?? []}
-            fixedCosts={fixedCosts ?? []}
-            expenses={expenses ?? []}
+            costs={costs ?? []}
             uninvoicedTimeCents={uninvoicedTimeCents}
           />
         ) : null}
@@ -251,23 +250,16 @@ export default function ProjectDetail() {
               onPress={() => router.push(`/project/${id}/revenue-sources`)}
             />
           ) : null}
-          {manager ? (
-            <ListItem
-              title={t('details.fixedCosts')}
-              subtitle={t('details.fixedCostsCount', { count: (fixedCosts ?? []).length })}
-              trailing={
-                fixedCostsTotalCents > 0 ? (
-                  <Money cents={fixedCostsTotalCents} currency={currency} tone="textMuted" />
-                ) : undefined
-              }
-              onPress={() => router.push(`/project/${id}/fixed-costs`)}
-            />
-          ) : null}
           {manager || isProjectMember ? (
             <ListItem
-              title={t('details.expenses')}
-              subtitle={t('details.expensesCount', { count: (expenses ?? []).length })}
-              onPress={() => router.push(`/project/${id}/expenses`)}
+              title={t('details.costs')}
+              subtitle={t('details.costsCount', { count: (costs ?? []).length })}
+              trailing={
+                manager && costsTotalCents > 0 ? (
+                  <Money cents={costsTotalCents} currency={currency} tone="textMuted" />
+                ) : undefined
+              }
+              onPress={() => router.push(`/project/${id}/costs`)}
             />
           ) : null}
           {manager ? (

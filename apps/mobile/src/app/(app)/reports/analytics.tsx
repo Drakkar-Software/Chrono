@@ -9,8 +9,7 @@ import { useActiveCompany } from '@/lib/active-company-context';
 import { todayISO } from '@/lib/date';
 import { exportCsv, invoicesCsv, timeEntriesCsv } from '@/lib/csv-export';
 import { useCompanyRevenueEntries } from '@/lib/hooks/use-revenue-entries';
-import { useCompanyProjectFixedCosts } from '@/lib/hooks/use-project-fixed-costs';
-import { useCompanyExpenses } from '@/lib/hooks/use-project-expenses';
+import { useCompanyProjectCosts } from '@/lib/hooks/use-project-costs';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
@@ -58,15 +57,10 @@ export default function AnalyticsScreen() {
     refetch: refetchInvoicesData,
   } = useInvoices({ companyId: companyId ?? '' });
   const {
-    data: fixedCosts,
-    error: fixedCostsError,
-    refetch: refetchFixedCosts,
-  } = useCompanyProjectFixedCosts(companyId ?? undefined);
-  const {
-    data: expenses,
-    error: expensesError,
-    refetch: refetchExpenses,
-  } = useCompanyExpenses(companyId ?? undefined);
+    data: costs,
+    error: costsError,
+    refetch: refetchCosts,
+  } = useCompanyProjectCosts(companyId ?? undefined);
 
   // Approved billable time in-range — one company-scoped query, sliced per user.
   const {
@@ -98,13 +92,13 @@ export default function AnalyticsScreen() {
     [freelancerRows, members, range],
   );
 
-  const owedByUser = useMemo(() => expensesOwedByUser(expenses ?? []), [expenses]);
+  const owedByUser = useMemo(() => expensesOwedByUser(costs ?? []), [costs]);
 
   // Six-month revenue/cost/margin trend — independent of the range preset above,
   // built from the company-wide data already fetched (no extra queries).
   const trend = useMemo(
-    () => monthlyTrend(revenueEntries ?? [], referralEarnings ?? [], invoices ?? [], fixedCosts ?? [], todayISO(), 6),
-    [revenueEntries, referralEarnings, invoices, fixedCosts],
+    () => monthlyTrend(revenueEntries ?? [], referralEarnings ?? [], invoices ?? [], costs ?? [], todayISO(), 6),
+    [revenueEntries, referralEarnings, invoices, costs],
   );
 
   const breakdownLoading =
@@ -117,8 +111,7 @@ export default function AnalyticsScreen() {
     { error: revenueEntriesError, refetch: refetchRevenueEntries },
     { error: referralEarningsError, refetch: refetchReferralEarnings },
     { error: invoicesError, refetch: refetchInvoicesData },
-    { error: fixedCostsError, refetch: refetchFixedCosts },
-    { error: expensesError, refetch: refetchExpenses },
+    { error: costsError, refetch: refetchCosts },
     { error: approvedError, refetch: refetchApproved },
     { error: membersError, refetch: refetchMembers },
   ];
@@ -184,7 +177,7 @@ export default function AnalyticsScreen() {
 
           {Object.keys(owedByUser).length > 0 ? (
             <View style={styles.block}>
-              <SectionHeader eyebrow={t('tabs.reports.people')} title={t('comp.expense.owed')} />
+              <SectionHeader eyebrow={t('tabs.reports.people')} title={t('comp.cost.owed')} />
               <Card padding="lg" style={styles.owedCard}>
                 {Object.entries(owedByUser).map(([userId, cents]) => (
                   <Row key={userId} label={displayName((members ?? []).find((m) => m.user_id === userId)?.profile)}>
