@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button, DatePicker, Picker, Segmented, TextField, TitledCard, Txt } from '@chrono/ui';
 import { monthKey } from '@chrono/sdk';
-import type { ProjectCostKind } from '@chrono/sdk';
+import type { ProjectCost, ProjectCostKind } from '@chrono/sdk';
 
 import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
@@ -36,6 +36,8 @@ export interface AddCostFormProps {
   isSubmitting?: boolean;
   /** Non-managers may only submit a reimbursable — the kind picker is hidden. */
   reimbursableOnly?: boolean;
+  /** Present when editing an existing cost — pre-fills every field and locks the kind. */
+  editingCost?: ProjectCost;
 }
 
 function toCents(input: string): number {
@@ -43,28 +45,37 @@ function toCents(input: string): number {
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
 }
 
-/** Add a project cost of any kind: recurring / one-off overhead, or a reimbursable. */
+function toDate(iso: string | null | undefined): Date {
+  return iso ? new Date(`${iso.slice(0, 10)}T00:00:00`) : new Date();
+}
+
+/** Add or edit a project cost of any kind: recurring / one-off overhead, or a reimbursable. */
 export function AddCostForm({
   onAdd,
   onCancel,
   isSubmitting = false,
   reimbursableOnly = false,
+  editingCost,
 }: AddCostFormProps) {
   const t = useT();
-  const [kind, setKind] = useState<ProjectCostKind>(reimbursableOnly ? 'reimbursable' : 'recurring');
-  const [label, setLabel] = useState('');
-  const [amount, setAmount] = useState('');
-  const [startsOn, setStartsOn] = useState(new Date());
+  const [kind, setKind] = useState<ProjectCostKind>(
+    editingCost?.kind ?? (reimbursableOnly ? 'reimbursable' : 'recurring'),
+  );
+  const [label, setLabel] = useState(editingCost?.label ?? '');
+  const [amount, setAmount] = useState(editingCost ? String(editingCost.amount_cents / 100) : '');
+  const [startsOn, setStartsOn] = useState(toDate(editingCost?.starts_on));
   // DatePicker has no empty state, so "ongoing" is modelled as a separate
   // choice rather than a null date.
-  const [bounded, setBounded] = useState(false);
-  const [endsOn, setEndsOn] = useState(new Date());
-  const [periodMonth, setPeriodMonth] = useState(new Date());
-  const [spentOn, setSpentOn] = useState(new Date());
-  const [category, setCategory] = useState('');
+  const [bounded, setBounded] = useState(editingCost?.ends_on != null);
+  const [endsOn, setEndsOn] = useState(toDate(editingCost?.ends_on));
+  const [periodMonth, setPeriodMonth] = useState(toDate(editingCost?.period_month));
+  const [spentOn, setSpentOn] = useState(toDate(editingCost?.spent_on));
+  const [category, setCategory] = useState(editingCost?.category ?? '');
   const [receipt, setReceipt] = useState<PickedImage | null>(null);
-  const [autoDeduct, setAutoDeduct] = useState(true);
-  const [paidStatus, setPaidStatus] = useState<'unpaid' | 'paid'>('unpaid');
+  const [autoDeduct, setAutoDeduct] = useState(editingCost?.auto_deduct ?? true);
+  const [paidStatus, setPaidStatus] = useState<'unpaid' | 'paid'>(
+    editingCost?.paid_at != null ? 'paid' : 'unpaid',
+  );
   const [error, setError] = useState<string | undefined>();
 
   const isReimbursable = kind === 'reimbursable';
@@ -134,8 +145,8 @@ export function AddCostForm({
   };
 
   return (
-    <TitledCard title={t('comp.cost.title')}>
-      {reimbursableOnly ? null : (
+    <TitledCard title={editingCost ? t('comp.cost.editTitle') : t('comp.cost.title')}>
+      {reimbursableOnly || editingCost ? null : (
         <Picker
           label={t('comp.cost.kind')}
           value={kind}
@@ -227,7 +238,9 @@ export function AddCostForm({
 
       <InlineError message={error ?? ''} />
       <FormActions
-        submitLabel={isReimbursable ? t('comp.cost.submitBtn') : t('comp.cost.addCost')}
+        submitLabel={
+          editingCost ? t('common.save') : isReimbursable ? t('comp.cost.submitBtn') : t('comp.cost.addCost')
+        }
         onSubmit={submit}
         busy={isSubmitting}
         onCancel={onCancel}

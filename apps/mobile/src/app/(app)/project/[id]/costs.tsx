@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { EmptyState, IconButton, Segmented, StackScreen, spacing } from '@chrono/ui';
 import { canManage, companyCurrency } from '@chrono/sdk';
-import type { ProjectCostKind } from '@chrono/sdk';
+import type { ProjectCost, ProjectCostKind } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
@@ -41,6 +41,7 @@ export default function ProjectCostsScreen() {
   const costMut = useProjectCostMutations();
   const markPaid = useMarkProjectCostsPaid();
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<ProjectCost | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
 
   const isProjectMember = (members ?? []).some((m) => m.user_id === user?.id);
@@ -104,6 +105,29 @@ export default function ProjectCostsScreen() {
     setAdding(false);
   };
 
+  // Editing a recurring/one_off cost's amount or schedule changes what
+  // costCumulative/totalCostForMonth compute, so the balance (available
+  // funding, margin) re-derives on its own from the updated row — no separate
+  // recalculation step needed. Only the paid flag goes through the RPC, and
+  // only when it actually changed (re-calling it unconditionally would reset
+  // paid_at to "now" even when the manager didn't touch that toggle).
+  const saveEdit = async (values: AddCostValues) => {
+    if (!editing) return;
+    await costMut.update(editing.id, {
+      label: values.label,
+      amount_cents: values.amountCents,
+      period_month: values.periodMonth ?? null,
+      starts_on: values.startsOn ?? null,
+      ends_on: values.endsOn ?? null,
+      auto_deduct: values.autoDeduct ?? false,
+    });
+    const wasPaid = editing.paid_at != null;
+    if (values.paid !== undefined && values.paid !== wasPaid) {
+      await markPaid.mutateAsync([editing.id], values.paid);
+    }
+    setEditing(null);
+  };
+
   if (!canView) {
     return (
       <StackScreen title={t('details.costs')} onBack={() => router.back()}>
@@ -117,26 +141,30 @@ export default function ProjectCostsScreen() {
       title={t('details.costs')}
       onBack={() => router.back()}
       headerRight={
-        !adding ? (
+        !adding && !editing ? (
           <IconButton name="add" onPress={() => setAdding(true)} accessibilityLabel={t('common.add')} />
         ) : undefined
       }
     >
       <View style={{ gap: spacing.md }}>
-        {adding ? (
+        {adding || editing ? (
           <>
             <AddCostForm
-              onAdd={addCost}
-              onCancel={() => setAdding(false)}
+              onAdd={editing ? saveEdit : addCost}
+              onCancel={() => {
+                setAdding(false);
+                setEditing(null);
+              }}
               isSubmitting={costMut.isPending || markPaid.isPending}
               reimbursableOnly={!manager}
+              editingCost={editing ?? undefined}
             />
             {costMut.error ? <InlineError error={costMut.error} /> : null}
             {markPaid.error ? <InlineError error={markPaid.error} /> : null}
           </>
         ) : null}
 
-        {manager && !adding ? (
+        {manager && !adding && !editing ? (
           <Segmented
             options={filterOptions}
             value={filter}
@@ -148,7 +176,7 @@ export default function ProjectCostsScreen() {
           <ScreenLoader />
         ) : error && !costs ? (
           <ErrorState error={error} onRetry={() => void refetch()} />
-        ) : visible.length === 0 && !adding ? (
+        ) : visible.length === 0 && !adding && !editing ? (
           <EmptyState icon="receipt-outline" title={t('details.noCosts')} tone="accent" />
         ) : (
           <View style={{ gap: spacing.sm }}>
@@ -164,6 +192,7 @@ export default function ProjectCostsScreen() {
                 onMarkReimbursed={() => user && void costMut.markReimbursed(cost.id, user.id)}
                 onTogglePaid={(paid) => void markPaid.mutateAsync([cost.id], paid)}
                 onToggleActive={(active) => void costMut.update(cost.id, { active })}
+                onEdit={cost.kind === 'reimbursable' ? undefined : () => setEditing(cost)}
                 onRemove={() => void costMut.remove(cost.id)}
                 isBusy={costMut.isPending || markPaid.isPending}
               />

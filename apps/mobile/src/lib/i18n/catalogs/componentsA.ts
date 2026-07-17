@@ -126,6 +126,7 @@ export const componentsACatalog: CatalogSlice = {
 
     // Costs (recurring / one-off overhead + reimbursables)
     'comp.cost.title': 'Add cost',
+    'comp.cost.editTitle': 'Edit cost',
     'comp.cost.kind': 'Type',
     'comp.cost.kindRecurring': 'Recurring',
     'comp.cost.kindOneOff': 'One-off',
@@ -323,6 +324,7 @@ export const componentsACatalog: CatalogSlice = {
     'comp.invoice.totalPaidOut': 'Total décaissé',
 
     'comp.cost.title': 'Ajouter un coût',
+    'comp.cost.editTitle': 'Modifier le coût',
     'comp.cost.kind': 'Type',
     'comp.cost.kindRecurring': 'Récurrent',
     'comp.cost.kindOneOff': 'Ponctuel',

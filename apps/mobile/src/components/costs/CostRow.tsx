@@ -20,6 +20,8 @@ export interface CostRowProps {
   onMarkReimbursed?: () => void;
   onTogglePaid?: (paid: boolean) => void;
   onToggleActive?: (active: boolean) => void;
+  /** Pool kinds only: edit label/amount/schedule (and re-derive the balance impact if paid). */
+  onEdit?: () => void;
   onRemove?: () => void;
   isBusy?: boolean;
 }
@@ -35,6 +37,7 @@ export function CostRow({
   onMarkReimbursed,
   onTogglePaid,
   onToggleActive,
+  onEdit,
   onRemove,
   isBusy = false,
 }: CostRowProps) {
@@ -141,6 +144,15 @@ export function CostRow({
       {/* Pool costs: paid toggle (auto-deducting ones need none), pause, remove. */}
       {canManage && !isReimbursable ? (
         <View style={styles.actions}>
+          {onEdit ? (
+            <Button
+              title={t('common.edit')}
+              variant="ghost"
+              size="sm"
+              onPress={onEdit}
+              disabled={isBusy}
+            />
+          ) : null}
           {onToggleActive ? (
             <Button
               title={cost.active ? t('comp.cost.pause') : t('comp.cost.resume')}
