@@ -10,10 +10,12 @@ export interface ProjectCardProps {
   onPress?: () => void;
 }
 
-/** Summary card for a project row: name, client, TJM and status. */
+/** Summary card for a project row: name, client, TJM, rem policy and status. */
 export function ProjectCard({ project, currency, onPress }: ProjectCardProps) {
   const t = useT();
   const { colors } = useTheme();
+  const remPolicy = project.rem_policy ?? 'staffing';
+  const hasTjm = project.default_tjm_cents != null;
   return (
     <Pressable
       onPress={onPress}
@@ -41,14 +43,22 @@ export function ProjectCard({ project, currency, onPress }: ProjectCardProps) {
         </View>
         <Badge label={t('status.' + project.status)} status={projectBadge(project.status)} />
       </View>
-      {project.default_tjm_cents != null ? (
-        <View style={styles.meta}>
-          <Txt variant="caption" tone="textMuted">
-            TJM
-          </Txt>
-          <Money cents={project.default_tjm_cents} currency={currency} variant="caption" tone="textMuted" />
-        </View>
-      ) : null}
+      <View style={styles.meta}>
+        {hasTjm ? (
+          <>
+            <Txt variant="caption" tone="textMuted">
+              TJM
+            </Txt>
+            <Money cents={project.default_tjm_cents!} currency={currency} variant="caption" tone="textMuted" />
+            <Txt variant="caption" tone="textFaint">
+              ·
+            </Txt>
+          </>
+        ) : null}
+        <Txt variant="caption" tone="textMuted" numberOfLines={1} style={styles.policy}>
+          {t(`rem.policy.${remPolicy}`)}
+        </Txt>
+      </View>
     </Pressable>
   );
 }
@@ -62,5 +72,6 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   titleWrap: { flex: 1, gap: 2 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
+  policy: { flexShrink: 1 },
 });

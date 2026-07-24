@@ -4,6 +4,7 @@ import { REM_POLICIES, type Project, type ProjectStatus, type RemPolicy } from '
 import { FieldRow } from '@/components/common/FieldRow';
 import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
+import { RemPolicyHelp } from '@/components/projects/RemPolicyHelp';
 import { useT } from '@/lib/i18n';
 import { validateProjectRemFields } from '@/lib/rem-form.lib';
 
@@ -23,7 +24,6 @@ export interface EditProjectValues {
 export interface EditProjectFormProps {
   project: Project;
   onSave: (values: EditProjectValues) => void;
-  onCancel: () => void;
   isSubmitting?: boolean;
 }
 
@@ -39,7 +39,7 @@ function fromCents(cents: number | null): string {
 }
 
 /** Edit an existing project, pre-filled from its current values. */
-export function EditProjectForm({ project, onSave, onCancel, isSubmitting = false }: EditProjectFormProps) {
+export function EditProjectForm({ project, onSave, isSubmitting = false }: EditProjectFormProps) {
   const t = useT();
   const statusOptions = [
     { label: t('status.active'), value: 'active' },
@@ -173,6 +173,7 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
         onValueChange={(v) => setRemPolicy(v as RemPolicy)}
         options={policyOptions}
       />
+      <RemPolicyHelp value={remPolicy} />
       {remPolicy === 'jungle' ? (
         <TextField
           label={t('rem.project.jungleTjm')}
@@ -187,7 +188,6 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
         submitLabel={t('comp.project.saveChanges')}
         onSubmit={submit}
         busy={isSubmitting}
-        onCancel={onCancel}
       />
     </TitledCard>
   );

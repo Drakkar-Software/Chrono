@@ -5,8 +5,10 @@ import {
   computeRemMonth,
   fetchCompanyFeeReserve,
   fetchRemLines,
+  fetchRemLinesByCompany,
   fetchRemMonth,
   lockRemMonth,
+  type RemBucket,
   type RemLine,
   type RemMonth,
 } from '@chrono/sdk';
@@ -34,6 +36,25 @@ export function useRemLines(monthId: string | undefined) {
       deps: [monthId],
       staleTime: 30_000,
       queryKey: `rem-lines:${monthId}`,
+    },
+  );
+}
+
+/** Company-wide rem lines (optional bucket / month filter). */
+export function useRemLinesByCompany(
+  companyId: string | undefined,
+  filters?: { bucket?: RemBucket; month?: string },
+) {
+  const month = filters?.month;
+  const bucket = filters?.bucket;
+  return linkedQuery<RemLine[]>(
+    () => fetchRemLinesByCompany(globalSupabaseClient, companyId!, { bucket, month }),
+    {
+      stores: [],
+      enabled: !!companyId,
+      deps: [companyId, bucket, month],
+      staleTime: 30_000,
+      queryKey: `rem-lines-co:${companyId}:${bucket ?? 'all'}:${month ?? 'all'}`,
     },
   );
 }

@@ -4,6 +4,7 @@ import { Badge, Button, Card, EmptyState, ListItem, Money, StackScreen, Txt, for
 import {
   canManage,
   companyCurrency,
+  costCumulative,
   monthlyRecurringAmount,
   sourceClientTjm,
   sourceManualAmount,
@@ -26,7 +27,9 @@ import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { projectBadge } from '@/lib/status';
 import { todayISO } from '@/lib/date';
+import { matchesPeriodMonth, type StatsPeriod } from '@/lib/period-month';
 import { EditProjectForm, type EditProjectValues } from '@/components/projects/EditProjectForm';
+import { PeriodMonthRail } from '@/components/reports/PeriodMonthRail';
 import { ProjectPnLCard } from '@/components/reports/ProjectPnLCard';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState, InlineError } from '@/components/common/ErrorState';
@@ -109,6 +112,7 @@ export default function ProjectDetail() {
 
   const projectMut = useProjectMutations();
   const [editing, setEditing] = useState(false);
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('all');
 
   const saveEdits = async (values: EditProjectValues) => {
     if (!project) return;
@@ -174,12 +178,18 @@ export default function ProjectDetail() {
         : (sourceManualAmount(source) ?? sourceClientTjm(source));
     return acc + amount;
   }, 0);
-  // This month's applicable pool cost — the counterpart to the monthly RATE in
-  // `revenueSourcesTotalCents` above, so the two figures compare like for like.
-  // A raw sum of recurring rows would ignore `active`, the [starts_on, ends_on]
-  // window, and any one_off landing this month.
-  const costsTotalCents = totalCostForMonth(costs ?? [], todayISO());
-  const uninvoicedTimeCents = valueUninvoicedTime(uninvoicedEntries ?? [], project, members ?? []);
+  // Costs trailing: selected month's pool amount, or lifetime cumulative when All.
+  const costList = costs ?? [];
+  const costsTotalCents =
+    statsPeriod === 'all'
+      ? costCumulative(costList, todayISO())
+      : totalCostForMonth(costList, statsPeriod);
+
+  const uninvoicedForPeriod =
+    statsPeriod === 'all'
+      ? (uninvoicedEntries ?? [])
+      : (uninvoicedEntries ?? []).filter((e) => matchesPeriodMonth(e.entry_date, statsPeriod));
+  const uninvoicedTimeCents = valueUninvoicedTime(uninvoicedForPeriod, project, members ?? []);
 
   return (
     <StackScreen title={project.name} onBack={() => router.back()}>
@@ -188,7 +198,6 @@ export default function ProjectDetail() {
           <EditProjectForm
             project={project}
             onSave={saveEdits}
-            onCancel={() => setEditing(false)}
             isSubmitting={projectMut.isPending}
           />
         ) : (
@@ -223,15 +232,21 @@ export default function ProjectDetail() {
         )}
 
         {manager && companyId ? (
-          <ProjectPnLCard
-            project={project}
-            currency={currency}
-            revenueEntries={pnlRevenue ?? []}
-            referralEarnings={pnlReferrals ?? []}
-            invoices={pnlInvoices ?? []}
-            costs={costs ?? []}
-            uninvoicedTimeCents={uninvoicedTimeCents}
-          />
+          <View style={{ gap: spacing.md }}>
+            <PeriodMonthRail value={statsPeriod} onChange={setStatsPeriod} />
+            <ProjectPnLCard
+              project={project}
+              currency={currency}
+              revenueEntries={pnlRevenue ?? []}
+              referralEarnings={pnlReferrals ?? []}
+              invoices={pnlInvoices ?? []}
+              costs={costs ?? []}
+              uninvoicedTimeCents={uninvoicedTimeCents}
+              period={statsPeriod}
+              companyFeePct={company?.company_fee_pct ?? 0}
+              licensePct={company?.default_license_pct ?? 0}
+            />
+          </View>
         ) : null}
 
         <Card padding="none">

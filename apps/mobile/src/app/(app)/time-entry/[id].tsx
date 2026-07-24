@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Card, EmptyState, StackScreen, spacing } from '@chrono/ui';
-import { DEFAULT_HOURS_PER_DAY, minutesToDays, monthBounds, monthKey } from '@chrono/sdk';
+import { Badge, Card, EmptyState, Row, StackScreen, Txt, spacing } from '@chrono/ui';
+import { DEFAULT_HOURS_PER_DAY, formatDuration, minutesToDays, monthBounds, monthKey } from '@chrono/sdk';
 import type { TablesUpdate } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
@@ -11,9 +11,15 @@ import { useActiveCompany } from '@/lib/active-company-context';
 import { useTimeEntry, useTimeEntryMutations } from '@/lib/hooks/use-time-entry-mutations';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { useMaxBusinessDays } from '@/lib/hooks/use-max-business-days';
+import { timeEntryBadge } from '@/lib/status';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
-import { ErrorState } from '@/components/common/ErrorState';
+import { ErrorState, InlineError } from '@/components/common/ErrorState';
 import { EditEntryForm } from '@/components/time/EditEntryForm';
+
+/** Pending uninvoiced entries can be edited / deleted (RLS: owners may only mutate pending). */
+function isEditable(entry: { status: string; invoice_id: string | null }): boolean {
+  return entry.status === 'pending' && entry.invoice_id == null;
+}
 
 export default function TimeEntryDetail() {
   const t = useT();
@@ -22,7 +28,7 @@ export default function TimeEntryDetail() {
   const { companyId } = useActiveCompany();
 
   const { data: entry, isLoading, error, refetch } = useTimeEntry(id, companyId ?? undefined);
-  const { update, remove, isPending } = useTimeEntryMutations();
+  const { update, remove, isPending, error: mutError } = useTimeEntryMutations();
 
   // The business-day cap check needs the entry's month + the user's other
   // entries in it — computed unconditionally (before any early return) with
@@ -50,7 +56,11 @@ export default function TimeEntryDetail() {
     () =>
       (monthEntries ?? [])
         .filter((e) => e.id !== entry?.id)
-        .reduce((acc, e) => acc + minutesToDays(e.duration_minutes, e.project?.hours_per_day ?? DEFAULT_HOURS_PER_DAY), 0),
+        .reduce(
+          (acc, e) =>
+            acc + minutesToDays(e.duration_minutes, e.project?.hours_per_day ?? DEFAULT_HOURS_PER_DAY),
+          0,
+        ),
     [monthEntries, entry?.id],
   );
 
@@ -80,7 +90,8 @@ export default function TimeEntryDetail() {
     );
   }
 
-  const editable = entry.status === 'pending' && entry.invoice_id == null;
+  const editable = isEditable(entry);
+  const projectName = entry.project?.name ?? t('comp.project.fallbackName');
 
   const save = async (patch: TablesUpdate<'time_entries'>) => {
     await update(entry.id, patch);
@@ -94,6 +105,48 @@ export default function TimeEntryDetail() {
   return (
     <StackScreen title={t('details.timeEntry')} onBack={() => router.back()}>
       <View style={styles.wrap}>
+        <Card padding="lg" style={styles.summary}>
+          <View style={styles.summaryHead}>
+            <Txt variant="heading" numberOfLines={2} style={styles.summaryTitle}>
+              {projectName}
+            </Txt>
+            <Badge label={t('status.' + entry.status)} status={timeEntryBadge(entry.status)} />
+          </View>
+          <Row label={t('common.date')}>
+            <Txt variant="bodyMedium" mono>
+              {entry.entry_date.slice(0, 10)}
+            </Txt>
+          </Row>
+          <Row label={t('comp.time.hours')}>
+            <Txt variant="bodyMedium" mono tabularNums>
+              {formatDuration(entry.duration_minutes)}
+            </Txt>
+          </Row>
+          {entry.description ? (
+            <Row label={t('comp.time.description')}>
+              <Txt variant="body" tone="textMuted" style={styles.desc}>
+                {entry.description}
+              </Txt>
+            </Row>
+          ) : null}
+          <Row label={t('comp.time.billable')}>
+            <Txt variant="bodyMedium">
+              {entry.billable ? t('comp.time.billable') : t('comp.time.nonBillable')}
+            </Txt>
+          </Row>
+        </Card>
+
+        {entry.status === 'rejected' && entry.rejection_reason ? (
+          <Card padding="lg">
+            <EmptyState
+              icon="close-circle-outline"
+              title={t('details.rejectionReason')}
+              subtitle={entry.rejection_reason}
+              tone="danger"
+            />
+          </Card>
+        ) : null}
+
         {editable ? (
           <EditEntryForm
             entry={entry}
@@ -105,15 +158,6 @@ export default function TimeEntryDetail() {
             maxBusinessDays={maxBusinessDays}
             monthLabel={monthLabel}
           />
-        ) : entry.status === 'rejected' && entry.rejection_reason ? (
-          <Card padding="lg">
-            <EmptyState
-              icon="close-circle-outline"
-              title={t('details.rejectionReason')}
-              subtitle={entry.rejection_reason}
-              tone="danger"
-            />
-          </Card>
         ) : (
           <Card padding="lg">
             <EmptyState
@@ -124,6 +168,8 @@ export default function TimeEntryDetail() {
             />
           </Card>
         )}
+
+        {mutError ? <InlineError error={mutError} /> : null}
       </View>
     </StackScreen>
   );
@@ -131,4 +177,14 @@ export default function TimeEntryDetail() {
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
+  summary: { gap: spacing.sm },
+  summaryHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  summaryTitle: { flex: 1 },
+  desc: { flex: 1, textAlign: 'right' },
 });

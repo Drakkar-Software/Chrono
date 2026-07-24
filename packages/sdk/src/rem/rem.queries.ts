@@ -83,6 +83,35 @@ export async function fetchCompanyFeeReserve(
   return data ?? [];
 }
 
+/** Rem lines for a company, optionally filtered by bucket and/or month. */
+export async function fetchRemLinesByCompany(
+  client: Client,
+  companyId: string,
+  filters?: { bucket?: Database['public']['Enums']['rem_bucket']; month?: string },
+): Promise<RemLine[]> {
+  let q = client
+    .from('rem_lines')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('amount_cents', { ascending: false });
+  if (filters?.bucket) q = q.eq('bucket', filters.bucket);
+  if (filters?.month) {
+    // rem_lines don't store period_month — join via rem_months ids for that month.
+    const { data: months, error: mErr } = await client
+      .from('rem_months')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('period_month', monthKey(filters.month));
+    if (mErr) throw mErr;
+    const ids = (months ?? []).map((m) => m.id);
+    if (ids.length === 0) return [];
+    q = q.in('month_id', ids);
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function fetchJungleQueue(
   client: Client,
   projectId: string,

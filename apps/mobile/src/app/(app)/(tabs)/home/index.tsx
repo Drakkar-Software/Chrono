@@ -26,7 +26,6 @@ import { useT } from '@/lib/i18n';
 import { shortMonthLabel, todayISO } from '@/lib/date';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
-import { useVisibleProjects } from '@/lib/hooks/use-visible-projects';
 import { useCompanyProjectMembers } from '@/lib/hooks/use-project-members';
 import { useMaxBusinessDays } from '@/lib/hooks/use-max-business-days';
 import { useVacationPolicy } from '@/lib/hooks/use-vacation-policy';
@@ -38,14 +37,12 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
 import { DayGroupHeader } from '@/components/time/DayGroupHeader';
 import { MonthCalendar } from '@/components/time/MonthCalendar';
-import { ProjectCard } from '@/components/projects/ProjectCard';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { StatRow, StatTile } from '@/components/ui/StatTile';
 
 const RECENT_LIMIT = 5;
-const MY_PROJECTS_LIMIT = 4;
 
 /** Effective day rate for one of this person's time entries, resolved from their project-member override, else the project default. */
 function rateForEntry(entry: TimeEntryWithProject, membersByProjectAndUser: Map<string, { tjm_cents: number | null }>): number {
@@ -101,7 +98,6 @@ export default function HomeScreen() {
     companyId: companyId ?? undefined,
     referrerId: manager ? undefined : userId,
   });
-  const visibleProjects = useVisibleProjects(role, userId, companyId ?? undefined);
   const { netBusinessDays, netRemainingBusinessDays, workingWeekdays, holidayDates, timeOff } = useMaxBusinessDays(
     userId,
     selectedMonthKey,
@@ -195,10 +191,6 @@ export default function HomeScreen() {
       </StackScreen>
     );
   }
-
-  const visibleProjectsList = (visibleProjects.data ?? [])
-    .filter((p) => p.status === 'active')
-    .slice(0, MY_PROJECTS_LIMIT);
 
   return (
     <StackScreen
@@ -300,31 +292,6 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <SectionHeader
-            title={t('tabs.home.myProjects')}
-            action={
-              visibleProjectsList.length > 0 ? (
-                <Button title={t('tabs.home.viewAll')} variant="ghost" size="sm" onPress={() => router.push('/projects')} />
-              ) : undefined
-            }
-          />
-          {visibleProjectsList.length === 0 ? (
-            <EmptyState icon="folder-outline" title={t('tabs.home.noProjects')} tone="accent" />
-          ) : (
-            <View style={styles.projectList}>
-              {visibleProjectsList.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  currency={currency}
-                  onPress={() => router.push(`/project/${project.id}`)}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <SectionHeader
             eyebrow={monthLabel}
             title={t('tabs.home.recentEntries')}
             action={
@@ -347,7 +314,11 @@ export default function HomeScreen() {
                 <View key={day.date} style={styles.day}>
                   <DayGroupHeader date={day.date} minutes={sumDurations(day.items)} />
                   {day.items.map((entry) => (
-                    <TimeEntryRow key={entry.id} entry={entry} />
+                    <TimeEntryRow
+                      key={entry.id}
+                      entry={entry}
+                      onPress={() => router.push(`/time-entry/${entry.id}`)}
+                    />
                   ))}
                 </View>
               ))}
@@ -369,5 +340,4 @@ const styles = StyleSheet.create({
   action: { flexGrow: 1, flexBasis: 0, minWidth: 160 },
   recentCard: { gap: spacing.xs },
   day: { gap: spacing.xs },
-  projectList: { gap: spacing.sm },
 });

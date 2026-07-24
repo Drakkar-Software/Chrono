@@ -4,6 +4,7 @@ import { DEFAULT_HOURS_PER_DAY, REM_POLICIES, type RemPolicy } from '@chrono/sdk
 import { FieldRow } from '@/components/common/FieldRow';
 import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
+import { RemPolicyHelp } from '@/components/projects/RemPolicyHelp';
 import { useT } from '@/lib/i18n';
 import { validateProjectRemFields } from '@/lib/rem-form.lib';
 
@@ -129,6 +130,7 @@ export function NewProjectForm({ onCreate, onCancel, isSubmitting = false }: New
         onValueChange={(v) => setRemPolicy(v as RemPolicy)}
         options={policyOptions}
       />
+      <RemPolicyHelp value={remPolicy} />
       {remPolicy === 'jungle' ? (
         <TextField
           label={t('rem.project.jungleTjm')}

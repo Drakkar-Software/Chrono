@@ -80,6 +80,16 @@ export default function ReportsScreen() {
             title={t('tabs.reports.rem')}
             subtitle={t('tabs.reports.remHint')}
             onPress={() => router.push('/reports/rem' as Href)}
+          />
+          <ListItem
+            title={t('tabs.reports.companyFee')}
+            subtitle={t('tabs.reports.companyFeeHint')}
+            onPress={() => router.push('/reports/company-fee' as Href)}
+          />
+          <ListItem
+            title={t('tabs.reports.license')}
+            subtitle={t('tabs.reports.licenseHint')}
+            onPress={() => router.push('/reports/license' as Href)}
             divider={false}
           />
         </Card>

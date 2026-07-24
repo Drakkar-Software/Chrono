@@ -94,6 +94,8 @@ export default function ProfitabilityScreen() {
                 invoices={invoicesByProject.get(project.id) ?? []}
                 costs={costsByProject.get(project.id) ?? []}
                 uninvoicedTimeCents={uninvoicedTimeByProjectId.get(project.id) ?? 0}
+                companyFeePct={company?.company_fee_pct ?? 0}
+                licensePct={company?.default_license_pct ?? 0}
               />
             ))}
           </CardGrid>
