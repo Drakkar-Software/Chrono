@@ -121,3 +121,9 @@ export * from './search/search.queries';
 export * from './blog/blog.entity';
 export * from './blog/blog.queries';
 export * from './blog/blog.lib';
+
+// Unified rem engine
+export * from './rem/rem.entity';
+export * from './rem/rem.lib';
+export * from './rem/rem.queries';
+export * from './rem/rem.fixtures';

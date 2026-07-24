@@ -62,7 +62,26 @@ export function useCompanyMemberMutations() {
     (id: string, workingWeekdays: number[] | null) => update(id, { working_weekdays: workingWeekdays }),
     [update],
   );
+  const updateRemPartner = useCallback(
+    (id: string, remPartner: boolean) => update(id, { rem_partner: remPartner }),
+    [update],
+  );
+  const updateRemMaxPercent = useCallback(
+    (id: string, remMaxPercent: number | null) => update(id, { rem_max_percent: remMaxPercent }),
+    [update],
+  );
   const remove = useCallback((id: string) => update(id, { deleted: true }), [update]);
 
-  return { add, updateRole, updateRate, updateCapacity, updateWorkingWeekdays, remove, isPending: isLoading, error };
+  return {
+    add,
+    updateRole,
+    updateRate,
+    updateCapacity,
+    updateWorkingWeekdays,
+    updateRemPartner,
+    updateRemMaxPercent,
+    remove,
+    isPending: isLoading,
+    error,
+  };
 }

@@ -53,7 +53,7 @@ export default function SettingsScreen() {
   const { data: billing } = useProfileBilling();
   const { saveBilling, isPending: savingBilling } = useProfileBillingMutations();
   const { data: members, isLoading: loadingMembers } = useCompanyMembers(companyId ?? undefined);
-  const { updateRole, updateCapacity, updateWorkingWeekdays, error: roleError } = useCompanyMemberMutations();
+  const { updateRole, updateCapacity, updateWorkingWeekdays, updateRemPartner, updateRemMaxPercent, error: roleError } = useCompanyMemberMutations();
 
   // Seed the editable name field once the profile loads asynchronously, while
   // still letting the user type over it. This intentional prop->state sync is a
@@ -231,6 +231,8 @@ export default function SettingsScreen() {
                 onCapacityChange={(days) => updateCapacity(member.id, days)}
                 companyDefaultWeekdays={company?.working_weekdays ?? DEFAULT_WORKING_WEEKDAYS}
                 onWorkingWeekdaysChange={(weekdays) => updateWorkingWeekdays(member.id, weekdays)}
+                onRemPartnerChange={(next) => updateRemPartner(member.id, next)}
+                onRemMaxPercentChange={(next) => updateRemMaxPercent(member.id, next)}
               />
             ))
           )}

@@ -121,6 +121,8 @@ export default function ProjectDetail() {
       hours_per_day: values.hoursPerDay,
       status: values.status,
       vat_rate: values.vatRate,
+      rem_policy: values.remPolicy,
+      jungle_fictitious_tjm_cents: values.jungleFictitiousTjmCents,
     });
     await refetchProject();
     setEditing(false);

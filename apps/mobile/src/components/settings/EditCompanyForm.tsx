@@ -8,6 +8,7 @@ import { useT } from '@/lib/i18n';
 import { useCompanyMutations } from '@/lib/hooks/use-companies';
 import { AvatarUpload } from '@/components/settings/AvatarUpload';
 import { InlineError } from '@/components/common/ErrorState';
+import { parseRemSettings } from '@/lib/rem-form.lib';
 
 /** The `content` jsonb shape we read/merge — other keys are preserved on save. */
 type CompanyContent = { name?: string; logo_url?: string } & Record<string, unknown>;
@@ -45,6 +46,10 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
   const [vatRate, setVatRate] = useState('');
   const [vatError, setVatError] = useState<string | undefined>();
   const [numbering, setNumbering] = useState('on');
+  const [companyFeePct, setCompanyFeePct] = useState('0');
+  const [remMaxPercent, setRemMaxPercent] = useState('100');
+  const [defaultLicensePct, setDefaultLicensePct] = useState('0');
+  const [defaultHoursPerDay, setDefaultHoursPerDay] = useState('');
 
   // Seed the editable fields when the active company loads/changes. Legitimate
   // prop->state sync of async-loaded values (mirrors the profile-name pattern).
@@ -60,6 +65,12 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
     setRegistrationId(company.registration_id ?? '');
     setVatRate(company.vat_rate != null ? String(company.vat_rate) : '');
     setNumbering(company.invoice_numbering_enabled === false ? 'off' : 'on');
+    setCompanyFeePct(String(company.company_fee_pct ?? 0));
+    setRemMaxPercent(String(company.rem_max_percent ?? 100));
+    setDefaultLicensePct(String(company.default_license_pct ?? 0));
+    setDefaultHoursPerDay(
+      company.default_hours_per_day != null ? String(company.default_hours_per_day) : '',
+    );
   }, [company]);
 
   const save = async () => {
@@ -79,6 +90,16 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
       parsedVat = n;
     }
     setVatError(undefined);
+    const rem = parseRemSettings({
+      companyFeePct,
+      remMaxPercent,
+      defaultLicensePct,
+      defaultHoursPerDay,
+    });
+    if (rem.error === 'hours') {
+      setVatError(t('rem.settings.hoursError'));
+      return;
+    }
     await update(company.id, {
       content: mergedContent as Json,
       currency,
@@ -88,6 +109,10 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
       registration_id: registrationId.trim() || null,
       vat_rate: parsedVat,
       invoice_numbering_enabled: numbering === 'on',
+      company_fee_pct: rem.company_fee_pct,
+      rem_max_percent: rem.rem_max_percent,
+      default_license_pct: rem.default_license_pct,
+      default_hours_per_day: rem.default_hours_per_day,
     });
     await onSaved();
   };
@@ -168,6 +193,35 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
       {error ? (
         <InlineError error={error} describe={{ fallback: t('compb.company.saveFail') }} />
       ) : null}
+      <Txt variant="label">{t('rem.settings.section')}</Txt>
+      <TextField
+        label={t('rem.settings.companyFee')}
+        value={companyFeePct}
+        onChangeText={setCompanyFeePct}
+        keyboardType="decimal-pad"
+        placeholder="5"
+      />
+      <TextField
+        label={t('rem.settings.maxPercent')}
+        value={remMaxPercent}
+        onChangeText={setRemMaxPercent}
+        keyboardType="decimal-pad"
+        placeholder="75"
+      />
+      <TextField
+        label={t('rem.settings.defaultLicense')}
+        value={defaultLicensePct}
+        onChangeText={setDefaultLicensePct}
+        keyboardType="decimal-pad"
+        placeholder="30"
+      />
+      <TextField
+        label={t('rem.settings.defaultHours')}
+        value={defaultHoursPerDay}
+        onChangeText={setDefaultHoursPerDay}
+        keyboardType="decimal-pad"
+        placeholder="8"
+      />
       <Button
         title={t('compb.company.save')}
         onPress={save}

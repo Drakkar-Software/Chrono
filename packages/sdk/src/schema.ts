@@ -42,6 +42,24 @@ export type BlogArticleStatus = 'draft' | 'published';
 export type TimeOffKind = 'vacation' | 'sick' | 'personal' | 'holiday';
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'expired';
 export type SubscriptionPlan = 'trial' | 'solo' | 'team' | 'scale';
+export type RemPolicy =
+  | 'staffing'
+  | 'external_tjm'
+  | 'product_pool'
+  | 'product_service'
+  | 'jungle';
+export type RemKind = 'direct_sales' | 'maintenance' | 'product_service' | 'license';
+export type RemBucket =
+  | 'staffing_tjm'
+  | 'external_contract'
+  | 'product_pool'
+  | 'product_service'
+  | 'license'
+  | 'referral'
+  | 'jungle_dequeue'
+  | 'company_fee'
+  | 'leave_product_pool';
+export type RemMonthStatus = 'draft' | 'computed' | 'locked';
 
 type Timestamps = {
   created_at: string;
@@ -137,6 +155,11 @@ export type Database = {
           working_weekdays: number[];
           max_holidays_per_year: number | null;
           max_vacation_days_per_year: number | null;
+          company_fee_pct: number;
+          rem_max_percent: number;
+          default_license_pct: number;
+          default_hours_per_day: number | null;
+          product_pool_project_id: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -153,6 +176,11 @@ export type Database = {
           working_weekdays?: number[];
           max_holidays_per_year?: number | null;
           max_vacation_days_per_year?: number | null;
+          company_fee_pct?: number;
+          rem_max_percent?: number;
+          default_license_pct?: number;
+          default_hours_per_day?: number | null;
+          product_pool_project_id?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -169,6 +197,8 @@ export type Database = {
           default_hourly_rate_cents: number | null;
           weekly_capacity_days: number;
           working_weekdays: number[] | null;
+          rem_partner: boolean;
+          rem_max_percent: number | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -178,6 +208,8 @@ export type Database = {
           default_hourly_rate_cents?: number | null;
           weekly_capacity_days?: number;
           working_weekdays?: number[] | null;
+          rem_partner?: boolean;
+          rem_max_percent?: number | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -302,6 +334,8 @@ export type Database = {
           ends_on: string | null;
           created_by: string | null;
           vat_rate: number | null;
+          rem_policy: RemPolicy;
+          jungle_fictitious_tjm_cents: number | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -319,6 +353,8 @@ export type Database = {
           ends_on?: string | null;
           created_by?: string | null;
           vat_rate?: number | null;
+          rem_policy?: RemPolicy;
+          jungle_fictitious_tjm_cents?: number | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -423,6 +459,7 @@ export type Database = {
           invoiced_at: string;
           /** Free-text reference to the invoice number/id in the manager's own invoicing system. */
           external_invoice_id: string | null;
+          rem_kind: RemKind | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -437,6 +474,7 @@ export type Database = {
           created_by?: string | null;
           invoiced_at?: string;
           external_invoice_id?: string | null;
+          rem_kind?: RemKind | null;
           created_at?: string;
           updated_at?: string;
           deleted?: boolean;
@@ -844,6 +882,133 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['audit_log']['Insert']>;
         Relationships: [];
       };
+      rem_months: {
+        Row: {
+          id: string;
+          company_id: string;
+          period_month: string;
+          status: RemMonthStatus;
+          computed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          period_month: string;
+          status?: RemMonthStatus;
+          computed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['rem_months']['Insert']>;
+        Relationships: [];
+      };
+      rem_lines: {
+        Row: {
+          id: string;
+          month_id: string;
+          company_id: string;
+          user_id: string | null;
+          project_id: string | null;
+          bucket: RemBucket;
+          amount_cents: number;
+          meta: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          month_id: string;
+          company_id: string;
+          user_id?: string | null;
+          project_id?: string | null;
+          bucket: RemBucket;
+          amount_cents: number;
+          meta?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['rem_lines']['Insert']>;
+        Relationships: [];
+      };
+      company_fee_reserve_ledger: {
+        Row: {
+          id: string;
+          company_id: string;
+          period_month: string;
+          amount_cents: number;
+          meta: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          period_month: string;
+          amount_cents: number;
+          meta?: Json;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database['public']['Tables']['company_fee_reserve_ledger']['Insert']
+        >;
+        Relationships: [];
+      };
+      jungle_tjm_queue_entries: {
+        Row: {
+          id: string;
+          company_id: string;
+          project_id: string;
+          user_id: string;
+          period_month: string;
+          days: number;
+          fictitious_tjm_cents: number;
+          queued_cents: number;
+          remaining_cents: number;
+          seq: number;
+          created_at: string;
+          updated_at: string;
+          deleted: boolean;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          project_id: string;
+          user_id: string;
+          period_month: string;
+          days?: number;
+          fictitious_tjm_cents: number;
+          queued_cents: number;
+          remaining_cents: number;
+          created_at?: string;
+          updated_at?: string;
+          deleted?: boolean;
+        };
+        Update: Partial<
+          Database['public']['Tables']['jungle_tjm_queue_entries']['Insert']
+        >;
+        Relationships: [];
+      };
+      jungle_tjm_queue_settlements: {
+        Row: {
+          id: string;
+          company_id: string;
+          queue_entry_id: string;
+          period_month: string;
+          amount_cents: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          queue_entry_id: string;
+          period_month: string;
+          amount_cents: number;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database['public']['Tables']['jungle_tjm_queue_settlements']['Insert']
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -853,6 +1018,18 @@ export type Database = {
       };
       settle_project_month: {
         Args: { p_project_id: string; p_period: string };
+        Returns: undefined;
+      };
+      settle_project_month_with_rem: {
+        Args: { p_project_id: string; p_period: string };
+        Returns: undefined;
+      };
+      compute_rem_month: {
+        Args: { p_company_id: string; p_period: string };
+        Returns: string;
+      };
+      lock_rem_month: {
+        Args: { p_company_id: string; p_period: string };
         Returns: undefined;
       };
       mark_revenue_entries_paid: {
@@ -877,6 +1054,10 @@ export type Database = {
       expense_status: ExpenseStatus;
       invoice_status: InvoiceStatus;
       notification_type: NotificationType;
+      rem_policy: RemPolicy;
+      rem_kind: RemKind;
+      rem_bucket: RemBucket;
+      rem_month_status: RemMonthStatus;
       blog_article_status: BlogArticleStatus;
       time_off_kind: TimeOffKind;
       subscription_status: SubscriptionStatus;

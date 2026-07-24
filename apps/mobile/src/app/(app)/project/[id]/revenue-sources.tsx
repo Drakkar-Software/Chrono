@@ -53,6 +53,7 @@ export default function ProjectRevenueSourcesScreen() {
       name: values.name,
       content: values.content,
       external_invoice_id: values.externalInvoiceId ?? null,
+      rem_kind: values.remKind,
     });
     const today = todayISO();
     // Recognize the current month immediately so the funding pool (available
@@ -100,6 +101,7 @@ export default function ProjectRevenueSourcesScreen() {
               onCancel={() => setAdding(false)}
               isSubmitting={sourceMut.isPending || recognizing}
               defaultTjmCents={project?.default_tjm_cents}
+              remPolicy={project?.rem_policy}
             />
             {sourceMut.error ? <InlineError error={sourceMut.error} /> : null}
           </>

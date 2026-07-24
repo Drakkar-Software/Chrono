@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Segmented, TextField, TitledCard, Txt } from '@chrono/ui';
-import type { Project, ProjectStatus } from '@chrono/sdk';
+import { Picker, Segmented, TextField, TitledCard, Txt } from '@chrono/ui';
+import { REM_POLICIES, type Project, type ProjectStatus, type RemPolicy } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
 import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
+import { validateProjectRemFields } from '@/lib/rem-form.lib';
 
 export interface EditProjectValues {
   name: string;
@@ -15,6 +16,8 @@ export interface EditProjectValues {
   hoursPerDay: number;
   status: ProjectStatus;
   vatRate: number | null;
+  remPolicy: RemPolicy;
+  jungleFictitiousTjmCents: number | null;
 }
 
 export interface EditProjectFormProps {
@@ -50,7 +53,14 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
   const [hoursPerDay, setHoursPerDay] = useState(String(project.hours_per_day));
   const [vatRate, setVatRate] = useState(project.vat_rate != null ? String(project.vat_rate) : '');
   const [status, setStatus] = useState<ProjectStatus>(project.status);
+  const [remPolicy, setRemPolicy] = useState<RemPolicy>(project.rem_policy ?? 'staffing');
+  const [jungleTjm, setJungleTjm] = useState(fromCents(project.jungle_fictitious_tjm_cents));
   const [error, setError] = useState<string | undefined>();
+
+  const policyOptions = REM_POLICIES.map((p) => ({
+    label: t(`rem.policy.${p}`),
+    value: p,
+  }));
 
   const submit = () => {
     if (!name.trim()) {
@@ -82,6 +92,21 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
       vat = parsed;
     }
     setError(undefined);
+    const jungleCents = remPolicy === 'jungle' ? toCents(jungleTjm) : null;
+    const remErr = validateProjectRemFields({
+      remPolicy,
+      remKind:
+        remPolicy === 'product_pool'
+          ? 'direct_sales'
+          : remPolicy === 'product_service'
+            ? 'product_service'
+            : null,
+      jungleFictitiousTjmCents: jungleCents,
+    });
+    if (remErr === 'jungle_tjm') {
+      setError(t('rem.project.jungleTjmRequired'));
+      return;
+    }
     onSave({
       name: name.trim(),
       clientName: clientName.trim(),
@@ -91,6 +116,8 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
       hoursPerDay: hpd,
       status,
       vatRate: vat,
+      remPolicy,
+      jungleFictitiousTjmCents: jungleCents,
     });
   };
 
@@ -140,6 +167,21 @@ export function EditProjectForm({ project, onSave, onCancel, isSubmitting = fals
         {t('common.status')}
       </Txt>
       <Segmented options={statusOptions} value={status} onValueChange={(v) => setStatus(v as ProjectStatus)} />
+      <Picker
+        label={t('rem.project.policy')}
+        value={remPolicy}
+        onValueChange={(v) => setRemPolicy(v as RemPolicy)}
+        options={policyOptions}
+      />
+      {remPolicy === 'jungle' ? (
+        <TextField
+          label={t('rem.project.jungleTjm')}
+          value={jungleTjm}
+          onChangeText={setJungleTjm}
+          placeholder="500"
+          keyboardType="decimal-pad"
+        />
+      ) : null}
       <InlineError message={error ?? ''} />
       <FormActions
         submitLabel={t('comp.project.saveChanges')}

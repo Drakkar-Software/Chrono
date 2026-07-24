@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useRouter, type Href } from 'expo-router';
 import { Badge, Button, Card, ListItem, Money, StackScreen, Txt, spacing } from '@chrono/ui';
 import {
   canManage,
@@ -75,6 +75,15 @@ export default function ReportsScreen() {
   return (
     <StackScreen title={t('tabs.nav.reports')}>
       <View style={styles.wrap}>
+        <Card padding="none">
+          <ListItem
+            title={t('tabs.reports.rem')}
+            subtitle={t('tabs.reports.remHint')}
+            onPress={() => router.push('/reports/rem' as Href)}
+            divider={false}
+          />
+        </Card>
+
         <Card padding="none">
           <ListItem
             title={t('tabs.reports.approvals')}

@@ -46,6 +46,8 @@ export default function ProjectsScreen() {
       default_tjm_cents: values.defaultTjmCents,
       budget_cents: values.budgetCents,
       hours_per_day: values.hoursPerDay,
+      rem_policy: values.remPolicy,
+      jungle_fictitious_tjm_cents: values.jungleFictitiousTjmCents,
       created_by: user.id,
     };
     await create(input);

@@ -174,13 +174,13 @@ export async function cancelInvoice(
   return data as Invoice;
 }
 
-/** Settle a project's month (recognizes revenue, pays referrals, settles FIFO). */
+/** Settle a project's month (recognizes revenue, pays referrals, settles FIFO, refreshes rem). */
 export async function settleProjectMonth(
   client: Client,
   projectId: string,
   month: string,
 ): Promise<void> {
-  const { error } = await client.rpc('settle_project_month', {
+  const { error } = await client.rpc('settle_project_month_with_rem', {
     p_project_id: projectId,
     p_period: monthKey(month),
   });

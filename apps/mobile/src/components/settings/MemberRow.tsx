@@ -19,6 +19,10 @@ export interface MemberRowProps {
   companyDefaultWeekdays?: number[];
   /** Set (or clear, with null) this member's personal working-weekdays override. */
   onWorkingWeekdaysChange?: (weekdays: number[] | null) => void;
+  /** Rem partner flag for product-pool / license splits. */
+  onRemPartnerChange?: (remPartner: boolean) => void;
+  /** Optional per-member max share % (0–100). */
+  onRemMaxPercentChange?: (maxPercent: number | null) => void;
 }
 
 /** A company member: name + role, with an inline role Picker + capacity field for managers. */
@@ -30,9 +34,14 @@ export function MemberRow({
   onCapacityChange,
   companyDefaultWeekdays = DEFAULT_WORKING_WEEKDAYS,
   onWorkingWeekdaysChange,
+  onRemPartnerChange,
+  onRemMaxPercentChange,
 }: MemberRowProps) {
   const t = useT();
   const [capacity, setCapacity] = useState(String(member.weekly_capacity_days));
+  const [remMax, setRemMax] = useState(
+    member.rem_max_percent != null ? String(member.rem_max_percent) : '',
+  );
   const baseRoleOptions = [
     { label: t('role.freelancer'), value: 'freelancer' },
     { label: t('role.manager'), value: 'manager' },
@@ -95,6 +104,38 @@ export function MemberRow({
               size="sm"
               variant="ghost"
               onPress={() => onWorkingWeekdaysChange(null)}
+            />
+          ) : null}
+        </View>
+      ) : null}
+      {canEdit && onRemPartnerChange ? (
+        <View style={styles.override}>
+          <Txt variant="caption" tone="textMuted">
+            {t('rem.member.partner')}
+          </Txt>
+          <Picker
+            value={member.rem_partner ? 'yes' : 'no'}
+            onValueChange={(v) => onRemPartnerChange(v === 'yes')}
+            options={[
+              { label: t('rem.member.yes'), value: 'yes' },
+              { label: t('rem.member.no'), value: 'no' },
+            ]}
+          />
+          {onRemMaxPercentChange ? (
+            <TextField
+              label={t('rem.member.maxPercent')}
+              value={remMax}
+              onChangeText={(next) => {
+                setRemMax(next);
+                if (next.trim() === '') {
+                  onRemMaxPercentChange(null);
+                  return;
+                }
+                const n = Number(next.replace(',', '.'));
+                if (Number.isFinite(n) && n >= 0 && n <= 100) onRemMaxPercentChange(n);
+              }}
+              keyboardType="decimal-pad"
+              placeholder="75"
             />
           ) : null}
         </View>

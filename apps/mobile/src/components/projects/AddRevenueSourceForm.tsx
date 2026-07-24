@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Picker, Segmented, TextField, TitledCard } from '@chrono/ui';
-import { revenueSourceLabel } from '@chrono/sdk';
-import type { Json, RevenueSourceType } from '@chrono/sdk';
+import { REM_KINDS, revenueSourceLabel, type Json, type RemKind, type RevenueSourceType } from '@chrono/sdk';
 import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
 import { resolveDayRateCents, toCents, toNumber } from './AddRevenueSourceForm.lib';
+import { remKindRequired } from '@/lib/rem-form.lib';
 
 export interface AddRevenueSourceValues {
   name: string;
@@ -15,6 +15,7 @@ export interface AddRevenueSourceValues {
   externalInvoiceId?: string;
   /** Mark the recognized amount for this source paid immediately (default: due by client). */
   markPaid: boolean;
+  remKind: RemKind | null;
 }
 
 const TYPE_OPTIONS = (['time_based', 'recurring', 'self_billing'] as RevenueSourceType[]).map((t) => ({
@@ -28,10 +29,18 @@ export interface AddRevenueSourceFormProps {
   isSubmitting?: boolean;
   /** The project's default TJM — used as the day rate when the field below is left blank. */
   defaultTjmCents?: number | null;
+  /** When set, rem_kind may be required for product policies. */
+  remPolicy?: import('@chrono/sdk').RemPolicy;
 }
 
 /** Add a revenue source; the amount field's meaning follows the chosen type. */
-export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false, defaultTjmCents }: AddRevenueSourceFormProps) {
+export function AddRevenueSourceForm({
+  onAdd,
+  onCancel,
+  isSubmitting = false,
+  defaultTjmCents,
+  remPolicy = 'staffing',
+}: AddRevenueSourceFormProps) {
   const t = useT();
   const [name, setName] = useState('');
   const [type, setType] = useState<RevenueSourceType>('time_based');
@@ -44,11 +53,17 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false, de
   const [total, setTotal] = useState('');
   const [externalInvoiceId, setExternalInvoiceId] = useState('');
   const [paidStatus, setPaidStatus] = useState<'due' | 'paid'>('due');
+  const [remKind, setRemKind] = useState<string>('');
   const [error, setError] = useState<string | undefined>();
 
   const paidOptions = [
     { label: t('details.dueByClient'), value: 'due' },
     { label: t('details.paid'), value: 'paid' },
+  ];
+
+  const remKindOptions = [
+    { label: t('rem.kind.none'), value: '' },
+    ...REM_KINDS.map((k) => ({ label: t(`rem.kind.${k}`), value: k })),
   ];
 
   const amountLabel = type === 'recurring' ? t('comp.revsource.monthlyAmount') : t('comp.revsource.clientDayRate');
@@ -128,6 +143,10 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false, de
             }
           : { client_tjm_cents: cents };
     }
+    if (remKindRequired(remPolicy) && !remKind) {
+      setError(t('rem.kind.required'));
+      return;
+    }
     setError(undefined);
     onAdd({
       name: name.trim(),
@@ -135,6 +154,7 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false, de
       content,
       externalInvoiceId: externalInvoiceId.trim() || undefined,
       markPaid: paidStatus === 'paid',
+      remKind: remKind ? (remKind as RemKind) : null,
     });
   };
 
@@ -146,6 +166,12 @@ export function AddRevenueSourceForm({ onAdd, onCancel, isSubmitting = false, de
         value={type}
         onValueChange={(v) => setType(v as RevenueSourceType)}
         options={TYPE_OPTIONS}
+      />
+      <Picker
+        label={t('rem.kind.label')}
+        value={remKind}
+        onValueChange={setRemKind}
+        options={remKindOptions}
       />
       <TextField
         label={amountLabel}

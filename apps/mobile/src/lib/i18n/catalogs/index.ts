@@ -7,6 +7,7 @@ import { tabsCatalog } from './tabs';
 import { detailsCatalog } from './details';
 import { componentsACatalog } from './componentsA';
 import { componentsBCatalog } from './componentsB';
+import { remCatalog } from './rem';
 
 const slices = [
   commonCatalog,
@@ -17,6 +18,7 @@ const slices = [
   detailsCatalog,
   componentsACatalog,
   componentsBCatalog,
+  remCatalog,
 ];
 
 function merge(locale: Locale): Catalog {
