@@ -54,10 +54,20 @@ export function TimeEntryRow({ entry, onPress }: TimeEntryRowProps) {
         ) : null}
       </View>
       <View style={styles.right}>
-        <Txt variant="bodyMedium" mono tabularNums>
+        <Txt
+          variant="bodyMedium"
+          mono
+          tabularNums
+          tone={entry.duration_minutes < 0 ? 'danger' : 'text'}
+        >
           {formatDuration(entry.duration_minutes)}
         </Txt>
         <Badge label={statusLabel} status={timeEntryBadge(entry.status)} />
+        {entry.duration_minutes < 0 ? (
+          <Txt variant="micro" tone="warning" uppercase>
+            {t('comp.time.correctionBadge')}
+          </Txt>
+        ) : null}
       </View>
     </Pressable>
   );

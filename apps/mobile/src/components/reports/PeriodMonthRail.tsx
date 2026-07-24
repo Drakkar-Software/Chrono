@@ -9,13 +9,23 @@ export interface PeriodMonthRailProps {
   onChange: (next: StatsPeriod) => void;
   /** How many past months to offer (default 24). */
   monthCount?: number;
+  /** Eyebrow label key override (defaults to details.statsPeriod). */
+  eyebrowKey?: string;
+  /** When true, insert a "This week" stamp after All. */
+  showThisWeek?: boolean;
 }
 
 /**
- * Ledger-style period stamp rail: ALL + scrollable calendar months.
+ * Ledger-style period stamp rail: ALL (+ optional this week) + scrollable months.
  * Brass plate marks the active period — precision instrument, not a chip cloud.
  */
-export function PeriodMonthRail({ value, onChange, monthCount = 24 }: PeriodMonthRailProps) {
+export function PeriodMonthRail({
+  value,
+  onChange,
+  monthCount = 24,
+  eyebrowKey = 'details.statsPeriod',
+  showThisWeek = false,
+}: PeriodMonthRailProps) {
   const t = useT();
   const { locale } = useLanguage();
   const { colors } = useTheme();
@@ -25,7 +35,7 @@ export function PeriodMonthRail({ value, onChange, monthCount = 24 }: PeriodMont
     <View style={styles.shell}>
       <View style={styles.header}>
         <Txt variant="micro" mono uppercase tone="textMuted" style={styles.eyebrow}>
-          {t('details.statsPeriod')}
+          {t(eyebrowKey)}
         </Txt>
         <View style={[styles.rule, { backgroundColor: colors.ledgerRule }]} />
       </View>
@@ -40,6 +50,16 @@ export function PeriodMonthRail({ value, onChange, monthCount = 24 }: PeriodMont
           onPress={() => onChange('all')}
           wide
         />
+        {showThisWeek ? (
+          <>
+            <View style={[styles.sep, { backgroundColor: colors.borderStrong }]} />
+            <Stamp
+              label={t('compb.history.thisWeek')}
+              active={value === 'thisWeek'}
+              onPress={() => onChange('thisWeek')}
+            />
+          </>
+        ) : null}
         <View style={[styles.sep, { backgroundColor: colors.borderStrong }]} />
         {months.map((m) => (
           <Stamp

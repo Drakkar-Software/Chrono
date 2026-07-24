@@ -14,9 +14,23 @@ describe('parseHoursToMinutes', () => {
     expect(parseHoursToMinutes('0.25')).toBe(15);
   });
 
+  it('parses negative corrections', () => {
+    expect(parseHoursToMinutes('-2')).toBe(-120);
+    expect(parseHoursToMinutes('−1,5')).toBe(-90);
+  });
+
   it('returns 0 for blank or unparseable input', () => {
     expect(parseHoursToMinutes('')).toBe(0);
     expect(parseHoursToMinutes('abc')).toBe(0);
+  });
+});
+
+describe('isValidDurationMinutes', () => {
+  it('rejects zero and accepts signed non-zero', async () => {
+    const { isValidDurationMinutes } = await import('./time-entry-form.lib');
+    expect(isValidDurationMinutes(0)).toBe(false);
+    expect(isValidDurationMinutes(60)).toBe(true);
+    expect(isValidDurationMinutes(-30)).toBe(true);
   });
 });
 
@@ -56,5 +70,9 @@ describe('dayCapExceeded', () => {
 
   it('is false with a zero-minute candidate regardless of prior logged days', () => {
     expect(dayCapExceeded(0, 7, 23, 23)).toBe(false);
+  });
+
+  it('is false for negative corrections even when already at the cap', () => {
+    expect(dayCapExceeded(-420, 7, 23, 23)).toBe(false);
   });
 });

@@ -55,7 +55,7 @@ export default function TimeEntryDetail() {
   const monthDaysLoggedExcludingThis = useMemo(
     () =>
       (monthEntries ?? [])
-        .filter((e) => e.id !== entry?.id)
+        .filter((e) => e.id !== entry?.id && e.duration_minutes > 0)
         .reduce(
           (acc, e) =>
             acc + minutesToDays(e.duration_minutes, e.project?.hours_per_day ?? DEFAULT_HOURS_PER_DAY),
@@ -118,7 +118,12 @@ export default function TimeEntryDetail() {
             </Txt>
           </Row>
           <Row label={t('comp.time.hours')}>
-            <Txt variant="bodyMedium" mono tabularNums>
+            <Txt
+              variant="bodyMedium"
+              mono
+              tabularNums
+              tone={entry.duration_minutes < 0 ? 'danger' : 'text'}
+            >
               {formatDuration(entry.duration_minutes)}
             </Txt>
           </Row>

@@ -90,10 +90,14 @@ export default function TodayScreen() {
   );
   const monthDaysLogged = useMemo(
     () =>
-      (monthEntries ?? []).reduce(
-        (acc, e) => acc + minutesToDays(e.duration_minutes, e.project?.hours_per_day ?? DEFAULT_HOURS_PER_DAY),
-        0,
-      ),
+      // Cap uses positive minutes only — corrections must not free billable headroom.
+      (monthEntries ?? [])
+        .filter((e) => e.duration_minutes > 0)
+        .reduce(
+          (acc, e) =>
+            acc + minutesToDays(e.duration_minutes, e.project?.hours_per_day ?? DEFAULT_HOURS_PER_DAY),
+          0,
+        ),
     [monthEntries],
   );
 

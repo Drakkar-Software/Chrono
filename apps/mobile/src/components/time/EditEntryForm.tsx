@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, DatePicker, Segmented, TextField, TitledCard, spacing } from '@chrono/ui';
+import { Button, DatePicker, Segmented, TextField, TitledCard, Txt, spacing } from '@chrono/ui';
 import { DEFAULT_HOURS_PER_DAY, minutesToDays } from '@chrono/sdk';
 import type { TablesUpdate, TimeEntry } from '@chrono/sdk';
 import { FieldRow } from '@/components/common/FieldRow';
@@ -8,7 +8,7 @@ import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
 import { fromISODate, toISODate } from '@/lib/date';
 import { useT } from '@/lib/i18n';
-import { dayCapExceeded, formatMinutesAsHoursInput, parseHoursToMinutes } from './time-entry-form.lib';
+import { dayCapExceeded, formatMinutesAsHoursInput, isValidDurationMinutes, parseHoursToMinutes } from './time-entry-form.lib';
 
 export interface EditEntryFormProps {
   entry: Pick<TimeEntry, 'entry_date' | 'duration_minutes' | 'description' | 'billable'>;
@@ -50,7 +50,10 @@ export function EditEntryForm({
   const durationMinutes = useMemo(() => parseHoursToMinutes(hours), [hours]);
 
   const save = () => {
-    if (durationMinutes <= 0) return;
+    if (!isValidDurationMinutes(durationMinutes)) {
+      setError(t('comp.time.errEnterDuration'));
+      return;
+    }
     if (
       maxBusinessDays > 0 &&
       dayCapExceeded(durationMinutes, hoursPerDay, monthDaysLoggedExcludingThis, maxBusinessDays)
@@ -70,7 +73,7 @@ export function EditEntryForm({
       entry_date: toISODate(date),
       duration_minutes: durationMinutes,
       description: description.trim() || null,
-      billable: billable === 'billable',
+      billable: durationMinutes < 0 ? true : billable === 'billable',
     });
   };
 
@@ -78,12 +81,25 @@ export function EditEntryForm({
     <TitledCard title={t('comp.time.editEntry')}>
       <FieldRow>
         <DatePicker label={t('common.date')} value={date} onChange={setDate} maximumDate={new Date()} />
-        <TextField label={t('comp.time.hours')} value={hours} onChangeText={setHours} keyboardType="decimal-pad" />
+        <TextField
+          label={t('comp.time.hours')}
+          value={hours}
+          onChangeText={setHours}
+          keyboardType="numbers-and-punctuation"
+          placeholder={t('comp.time.hoursPlaceholder')}
+        />
       </FieldRow>
+      {durationMinutes < 0 ? (
+        <Txt variant="caption" tone="warning">
+          {t('comp.time.correctionHint')}
+        </Txt>
+      ) : null}
       <TextField label={t('comp.time.description')} value={description} onChangeText={setDescription} multiline />
-      <View style={styles.segment}>
-        <Segmented options={billableOptions} value={billable} onValueChange={setBillable} />
-      </View>
+      {durationMinutes < 0 ? null : (
+        <View style={styles.segment}>
+          <Segmented options={billableOptions} value={billable} onValueChange={setBillable} />
+        </View>
+      )}
       <InlineError message={error} />
       <FormActions submitLabel={t('common.save')} onSubmit={save} busy={isSaving} />
       <Button title={t('comp.time.deleteEntry')} variant="danger" onPress={onDelete} />

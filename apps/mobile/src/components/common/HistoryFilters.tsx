@@ -3,29 +3,37 @@ import { Picker, Segmented, Txt, spacing, useResponsive } from '@chrono/ui';
 import type { Project, TimeEntryStatus } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
+import { currentMonthKey, type HistoryPeriod } from '@/lib/history-range';
+import { PeriodMonthRail } from '@/components/reports/PeriodMonthRail';
 
-/** Date-range preset keys resolved to `from`/`to` bounds by the screen. */
-export type HistoryRange = 'thisMonth' | 'lastMonth' | 'thisWeek' | 'all';
 /** Status filter — `'all'` means unfiltered. */
 export type HistoryStatus = 'all' | TimeEntryStatus;
 /** Billable filter — `'all'` means unfiltered. */
 export type HistoryBillable = 'all' | 'billable' | 'nonBillable';
 
+export type { HistoryPeriod };
+
 export interface HistoryFilterState {
   /** Selected project id, or `'all'`. */
   projectId: string;
-  range: HistoryRange;
+  /** All, this week, or a calendar month `'YYYY-MM'`. */
+  range: HistoryPeriod;
   status: HistoryStatus;
   billable: HistoryBillable;
 }
 
-/** The zeroed filter state (all projects, this month, any status/billable). */
-export const DEFAULT_HISTORY_FILTERS: HistoryFilterState = {
-  projectId: 'all',
-  range: 'thisMonth',
-  status: 'all',
-  billable: 'all',
-};
+/** Default filters: all projects, current calendar month, any status/billable. */
+export function defaultHistoryFilters(todayISO?: string): HistoryFilterState {
+  return {
+    projectId: 'all',
+    range: currentMonthKey(todayISO),
+    status: 'all',
+    billable: 'all',
+  };
+}
+
+/** @deprecated Prefer {@link defaultHistoryFilters} so the month key is evaluated at use time. */
+export const DEFAULT_HISTORY_FILTERS: HistoryFilterState = defaultHistoryFilters();
 
 export interface HistoryFiltersProps {
   /** Projects the user can filter by (an "All" option is prepended). */
@@ -35,20 +43,12 @@ export interface HistoryFiltersProps {
 }
 
 /**
- * Filter bar for the time-history screen: project picker plus date-range,
- * status and billable segmented controls. Pure UI — it owns no state and
- * pushes every change back through `onChange`.
+ * Filter bar for the time-history screen: project picker, ledger period rail
+ * (All / this week / months), status and billable segmented controls.
  */
 export function HistoryFilters({ projects, value, onChange }: HistoryFiltersProps) {
   const t = useT();
   const { isWide } = useResponsive();
-
-  const RANGE_OPTIONS = [
-    { label: t('compb.history.thisMonth'), value: 'thisMonth' },
-    { label: t('compb.history.lastMonth'), value: 'lastMonth' },
-    { label: t('compb.history.thisWeek'), value: 'thisWeek' },
-    { label: t('compb.history.all'), value: 'all' },
-  ];
 
   const STATUS_OPTIONS = [
     { label: t('compb.history.all'), value: 'all' },
@@ -77,18 +77,14 @@ export function HistoryFilters({ projects, value, onChange }: HistoryFiltersProp
         options={projectOptions}
       />
 
-      <View style={[styles.controls, isWide && styles.controlsWide]}>
-        <View style={styles.field}>
-          <Txt variant="micro" mono uppercase tone="textMuted" style={styles.label}>
-            {t('compb.history.dateRange')}
-          </Txt>
-          <Segmented
-            options={RANGE_OPTIONS}
-            value={value.range}
-            onValueChange={(range) => onChange({ ...value, range: range as HistoryRange })}
-          />
-        </View>
+      <PeriodMonthRail
+        value={value.range}
+        onChange={(range) => onChange({ ...value, range })}
+        showThisWeek
+        eyebrowKey="compb.history.dateRange"
+      />
 
+      <View style={[styles.controls, isWide && styles.controlsWide]}>
         <View style={styles.field}>
           <Txt variant="micro" mono uppercase tone="textMuted" style={styles.label}>
             {t('common.status')}

@@ -124,8 +124,6 @@ export const componentsBCatalog: CatalogSlice = {
     'compb.loadMore.loadingMore': 'Loading more…',
 
     // common/HistoryFilters
-    'compb.history.thisMonth': 'This month',
-    'compb.history.lastMonth': 'Last month',
     'compb.history.thisWeek': 'This week',
     'compb.history.all': 'All',
     'compb.history.billable': 'Billable',
@@ -266,8 +264,6 @@ export const componentsBCatalog: CatalogSlice = {
     'compb.loadMore.loadingMore': 'Chargement…',
 
     // common/HistoryFilters
-    'compb.history.thisMonth': 'Ce mois-ci',
-    'compb.history.lastMonth': 'Le mois dernier',
     'compb.history.thisWeek': 'Cette semaine',
     'compb.history.all': 'Tous',
     'compb.history.billable': 'Facturable',

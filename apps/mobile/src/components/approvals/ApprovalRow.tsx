@@ -57,10 +57,20 @@ export function ApprovalRow({
             </Txt>
           ) : null}
         </View>
-        <Txt variant="bodyMedium" mono tabularNums>
+        <Txt
+          variant="bodyMedium"
+          mono
+          tabularNums
+          tone={entry.duration_minutes < 0 ? 'danger' : 'text'}
+        >
           {formatDuration(entry.duration_minutes)}
         </Txt>
       </View>
+      {entry.duration_minutes < 0 ? (
+        <Txt variant="caption" tone="warning">
+          {t('comp.time.correctionBadge')}: {t('comp.time.correctionHint')}
+        </Txt>
+      ) : null}
       {rejecting ? (
         <RejectDialog
           onConfirm={(reason) => {

@@ -7,7 +7,7 @@ import { FieldRow } from '@/components/common/FieldRow';
 import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
-import { dayCapExceeded, parseHoursToMinutes } from './time-entry-form.lib';
+import { dayCapExceeded, isValidDurationMinutes, parseHoursToMinutes } from './time-entry-form.lib';
 
 export interface LogEntryValues {
   projectId: string;
@@ -34,6 +34,7 @@ export interface LogEntryFormProps {
 }
 
 const QUICK_HOURS = ['0.5', '1', '2', '4', '8'];
+const QUICK_CORRECTIONS = ['-0.5', '-1', '-2'];
 
 /** Manual time-entry composer. Owns its field state; emits a normalized value. */
 export function LogEntryForm({
@@ -60,13 +61,14 @@ export function LogEntryForm({
   const [error, setError] = useState<string | undefined>();
 
   const durationMinutes = useMemo(() => parseHoursToMinutes(hours), [hours]);
+  const isCorrection = durationMinutes < 0;
 
   const submit = () => {
     if (!projectId) {
       setError(t('comp.time.errPickProject'));
       return;
     }
-    if (durationMinutes <= 0) {
+    if (!isValidDurationMinutes(durationMinutes)) {
       setError(t('comp.time.errEnterDuration'));
       return;
     }
@@ -91,7 +93,8 @@ export function LogEntryForm({
       entryDate,
       durationMinutes,
       description: description.trim(),
-      billable: billable === 'billable',
+      // Corrections claw back billable work — never create non-billable headroom.
+      billable: isCorrection ? true : billable === 'billable',
       tags: parseTags(tags),
     });
     setHours('');
@@ -125,16 +128,32 @@ export function LogEntryForm({
         />
       </View>
 
+      <View style={styles.field}>
+        <Txt variant="label" tone="textMuted">
+          {t('comp.time.quickCorrection')}
+        </Txt>
+        <ChipRow
+          options={QUICK_CORRECTIONS.map((h) => ({ label: `${h}h`, value: h }))}
+          value={hours}
+          onChange={setHours}
+        />
+      </View>
+
       <FieldRow>
         <TextField
           label={t('comp.time.hours')}
           value={hours}
           onChangeText={setHours}
           placeholder={t('comp.time.hoursPlaceholder')}
-          keyboardType="decimal-pad"
+          keyboardType="numbers-and-punctuation"
         />
         <DatePicker label={t('common.date')} value={entryDate} onChange={setEntryDate} maximumDate={new Date()} />
       </FieldRow>
+      {isCorrection ? (
+        <Txt variant="caption" tone="warning">
+          {t('comp.time.correctionHint')}
+        </Txt>
+      ) : null}
       <TextField
         label={t('comp.time.description')}
         value={description}
@@ -149,9 +168,11 @@ export function LogEntryForm({
         placeholder={t('comp.time.tagsPlaceholder')}
         autoCapitalize="none"
       />
-      <View style={styles.segment}>
-        <Segmented options={billableOptions} value={billable} onValueChange={setBillable} />
-      </View>
+      {isCorrection ? null : (
+        <View style={styles.segment}>
+          <Segmented options={billableOptions} value={billable} onValueChange={setBillable} />
+        </View>
+      )}
       <InlineError message={error} />
       <FormActions
         submitLabel={t('comp.time.addEntry')}

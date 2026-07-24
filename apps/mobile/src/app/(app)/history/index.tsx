@@ -13,7 +13,7 @@ import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { usePagination } from '@/lib/hooks/use-pagination';
 import { rangeBounds } from '@/lib/history-range';
 import {
-  DEFAULT_HISTORY_FILTERS,
+  defaultHistoryFilters,
   HistoryFilters,
   type HistoryFilterState,
 } from '@/components/common/HistoryFilters';
@@ -32,7 +32,7 @@ export default function HistoryScreen() {
   const { companyId } = useActiveCompany();
   const userId = user?.id;
 
-  const [filters, setFilters] = useState<HistoryFilterState>(DEFAULT_HISTORY_FILTERS);
+  const [filters, setFilters] = useState<HistoryFilterState>(() => defaultHistoryFilters());
 
   const queryFilters: TimeEntryFilters = useMemo(() => {
     const { from, to } = rangeBounds(filters.range);

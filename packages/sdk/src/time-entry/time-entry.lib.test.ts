@@ -73,6 +73,12 @@ describe('formatDuration', () => {
     expect(formatDuration(120)).toBe('2h');
     expect(formatDuration(0)).toBe('0m');
   });
+
+  it('formats negative corrections with a minus sign', () => {
+    expect(formatDuration(-120)).toBe('−2h');
+    expect(formatDuration(-45)).toBe('−45m');
+    expect(formatDuration(-90)).toBe('−1h 30m');
+  });
 });
 
 describe('sumDurations', () => {

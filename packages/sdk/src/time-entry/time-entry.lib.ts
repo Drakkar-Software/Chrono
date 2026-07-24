@@ -25,14 +25,16 @@ export function computeEarnedCents(
   return Math.round(minutesToDays(minutes, hoursPerDay) * tjmCents);
 }
 
-/** Format a minute count as "7h 30m" / "45m" / "2h". */
+/** Format a minute count as "7h 30m" / "45m" / "2h" / "−2h" (signed corrections). */
 export function formatDuration(minutes: number): string {
-  const total = Math.max(0, Math.round(minutes));
+  const rounded = Math.round(minutes);
+  const sign = rounded < 0 ? '−' : '';
+  const total = Math.abs(rounded);
   const h = Math.floor(total / MINUTES_PER_HOUR);
   const m = total % MINUTES_PER_HOUR;
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
+  if (h === 0) return `${sign}${m}m`;
+  if (m === 0) return `${sign}${h}h`;
+  return `${sign}${h}h ${m}m`;
 }
 
 /** Sum of durations across entries (minutes). */
