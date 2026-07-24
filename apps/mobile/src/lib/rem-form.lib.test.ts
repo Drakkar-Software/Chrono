@@ -60,7 +60,7 @@ describe('validateProjectRemFields', () => {
     ).toBe('rem_kind');
   });
 
-  it('requires jungle TJM', () => {
+  it('requires day-rate credit TJM', () => {
     expect(
       validateProjectRemFields({
         remPolicy: 'jungle',
