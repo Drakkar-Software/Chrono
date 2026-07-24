@@ -10,6 +10,7 @@ import { useProjects } from '@/lib/hooks/use-projects';
 import { useCompanyRevenueEntries } from '@/lib/hooks/use-revenue-entries';
 import { useCompanyProjectCosts } from '@/lib/hooks/use-project-costs';
 import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
+import { useCompanyProjectReferrals } from '@/lib/hooks/use-project-referrals';
 import { useInvoices } from '@/lib/hooks/use-invoices';
 import { useTimeEntries } from '@/lib/hooks/use-time-entries';
 import { useCompanyProjectMembers } from '@/lib/hooks/use-project-members';
@@ -36,6 +37,7 @@ export default function ProfitabilityScreen() {
   // avoids the 3-query-per-card fan-out (N+1) the cards used to trigger.
   const { data: revenueEntries } = useCompanyRevenueEntries(companyId ?? undefined);
   const { data: referralEarnings } = useReferralEarnings(companyId ? { companyId } : {});
+  const { data: projectReferrals } = useCompanyProjectReferrals(companyId ?? undefined);
   const { data: invoices } = useInvoices({ companyId: companyId ?? '' });
   const { data: costs } = useCompanyProjectCosts(companyId ?? undefined);
 
@@ -55,6 +57,11 @@ export default function ProfitabilityScreen() {
   const invoicesByProject = useMemo(() => groupByProject(invoices ?? []), [invoices]);
   const costsByProject = useMemo(() => groupByProject(costs ?? []), [costs]);
   const projectMembersByProject = useMemo(() => groupByProject(projectMembers ?? []), [projectMembers]);
+  const projectsWithReferrers = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of projectReferrals ?? []) ids.add(r.project_id);
+    return ids;
+  }, [projectReferrals]);
   const uninvoicedTimeByProjectId = useMemo(
     () => uninvoicedTimeByProject(uninvoicedTimeEntries ?? [], projectMembersByProject),
     [uninvoicedTimeEntries, projectMembersByProject],
@@ -96,6 +103,7 @@ export default function ProfitabilityScreen() {
                 uninvoicedTimeCents={uninvoicedTimeByProjectId.get(project.id) ?? 0}
                 companyFeePct={company?.company_fee_pct ?? 0}
                 licensePct={company?.default_license_pct ?? 0}
+                showReferralStats={projectsWithReferrers.has(project.id)}
               />
             ))}
           </CardGrid>

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { lastMonths, monthlyTrend, summarizeUtilization, uninvoicedTimeByProject } from './reports';
+import {
+  lastMonths,
+  monthlyTrend,
+  projectNetAvailableCents,
+  summarizeUtilization,
+  uninvoicedTimeByProject,
+} from './reports';
 import type {
   CompanyMemberWithProfile,
   ProjectCost,
@@ -272,5 +278,34 @@ describe('uninvoicedTimeByProject', () => {
 
   it('is empty for no entries', () => {
     expect(uninvoicedTimeByProject([], new Map()).size).toBe(0);
+  });
+});
+
+describe('projectNetAvailableCents', () => {
+  it('matches paid revenue minus referrals, costs, payments and outstanding', () => {
+    const cents = projectNetAvailableCents({
+      revenueEntries: [
+        { amount_cents: 300_000, paid_at: '2026-03-01' },
+        { amount_cents: 50_000, paid_at: null },
+      ],
+      referralEarnings: [{ amount_cents: 20_000 }],
+      invoices: [
+        {
+          project_id: 'p1',
+          freelancer_id: 'u1',
+          period_month: '2026-03-01',
+          status: 'submitted',
+          amount_due_cents: 80_000,
+          amount_paid_cents: 30_000,
+        },
+      ],
+      costs: [],
+      uninvoicedTimeCents: 10_000,
+      throughDateISO: '2026-03-15',
+    });
+    // funding = 300000 - 20000 - 0 - 30000 = 250000
+    // owed = (80000-30000) + 10000 = 60000
+    // net = 190000
+    expect(cents).toBe(190_000);
   });
 });

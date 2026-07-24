@@ -643,10 +643,15 @@ describe('company fee reserve G', () => {
 });
 
 describe('staffing H2', () => {
-  it('staffingTjmRemCents matches computeEarnedCents', () => {
+  it('staffingTjmRemCents matches computeEarnedCents with no referral', () => {
     expect(staffingTjmRemCents(420, 7, 50_000)).toBe(
       computeEarnedCents(420, 7, 50_000),
     );
+  });
+
+  it('applies referral carve-out when referral pct > 0', () => {
+    const gross = computeEarnedCents(420, 7, 50_000);
+    expect(staffingTjmRemCents(420, 7, 50_000, 10)).toBe(gross - Math.round(gross * 0.1));
   });
 });
 

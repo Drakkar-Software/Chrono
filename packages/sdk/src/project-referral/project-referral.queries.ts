@@ -26,6 +26,24 @@ export async function fetchProjectReferrals(
   return (data ?? []) as unknown as ProjectReferralWithProfile[];
 }
 
+/**
+ * Active project-referral rows for a company (project_id + user_id + percent).
+ * Used to gate referral stats on company-wide P&L without a per-project fetch.
+ */
+export async function fetchCompanyProjectReferrals(
+  client: Client,
+  companyId: string,
+): Promise<ProjectReferral[]> {
+  const { data, error } = await client
+    .from('project_referrals')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('deleted', false)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ProjectReferral[];
+}
+
 export async function addReferral(
   client: Client,
   input: TablesInsert<'project_referrals'>,

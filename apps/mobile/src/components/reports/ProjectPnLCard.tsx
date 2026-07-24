@@ -51,6 +51,11 @@ export interface ProjectPnLCardProps {
   companyFeePct?: number;
   /** Default license % — shown when rem policy is product_service. */
   licensePct?: number;
+  /**
+   * When true, show the referrals money tile. Only meaningful once at least one
+   * apporteur d'affaires is configured on the project.
+   */
+  showReferralStats?: boolean;
 }
 
 /** License carve-out applies to product-service projects only. */
@@ -74,6 +79,7 @@ export function ProjectPnLCard({
   period = 'all',
   companyFeePct = 0,
   licensePct = 0,
+  showReferralStats = false,
 }: ProjectPnLCardProps) {
   const t = useT();
   const { locale } = useLanguage();
@@ -168,9 +174,11 @@ export function ProjectPnLCard({
         <StatTile label={t('compb.pnl.revenue')}>
           <Money cents={revenueCents} currency={currency} variant="heading" />
         </StatTile>
-        <StatTile label={t('compb.pnl.referrals')}>
-          <Money cents={referralCents} currency={currency} variant="heading" tone="textMuted" />
-        </StatTile>
+        {showReferralStats ? (
+          <StatTile label={t('compb.pnl.referrals')}>
+            <Money cents={referralCents} currency={currency} variant="heading" tone="textMuted" />
+          </StatTile>
+        ) : null}
         <StatTile label={t('compb.pnl.periodCosts')}>
           <Money cents={periodCostCents} currency={currency} variant="heading" tone="textMuted" />
         </StatTile>

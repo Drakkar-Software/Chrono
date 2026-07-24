@@ -2,7 +2,6 @@ import type { RemBucket, RemKind, RemPolicy } from '../schema';
 
 export const REM_POLICIES: RemPolicy[] = [
   'staffing',
-  'external_tjm',
   'product_pool',
   'product_service',
   'jungle',

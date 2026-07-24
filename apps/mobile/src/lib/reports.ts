@@ -1,19 +1,26 @@
 import {
   DEFAULT_HOURS_PER_DAY,
+  availableFunding,
   capacityDaysInRange,
+  costCumulative,
   isActiveInvoice,
   minutesToDays,
   monthBounds,
+  netAvailableFunding,
   totalCostForMonth,
+  totalOutstanding,
   utilization,
   utilizationStatus,
   valueUninvoicedTime,
 } from '@chrono/sdk';
 import type {
   CompanyMemberWithProfile,
+  Invoice,
   InvoiceStatus,
   ProjectCost,
   ProjectMember,
+  ReferralEarning,
+  RevenueEntry,
   TimeEntryWithProject,
   UtilizationStatus,
 } from '@chrono/sdk';
@@ -248,6 +255,34 @@ export function groupByProject<T extends { project_id: string }>(rows: T[]): Map
     else map.set(row.project_id, [row]);
   }
   return map;
+}
+
+/**
+ * Lifetime net available funding for a project (same figure as P&L "Disponible net"):
+ * paid pool − referrals − cumulative costs − invoice payments, then minus outstanding
+ * invoices + valued uninvoiced approved time.
+ */
+export function projectNetAvailableCents(input: {
+  revenueEntries: Array<Pick<RevenueEntry, 'amount_cents' | 'paid_at'>>;
+  referralEarnings: Array<Pick<ReferralEarning, 'amount_cents'>>;
+  invoices: Array<
+    Pick<Invoice, 'project_id' | 'freelancer_id' | 'period_month' | 'status' | 'amount_due_cents' | 'amount_paid_cents'>
+  >;
+  costs: ProjectCost[];
+  uninvoicedTimeCents?: number;
+  /** Inclusive through-date for cumulative pool costs (usually today). */
+  throughDateISO: string;
+}): number {
+  const paidInvoices = input.invoices.map((i) => ({ amount_paid_cents: i.amount_paid_cents ?? 0 }));
+  const fixedCostCents = costCumulative(input.costs, input.throughDateISO);
+  const funding = availableFunding(
+    input.revenueEntries,
+    input.referralEarnings,
+    paidInvoices,
+    fixedCostCents,
+  );
+  const owedCents = totalOutstanding(input.invoices) + (input.uninvoicedTimeCents ?? 0);
+  return netAvailableFunding(funding, owedCents);
 }
 
 /**

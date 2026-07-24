@@ -6,7 +6,7 @@ import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
 import { RemPolicyHelp } from '@/components/projects/RemPolicyHelp';
 import { useT } from '@/lib/i18n';
-import { validateProjectRemFields } from '@/lib/rem-form.lib';
+import { parseRemPolicy, validateProjectRemFields } from '@/lib/rem-form.lib';
 
 export interface EditProjectValues {
   name: string;
@@ -53,7 +53,7 @@ export function EditProjectForm({ project, onSave, isSubmitting = false }: EditP
   const [hoursPerDay, setHoursPerDay] = useState(String(project.hours_per_day));
   const [vatRate, setVatRate] = useState(project.vat_rate != null ? String(project.vat_rate) : '');
   const [status, setStatus] = useState<ProjectStatus>(project.status);
-  const [remPolicy, setRemPolicy] = useState<RemPolicy>(project.rem_policy ?? 'staffing');
+  const [remPolicy, setRemPolicy] = useState<RemPolicy>(() => parseRemPolicy(project.rem_policy));
   const [jungleTjm, setJungleTjm] = useState(fromCents(project.jungle_fictitious_tjm_cents));
   const [error, setError] = useState<string | undefined>();
 

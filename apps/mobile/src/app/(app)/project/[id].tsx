@@ -245,6 +245,7 @@ export default function ProjectDetail() {
               period={statsPeriod}
               companyFeePct={company?.company_fee_pct ?? 0}
               licensePct={company?.default_license_pct ?? 0}
+              showReferralStats={(referrals ?? []).length > 0}
             />
           </View>
         ) : null}

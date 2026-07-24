@@ -3,8 +3,8 @@ import { useMutation } from '@drakkar.software/anchor/hooks';
 import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
-import { fetchProjectReferrals } from '@chrono/sdk';
-import type { ProjectReferralWithProfile, TablesInsert } from '@chrono/sdk';
+import { fetchCompanyProjectReferrals, fetchProjectReferrals } from '@chrono/sdk';
+import type { ProjectReferral, ProjectReferralWithProfile, TablesInsert } from '@chrono/sdk';
 
 export function useProjectReferrals(projectId: string | undefined) {
   return linkedQuery<ProjectReferralWithProfile[]>(
@@ -15,6 +15,20 @@ export function useProjectReferrals(projectId: string | undefined) {
       deps: [projectId],
       staleTime: 60_000,
       queryKey: `project-referrals:${projectId}`,
+    },
+  );
+}
+
+/** Active referrers across a company's projects — gates referral P&L tiles. */
+export function useCompanyProjectReferrals(companyId: string | undefined) {
+  return linkedQuery<ProjectReferral[]>(
+    () => fetchCompanyProjectReferrals(globalSupabaseClient, companyId!),
+    {
+      stores: [stores.project_referrals],
+      enabled: !!companyId,
+      deps: [companyId],
+      staleTime: 60_000,
+      queryKey: `company-project-referrals:${companyId}`,
     },
   );
 }

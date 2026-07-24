@@ -3,19 +3,26 @@ import { Badge, IconBadge, Money, Txt, borders, radii, spacing, useTheme } from 
 import type { Project } from '@chrono/sdk';
 import { projectBadge } from '@/lib/status';
 import { useT } from '@/lib/i18n';
+import { parseRemPolicy } from '@/lib/rem-form.lib';
 
 export interface ProjectCardProps {
   project: Project;
   currency: string;
   onPress?: () => void;
+  /**
+   * Lifetime net available funding (Disponible net). Shown under the status
+   * badge when provided — typically for managers on the projects list.
+   */
+  netAvailableCents?: number;
 }
 
 /** Summary card for a project row: name, client, TJM, rem policy and status. */
-export function ProjectCard({ project, currency, onPress }: ProjectCardProps) {
+export function ProjectCard({ project, currency, onPress, netAvailableCents }: ProjectCardProps) {
   const t = useT();
   const { colors } = useTheme();
-  const remPolicy = project.rem_policy ?? 'staffing';
+  const remPolicy = parseRemPolicy(project.rem_policy);
   const hasTjm = project.default_tjm_cents != null;
+  const showNet = netAvailableCents != null && project.status === 'active';
   return (
     <Pressable
       onPress={onPress}
@@ -41,7 +48,22 @@ export function ProjectCard({ project, currency, onPress }: ProjectCardProps) {
             </Txt>
           ) : null}
         </View>
-        <Badge label={t('status.' + project.status)} status={projectBadge(project.status)} />
+        <View style={styles.statusWrap}>
+          <Badge label={t('status.' + project.status)} status={projectBadge(project.status)} />
+          {showNet ? (
+            <View style={styles.netWrap}>
+              <Txt variant="micro" tone="textMuted" uppercase numberOfLines={1}>
+                {t('compb.pnl.netAvailableFunding')}
+              </Txt>
+              <Money
+                cents={netAvailableCents}
+                currency={currency}
+                variant="caption"
+                tone={netAvailableCents >= 0 ? 'success' : 'danger'}
+              />
+            </View>
+          ) : null}
+        </View>
       </View>
       <View style={styles.meta}>
         {hasTjm ? (
@@ -70,8 +92,10 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.sm,
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  titleWrap: { flex: 1, gap: 2 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  titleWrap: { flex: 1, gap: 2, paddingTop: 2 },
+  statusWrap: { alignItems: 'flex-end', gap: spacing.xs, maxWidth: 140 },
+  netWrap: { alignItems: 'flex-end', gap: 1 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
   policy: { flexShrink: 1 },
 });

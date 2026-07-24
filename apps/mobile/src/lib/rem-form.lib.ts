@@ -54,6 +54,8 @@ export function parseRemSettings(input: RemSettingsInput): RemSettingsParsed {
 }
 
 export function parseRemPolicy(value: string | null | undefined): RemPolicy {
+  // external_tjm merged into staffing (enum label kept for DB compatibility).
+  if (value === 'external_tjm') return 'staffing';
   if (value && (REM_POLICIES as string[]).includes(value)) return value as RemPolicy;
   return defaultRemPolicy();
 }

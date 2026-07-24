@@ -286,7 +286,23 @@ export type ExternalContractInput = {
   user_id: string;
 };
 
-/** External contract rem for one person on one contract (after referral cut on their days×TJM). */
+/** Staffing TJM rem: days × TJM, minus referral carve-out when `referralPct` > 0. */
+export function staffingTjmRemCents(
+  minutes: number,
+  hoursPerDay: number,
+  tjmCents: number,
+  referralPct = 0,
+): number {
+  const gross = computeEarnedCents(minutes, hoursPerDay, tjmCents);
+  if (!(referralPct > 0) || gross === 0) return gross;
+  const cut = Math.round((gross * referralPct) / 100);
+  return gross - cut;
+}
+
+/**
+ * @deprecated Prefer {@link staffingTjmRemCents} — external_tjm is merged into staffing.
+ * Kept for residual product-pool helpers / tests that still speak in "contract days".
+ */
 export function externalContractRemCents(input: ExternalContractInput): {
   gross_cents: number;
   rem_cents: number;
@@ -300,9 +316,9 @@ export function externalContractRemCents(input: ExternalContractInput): {
 
 export type ExternalMonthPartner = {
   user_id: string;
-  /** Days on external_tjm contracts this month. */
+  /** Days on staffing / contract work this month (reduces residual product weight). */
   contract_days: number;
-  /** Contract rem cents after referral cuts (sum of externalContractRemCents.rem). */
+  /** Contract rem cents after referral cuts (sum of staffing/external contract rem). */
   contract_rem_cents: number;
   /** Referral income earned as referrer this month. */
   referral_income_cents: number;
@@ -313,11 +329,8 @@ export type ExternalMonthPartner = {
 };
 
 /**
- * Residual product-pool days for external_tjm partners:
+ * Residual product-pool days for staffing partners with contract load:
  *   max(0, business_days - contract_days) + vacation_days + product_logged_days
- * (vacation already "fills" residual capacity — we add vacation explicitly when
- *  contract_days already excluded those calendar days from work; v1: add vacation
- *  and product logged days on top of residual capacity.)
  */
 export function productPoolDaysForExternal(
   businessDays: number,
@@ -473,15 +486,6 @@ export function dequeueJungleFifo(
   }
 
   return { remaining_by_id, lines, excess_revenue_cents: left };
-}
-
-/** Staffing TJM line — mirrors computeEarnedCents. */
-export function staffingTjmRemCents(
-  minutes: number,
-  hoursPerDay: number,
-  tjmCents: number,
-): number {
-  return computeEarnedCents(minutes, hoursPerDay, tjmCents);
 }
 
 /** Vacation day fraction from time_off: null duration = full day. */

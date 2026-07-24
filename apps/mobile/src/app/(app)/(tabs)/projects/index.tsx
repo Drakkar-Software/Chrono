@@ -6,11 +6,19 @@ import { canManage, companyCurrency } from '@chrono/sdk';
 import type { TablesInsert } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
+import { todayISO } from '@/lib/date';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useMyProjects, useProjects } from '@/lib/hooks/use-projects';
 import { useProjectMutations } from '@/lib/hooks/use-project-mutations';
+import { useCompanyRevenueEntries } from '@/lib/hooks/use-revenue-entries';
+import { useCompanyProjectCosts } from '@/lib/hooks/use-project-costs';
+import { useReferralEarnings } from '@/lib/hooks/use-referral-earnings';
+import { useInvoices } from '@/lib/hooks/use-invoices';
+import { useTimeEntries } from '@/lib/hooks/use-time-entries';
+import { useCompanyProjectMembers } from '@/lib/hooks/use-project-members';
 import { usePagination } from '@/lib/hooks/use-pagination';
+import { groupByProject, projectNetAvailableCents, uninvoicedTimeByProject } from '@/lib/reports';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { NewProjectForm, type NewProjectValues } from '@/components/projects/NewProjectForm';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
@@ -31,6 +39,89 @@ export default function ProjectsScreen() {
   const loading = manager ? managed.isLoading : mine.isLoading;
   const error = manager ? managed.error : mine.error;
   const refetch = manager ? managed.refetch : mine.refetch;
+
+  // Manager-only funding inputs (same sources as company P&L) — sliced per card.
+  // Pass companyId only when manager so hooks stay disabled for freelancers.
+  const fundingCompanyId = manager ? companyId ?? undefined : undefined;
+  const {
+    data: revenueEntries,
+    isLoading: loadingRevenue,
+  } = useCompanyRevenueEntries(fundingCompanyId);
+  const {
+    data: referralEarnings,
+    isLoading: loadingReferrals,
+  } = useReferralEarnings(fundingCompanyId ? { companyId: fundingCompanyId } : {});
+  const {
+    data: invoices,
+    isLoading: loadingInvoices,
+  } = useInvoices({ companyId: fundingCompanyId ?? '' });
+  const {
+    data: costs,
+    isLoading: loadingCosts,
+  } = useCompanyProjectCosts(fundingCompanyId);
+  const {
+    data: uninvoicedTimeEntries,
+    isLoading: loadingUninvoiced,
+  } = useTimeEntries({
+    companyId: fundingCompanyId ?? '',
+    status: 'approved',
+    billable: true,
+    uninvoiced: true,
+  });
+  const {
+    data: projectMembers,
+    isLoading: loadingMembers,
+  } = useCompanyProjectMembers(fundingCompanyId);
+
+  const fundingInputsReady =
+    manager &&
+    !loadingRevenue &&
+    !loadingReferrals &&
+    !loadingInvoices &&
+    !loadingCosts &&
+    !loadingUninvoiced &&
+    !loadingMembers &&
+    revenueEntries != null &&
+    referralEarnings != null &&
+    invoices != null &&
+    costs != null &&
+    uninvoicedTimeEntries != null &&
+    projectMembers != null;
+
+  const netAvailableByProject = useMemo(() => {
+    if (!fundingInputsReady) return new Map<string, number>();
+    const revenueByProject = groupByProject(revenueEntries);
+    const referralsByProject = groupByProject(referralEarnings);
+    const invoicesByProject = groupByProject(invoices);
+    const costsByProject = groupByProject(costs);
+    const membersByProject = groupByProject(projectMembers);
+    const uninvoicedByProject = uninvoicedTimeByProject(uninvoicedTimeEntries, membersByProject);
+    const today = todayISO();
+    const out = new Map<string, number>();
+    for (const project of projects ?? []) {
+      out.set(
+        project.id,
+        projectNetAvailableCents({
+          revenueEntries: revenueByProject.get(project.id) ?? [],
+          referralEarnings: referralsByProject.get(project.id) ?? [],
+          invoices: invoicesByProject.get(project.id) ?? [],
+          costs: costsByProject.get(project.id) ?? [],
+          uninvoicedTimeCents: uninvoicedByProject.get(project.id) ?? 0,
+          throughDateISO: today,
+        }),
+      );
+    }
+    return out;
+  }, [
+    fundingInputsReady,
+    projects,
+    revenueEntries,
+    referralEarnings,
+    invoices,
+    costs,
+    uninvoicedTimeEntries,
+    projectMembers,
+  ]);
 
   const { create, isPending } = useProjectMutations();
   const [creating, setCreating] = useState(false);
@@ -103,6 +194,11 @@ export default function ProjectsScreen() {
                   key={project.id}
                   project={project}
                   currency={currency}
+                  netAvailableCents={
+                    manager && fundingInputsReady
+                      ? netAvailableByProject.get(project.id)
+                      : undefined
+                  }
                   onPress={() => router.push(`/project/${project.id}`)}
                 />
               ))}

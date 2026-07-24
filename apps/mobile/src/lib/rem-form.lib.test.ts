@@ -39,6 +39,10 @@ describe('parseRemPolicy / kind', () => {
     expect(parseRemPolicy('product_pool')).toBe('product_pool');
   });
 
+  it('maps deprecated external_tjm to staffing', () => {
+    expect(parseRemPolicy('external_tjm')).toBe('staffing');
+  });
+
   it('parses rem kind', () => {
     expect(parseRemKind(null)).toBeNull();
     expect(parseRemKind('maintenance')).toBe('maintenance');
