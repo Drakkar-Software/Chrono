@@ -26,9 +26,13 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.home.logTime': 'Log time',
     'tabs.home.viewHistory': 'View history',
     'tabs.home.recentEntries': 'Recent entries',
+    'tabs.home.dayEntries': 'Day entries',
+    'tabs.home.clearDayFilter': 'Show all',
     'tabs.home.viewAll': 'View all',
     'tabs.home.noEntries': 'No entries yet',
     'tabs.home.noEntriesSubtitle': 'Log your first hours to see them here.',
+    'tabs.home.noDayEntries': 'No entries this day',
+    'tabs.home.noDayEntriesSubtitle': 'Nothing logged on this date.',
 
     // Today / Log time
     'tabs.today.title': 'Log time',
@@ -237,9 +241,13 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.home.logTime': 'Saisir du temps',
     'tabs.home.viewHistory': 'Voir l’historique',
     'tabs.home.recentEntries': 'Saisies récentes',
+    'tabs.home.dayEntries': 'Saisies du jour',
+    'tabs.home.clearDayFilter': 'Tout afficher',
     'tabs.home.viewAll': 'Tout voir',
     'tabs.home.noEntries': 'Aucune saisie',
     'tabs.home.noEntriesSubtitle': 'Saisissez vos premières heures pour les voir ici.',
+    'tabs.home.noDayEntries': 'Aucune saisie ce jour',
+    'tabs.home.noDayEntriesSubtitle': 'Rien n’a été saisi à cette date.',
 
     // Today / Log time
     'tabs.today.title': 'Saisir du temps',

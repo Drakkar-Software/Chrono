@@ -66,12 +66,22 @@ export default function HomeScreen() {
   const userId = user?.id;
 
   const [selectedMonthKey, setSelectedMonthKey] = useState(() => monthKey(todayISO()));
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const month = useMemo(() => monthBounds(selectedMonthKey), [selectedMonthKey]);
   const today = useMemo(() => todayISO(), []);
   const monthLabel = useMemo(
     () => `${shortMonthLabel(selectedMonthKey.slice(0, 7))} ${selectedMonthKey.slice(0, 4)}`,
     [selectedMonthKey],
   );
+
+  const shiftSelectedMonth = (delta: number) => {
+    setSelectedMonthKey((k) => shiftMonth(k, delta));
+    setSelectedDate(null);
+  };
+
+  const onCalendarDayPress = (date: string) => {
+    setSelectedDate((prev) => (prev === date ? null : date));
+  };
 
   const monthEntries = useTimeEntries({
     companyId: companyId ?? '',
@@ -161,16 +171,23 @@ export default function HomeScreen() {
     [timeOff, selectedMonthKey],
   );
 
-  // The 5 most recent entries this month, grouped by day for the preview.
+  // Recent entries this month — or all entries for the selected calendar day.
   const recentDays = useMemo(() => {
-    const sorted = [...(monthEntries.data ?? [])]
-      .sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1))
-      .slice(0, RECENT_LIMIT);
+    const all = monthEntries.data ?? [];
+    if (selectedDate) {
+      const items = all
+        .filter((e) => e.entry_date.slice(0, 10) === selectedDate)
+        .sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1));
+      return [{ date: selectedDate, items }];
+    }
+    const sorted = [...all].sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1)).slice(0, RECENT_LIMIT);
     const grouped = groupByDay(sorted);
     return Object.keys(grouped)
       .sort((a, b) => (a < b ? 1 : -1))
       .map((date) => ({ date, items: grouped[date] }));
-  }, [monthEntries.data]);
+  }, [monthEntries.data, selectedDate]);
+
+  const selectedDayEmpty = selectedDate != null && (recentDays[0]?.items.length ?? 0) === 0;
 
   const initialLoading = monthEntries.isLoading && monthEntries.data == null;
 
@@ -265,13 +282,13 @@ export default function HomeScreen() {
                 <IconButton
                   name="chevron-back"
                   size={18}
-                  onPress={() => setSelectedMonthKey((k) => shiftMonth(k, -1))}
+                  onPress={() => shiftSelectedMonth(-1)}
                   accessibilityLabel={t('tabs.home.prevMonth')}
                 />
                 <IconButton
                   name="chevron-forward"
                   size={18}
-                  onPress={() => setSelectedMonthKey((k) => shiftMonth(k, 1))}
+                  onPress={() => shiftSelectedMonth(1)}
                   accessibilityLabel={t('tabs.home.nextMonth')}
                 />
               </View>
@@ -286,21 +303,37 @@ export default function HomeScreen() {
               fullDayOffDates={fullDayOffDates}
               partialOffDates={partialOffDates}
               today={today}
+              selectedDate={selectedDate}
+              onDayPress={onCalendarDayPress}
             />
           </Card>
         </View>
 
         <View style={styles.section}>
           <SectionHeader
-            eyebrow={monthLabel}
-            title={t('tabs.home.recentEntries')}
+            eyebrow={selectedDate ?? monthLabel}
+            title={selectedDate ? t('tabs.home.dayEntries') : t('tabs.home.recentEntries')}
             action={
-              recentDays.length > 0 ? (
+              selectedDate ? (
+                <Button
+                  title={t('tabs.home.clearDayFilter')}
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => setSelectedDate(null)}
+                />
+              ) : recentDays.length > 0 ? (
                 <Button title={t('tabs.home.viewAll')} variant="ghost" size="sm" onPress={() => router.push('/history')} />
               ) : undefined
             }
           />
-          {recentDays.length === 0 ? (
+          {selectedDayEmpty ? (
+            <EmptyState
+              icon="time-outline"
+              title={t('tabs.home.noDayEntries')}
+              subtitle={t('tabs.home.noDayEntriesSubtitle')}
+              tone="accent"
+            />
+          ) : recentDays.length === 0 ? (
             <EmptyState
               icon="time-outline"
               title={t('tabs.home.noEntries')}

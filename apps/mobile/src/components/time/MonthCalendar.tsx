@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 import { DEFAULT_HOURS_PER_DAY, isoWeekday } from '@chrono/sdk';
 import { useT } from '@/lib/i18n';
@@ -22,6 +22,10 @@ export interface MonthCalendarProps {
   partialOffDates?: string[];
   /** Today's date, for the "current day" ring. */
   today: string;
+  /** Currently selected day ('YYYY-MM-DD'), for filter highlight. */
+  selectedDate?: string | null;
+  /** Called when an in-month day is pressed (used to filter entries). */
+  onDayPress?: (date: string) => void;
 }
 
 const WEEKDAY_LABEL_KEYS = [
@@ -46,6 +50,8 @@ export function MonthCalendar({
   fullDayOffDates = [],
   partialOffDates = [],
   today,
+  selectedDate = null,
+  onDayPress,
 }: MonthCalendarProps) {
   const t = useT();
   const { colors } = useTheme();
@@ -72,6 +78,7 @@ export function MonthCalendar({
           {week.map((day) => {
             const dayNum = day.date.slice(8, 10);
             const isToday = day.date === today;
+            const isSelected = day.date === selectedDate;
             const isHoliday = holidaySet.has(day.date);
             const isWorkingDay = workSet.has(isoWeekday(day.date));
             const isFullOff = day.inMonth && fullOffSet.has(day.date);
@@ -81,53 +88,72 @@ export function MonthCalendar({
             const logged = pct > 0;
             const bg = !day.inMonth
               ? 'transparent'
-              : isFullOff || isHoliday || !isWorkingDay
-                ? colors.fill
-                : colors.surface;
-            return (
-              <View key={day.date} style={styles.cell}>
-                <View style={styles.dayWrap}>
-                  <View
-                    style={[
-                      styles.day,
-                      {
-                        backgroundColor: bg,
-                        borderColor: isToday ? colors.accent : 'transparent',
-                        borderWidth: isToday ? borders.thick : 0,
-                      },
-                    ]}
-                  >
-                    {logged ? (
-                      <View style={[styles.fill, { height: `${pct * 100}%`, backgroundColor: colors.accent }]} />
-                    ) : null}
-                    <Txt
-                      variant="caption"
-                      color={
-                        !day.inMonth
-                          ? colors.textFaint
+              : isSelected
+                ? colors.accentBg
+                : isFullOff || isHoliday || !isWorkingDay
+                  ? colors.fill
+                  : colors.surface;
+            const dayInner = (
+              <View style={styles.dayWrap}>
+                <View
+                  style={[
+                    styles.day,
+                    {
+                      backgroundColor: bg,
+                      borderColor: isSelected || isToday ? colors.accent : 'transparent',
+                      borderWidth: isSelected || isToday ? borders.thick : 0,
+                    },
+                  ]}
+                >
+                  {logged && !isSelected ? (
+                    <View style={[styles.fill, { height: `${pct * 100}%`, backgroundColor: colors.accent }]} />
+                  ) : null}
+                  <Txt
+                    variant="caption"
+                    color={
+                      !day.inMonth
+                        ? colors.textFaint
+                        : isSelected
+                          ? colors.accent
                           : !logged
                             ? colors.textMuted
                             : pct >= READABLE_ON_FILL_THRESHOLD
                               ? colors.accentText
                               : colors.accent
-                      }
-                    >
-                      {dayNum}
-                    </Txt>
-                  </View>
-                  {isFullOff || isPartialOff ? (
-                    <View
-                      style={[
-                        styles.offDot,
-                        {
-                          backgroundColor: isFullOff ? colors.info : colors.surface,
-                          borderColor: colors.info,
-                          borderWidth: isFullOff ? 0 : borders.thick,
-                        },
-                      ]}
-                    />
-                  ) : null}
+                    }
+                  >
+                    {dayNum}
+                  </Txt>
                 </View>
+                {isFullOff || isPartialOff ? (
+                  <View
+                    style={[
+                      styles.offDot,
+                      {
+                        backgroundColor: isFullOff ? colors.info : colors.surface,
+                        borderColor: colors.info,
+                        borderWidth: isFullOff ? 0 : borders.thick,
+                      },
+                    ]}
+                  />
+                ) : null}
+              </View>
+            );
+            return (
+              <View key={day.date} style={styles.cell}>
+                {day.inMonth && onDayPress ? (
+                  <Pressable
+                    onPress={() => onDayPress(day.date)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={day.date}
+                    hitSlop={4}
+                  >
+                    {dayInner}
+                  </Pressable>
+                ) : (
+                  dayInner
+                )}
               </View>
             );
           })}

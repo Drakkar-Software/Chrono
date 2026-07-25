@@ -121,12 +121,7 @@ export default function HistoryScreen() {
               <TimeEntryRow
                 key={entry.id}
                 entry={entry}
-                onPress={
-                  (entry.status === 'pending' && entry.invoice_id == null) ||
-                  entry.status === 'rejected'
-                    ? () => router.push(`/time-entry/${entry.id}`)
-                    : undefined
-                }
+                onPress={() => router.push(`/time-entry/${entry.id}`)}
               />
             ))}
           </View>
