@@ -18,11 +18,29 @@ export interface LogEntryValues {
   tags: string[];
 }
 
+/** Optional seed values for a pre-filled composer (e.g. quick-cancel correction). */
+export interface LogEntryDefaults {
+  projectId?: string;
+  entryDate?: Date;
+  /** Hours string as shown in the duration field (e.g. "-5", "1.5"). */
+  hours?: string;
+  description?: string;
+  billable?: boolean;
+  /** Comma-separated tags string matching the tags field. */
+  tags?: string;
+}
+
 export interface LogEntryFormProps {
   projectOptions: PickerOption[];
   onSubmit: (values: LogEntryValues) => void;
   isSubmitting?: boolean;
   defaultBillable?: boolean;
+  /** Pre-fill field state. Remount with a new `key` when defaults change mid-lifecycle. */
+  defaults?: LogEntryDefaults;
+  /** Card title override (defaults to "Log time"). */
+  title?: string;
+  /** Primary submit label override (defaults to "Add entry"). */
+  submitLabel?: string;
   /** hours_per_day for each project in `projectOptions`, keyed by project id. */
   hoursPerDayByProject?: Record<string, number>;
   /** Days already logged this month (all projects), for the business-day cap guard. */
@@ -42,6 +60,9 @@ export function LogEntryForm({
   onSubmit,
   isSubmitting = false,
   defaultBillable = true,
+  defaults,
+  title,
+  submitLabel,
   hoursPerDayByProject = {},
   monthDaysLogged = 0,
   maxBusinessDays = 0,
@@ -52,12 +73,16 @@ export function LogEntryForm({
     { label: t('comp.time.billable'), value: 'billable' },
     { label: t('comp.time.nonBillable'), value: 'nonbillable' },
   ];
-  const [projectId, setProjectId] = useState(projectOptions[0]?.value ?? '');
-  const [entryDate, setEntryDate] = useState(new Date());
-  const [hours, setHours] = useState('');
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState('');
-  const [billable, setBillable] = useState(defaultBillable ? 'billable' : 'nonbillable');
+  const [projectId, setProjectId] = useState(
+    defaults?.projectId ?? projectOptions[0]?.value ?? '',
+  );
+  const [entryDate, setEntryDate] = useState(defaults?.entryDate ?? new Date());
+  const [hours, setHours] = useState(defaults?.hours ?? '');
+  const [description, setDescription] = useState(defaults?.description ?? '');
+  const [tags, setTags] = useState(defaults?.tags ?? '');
+  const [billable, setBillable] = useState(
+    (defaults?.billable ?? defaultBillable) ? 'billable' : 'nonbillable',
+  );
   const [error, setError] = useState<string | undefined>();
 
   const durationMinutes = useMemo(() => parseHoursToMinutes(hours), [hours]);
@@ -103,7 +128,7 @@ export function LogEntryForm({
   };
 
   return (
-    <TitledCard title={t('comp.time.logTime')}>
+    <TitledCard title={title ?? t('comp.time.logTime')}>
       <View style={styles.field}>
         <Txt variant="label" tone="textMuted">
           {t('comp.field.project')}
@@ -175,7 +200,7 @@ export function LogEntryForm({
       )}
       <InlineError message={error} />
       <FormActions
-        submitLabel={t('comp.time.addEntry')}
+        submitLabel={submitLabel ?? t('comp.time.addEntry')}
         onSubmit={submit}
         busy={isSubmitting}
         submitDisabled={projectOptions.length === 0}
