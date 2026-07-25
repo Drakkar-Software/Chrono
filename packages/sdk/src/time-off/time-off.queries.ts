@@ -28,6 +28,13 @@ export async function fetchUserTimeOff(
   return (data ?? []) as TimeOff[];
 }
 
+/** A single time-off row by id. */
+export async function fetchTimeOff(client: Client, id: string): Promise<TimeOff | null> {
+  const { data, error } = await client.from('time_off').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as TimeOff | null;
+}
+
 export async function addTimeOff(
   client: Client,
   input: TablesInsert<'time_off'>,

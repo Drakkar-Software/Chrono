@@ -3,7 +3,7 @@ import { useMutation } from '@drakkar.software/anchor/hooks';
 import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
-import { fetchUserTimeOff } from '@chrono/sdk';
+import { fetchTimeOff, fetchUserTimeOff } from '@chrono/sdk';
 import type { TimeOff, TablesInsert } from '@chrono/sdk';
 
 /** One user's time off within an optional date range (defaults to all-time). */
@@ -21,6 +21,20 @@ export function useUserTimeOff(
       deps: [userId, companyId, from, to],
       staleTime: 30_000,
       queryKey: `time-off:${userId}:${companyId}:${from}:${to}`,
+    },
+  );
+}
+
+/** A single time-off row by id. */
+export function useTimeOff(id: string | undefined) {
+  return linkedQuery<TimeOff | null>(
+    () => fetchTimeOff(globalSupabaseClient, id!),
+    {
+      stores: [stores.time_off],
+      enabled: !!id,
+      deps: [id],
+      staleTime: 30_000,
+      queryKey: `time-off-row:${id}`,
     },
   );
 }

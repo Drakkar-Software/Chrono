@@ -82,6 +82,24 @@ export const detailsCatalog: CatalogSlice = {
     'details.noEntriesSubtitle': 'No time matches these filters. Try widening the date range.',
     'details.entryCountOne': '{n} entry',
     'details.entryCountOther': '{n} entries',
+    'details.historySegmentTime': 'Time',
+    'details.historySegmentLeave': 'Leave',
+    'details.noLeave': 'No leave',
+    'details.noLeaveSubtitle': 'No time off matches these filters. Try widening the date range.',
+    'details.leaveCountOne': '{n} day off',
+    'details.leaveCountOther': '{n} days off',
+    // Vacation list
+    'details.vacation': 'Vacation',
+    'details.vacationLoadError': "Couldn't load vacation",
+    'details.noVacation': 'No vacation yet',
+    'details.noVacationSubtitle': 'Paid vacation days you take this year will show up here.',
+    // Time off detail
+    'details.timeOff': 'Time off',
+    'details.timeOffNotFound': 'Time off not found',
+    'details.timeOffCancel': 'Cancel',
+    'details.timeOffCancelTitle': 'Cancel this time off?',
+    'details.timeOffCancelBody': 'This removes {kind} on {date} from your calendar.',
+    'details.timeOffCancelConfirm': 'Cancel time off',
   },
   fr: {
     // Project detail
@@ -159,5 +177,23 @@ export const detailsCatalog: CatalogSlice = {
     'details.noEntriesSubtitle': 'Aucun temps ne correspond à ces filtres. Essayez d’élargir la période.',
     'details.entryCountOne': '{n} saisie',
     'details.entryCountOther': '{n} saisies',
+    'details.historySegmentTime': 'Temps',
+    'details.historySegmentLeave': 'Congés',
+    'details.noLeave': 'Aucun congé',
+    'details.noLeaveSubtitle': 'Aucun congé ne correspond à ces filtres. Essayez d’élargir la période.',
+    'details.leaveCountOne': '{n} jour d’absence',
+    'details.leaveCountOther': '{n} jours d’absence',
+    // Vacation list
+    'details.vacation': 'Congés',
+    'details.vacationLoadError': 'Impossible de charger les congés',
+    'details.noVacation': 'Aucun congé pour l’instant',
+    'details.noVacationSubtitle': 'Les jours de congé payé pris cette année apparaîtront ici.',
+    // Time off detail
+    'details.timeOff': 'Absence',
+    'details.timeOffNotFound': 'Absence introuvable',
+    'details.timeOffCancel': 'Annuler',
+    'details.timeOffCancelTitle': 'Annuler cette absence ?',
+    'details.timeOffCancelBody': 'Cela retire {kind} du {date} de votre calendrier.',
+    'details.timeOffCancelConfirm': 'Annuler l’absence',
   },
 };

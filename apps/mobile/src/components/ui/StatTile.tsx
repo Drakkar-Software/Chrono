@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 import type { Palette } from '@chrono/ui';
 
@@ -13,6 +13,8 @@ export interface StatTileProps {
   children?: ReactNode;
   /** Palette tone for a plain-text `value`. Default `text`. */
   tone?: keyof Palette;
+  /** Makes the tile tappable when set. */
+  onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -20,16 +22,10 @@ export interface StatTileProps {
  * A single labeled metric tile: caption over a bold value. Sits inside a
  * {@link StatRow} which wraps tiles horizontally on wide / narrow.
  */
-export function StatTile({ label, value, children, tone = 'text', style }: StatTileProps) {
+export function StatTile({ label, value, children, tone = 'text', onPress, style }: StatTileProps) {
   const { colors } = useTheme();
-  return (
-    <View
-      style={[
-        styles.tile,
-        { backgroundColor: colors.surfaceRaised, borderColor: colors.border },
-        style,
-      ]}
-    >
+  const body = (
+    <>
       <Txt variant="micro" mono uppercase tone="textMuted" numberOfLines={1}>
         {label}
       </Txt>
@@ -40,6 +36,35 @@ export function StatTile({ label, value, children, tone = 'text', style }: StatT
           {value ?? '—'}
         </Txt>
       )}
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={({ pressed }) => [
+          styles.tile,
+          { backgroundColor: pressed ? colors.hover : colors.surfaceRaised, borderColor: colors.border },
+          style,
+        ]}
+      >
+        {body}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.tile,
+        { backgroundColor: colors.surfaceRaised, borderColor: colors.border },
+        style,
+      ]}
+    >
+      {body}
     </View>
   );
 }

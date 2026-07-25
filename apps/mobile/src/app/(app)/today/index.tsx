@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, EmptyState, IconButton, StackScreen, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
+import { Button, EmptyState, StackScreen, Txt, borders, radii, spacing, useTheme } from '@chrono/ui';
 import {
   DEFAULT_HOURS_PER_DAY,
   buildCopiedEntries,
@@ -30,6 +30,7 @@ import { LogEntryForm, type LogEntryValues } from '@/components/time/LogEntryFor
 import { TimeOffForm, type TimeOffValues } from '@/components/time/TimeOffForm';
 import { DayGroupHeader } from '@/components/time/DayGroupHeader';
 import { TimeEntryRow } from '@/components/time/TimeEntryRow';
+import { TimeOffRow } from '@/components/time/TimeOffRow';
 import { WeekStrip } from '@/components/time/WeekStrip';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
@@ -61,7 +62,7 @@ export default function TodayScreen() {
   const { netBusinessDays, timeOff, workingWeekdays, holidayDates } = useMaxBusinessDays(userId, thisMonthKey);
   const { vacationDaysRemaining } = useVacationPolicy(userId, workingWeekdays, holidayDates);
   const { create, isPending } = useTimeEntryMutations();
-  const { add: addTimeOff, remove: removeTimeOff, isPending: isSubmittingTimeOff, error: timeOffError } =
+  const { add: addTimeOff, isPending: isSubmittingTimeOff, error: timeOffError } =
     useTimeOffMutations();
   const [copying, setCopying] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
@@ -203,23 +204,11 @@ export default function TodayScreen() {
             <SectionHeader title={t('comp.timeOff.thisMonth')} count={timeOff.length} />
             <View style={styles.timeOffList}>
               {timeOff.map((off) => (
-                <View key={off.id} style={styles.timeOffRow}>
-                  <Txt variant="body" numberOfLines={1} style={styles.timeOffLabel}>
-                    {t(`comp.timeOff.kind.${off.kind}`)}
-                  </Txt>
-                  <Txt variant="caption" tone="textMuted">
-                    {off.off_date}
-                    {off.duration_minutes != null
-                      ? ` · ${formatDuration(off.duration_minutes)}`
-                      : ` · ${t('comp.timeOff.fullDay')}`}
-                  </Txt>
-                  <IconButton
-                    name="close"
-                    size={18}
-                    onPress={() => void removeTimeOff(off.id)}
-                    accessibilityLabel={t('common.remove')}
-                  />
-                </View>
+                <TimeOffRow
+                  key={off.id}
+                  timeOff={off}
+                  onPress={() => router.push(`/time-off/${off.id}`)}
+                />
               ))}
             </View>
           </View>
@@ -337,8 +326,6 @@ const styles = StyleSheet.create({
   section: { gap: spacing.md },
   day: { gap: spacing.xs },
   timeOffList: { gap: spacing.xs },
-  timeOffRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 36 },
-  timeOffLabel: { flex: 1 },
   backdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   sheetWrap: { width: '100%', maxWidth: 480, maxHeight: '90%' },
   sheet: { borderWidth: borders.thin, borderRadius: radii.lg, overflow: 'hidden' },

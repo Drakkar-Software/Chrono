@@ -252,9 +252,14 @@ export default function HomeScreen() {
               <StatTile
                 label={t('tabs.home.congesLeft')}
                 value={`${fmtDays(vacationDaysRemaining ?? 0)} / ${maxVacationDaysPerYear}`}
+                onPress={() => router.push('/vacation')}
               />
             ) : (
-              <StatTile label={t('tabs.home.congesTaken')} value={fmtDays(vacationDaysUsed)} />
+              <StatTile
+                label={t('tabs.home.congesTaken')}
+                value={fmtDays(vacationDaysUsed)}
+                onPress={() => router.push('/vacation')}
+              />
             )}
           </StatRow>
         </View>

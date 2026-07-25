@@ -10,6 +10,8 @@ import { PeriodMonthRail } from '@/components/reports/PeriodMonthRail';
 export type HistoryStatus = 'all' | TimeEntryStatus;
 /** Billable filter — `'all'` means unfiltered. */
 export type HistoryBillable = 'all' | 'billable' | 'nonBillable';
+/** History content mode — time entries vs leave. */
+export type HistoryMode = 'time' | 'leave';
 
 export type { HistoryPeriod };
 
@@ -40,15 +42,18 @@ export interface HistoryFiltersProps {
   projects: Project[];
   value: HistoryFilterState;
   onChange: (next: HistoryFilterState) => void;
+  /** When `'leave'`, hide project/status/billable (period rail stays). Default `'time'`. */
+  mode?: HistoryMode;
 }
 
 /**
  * Filter bar for the time-history screen: project picker, ledger period rail
  * (All / this week / months), status and billable segmented controls.
  */
-export function HistoryFilters({ projects, value, onChange }: HistoryFiltersProps) {
+export function HistoryFilters({ projects, value, onChange, mode = 'time' }: HistoryFiltersProps) {
   const t = useT();
   const { isWide } = useResponsive();
+  const showEntryFilters = mode === 'time';
 
   const STATUS_OPTIONS = [
     { label: t('compb.history.all'), value: 'all' },
@@ -70,12 +75,14 @@ export function HistoryFilters({ projects, value, onChange }: HistoryFiltersProp
 
   return (
     <View style={styles.wrap}>
-      <Picker
-        label={t('compb.history.project')}
-        value={value.projectId}
-        onValueChange={(projectId) => onChange({ ...value, projectId })}
-        options={projectOptions}
-      />
+      {showEntryFilters ? (
+        <Picker
+          label={t('compb.history.project')}
+          value={value.projectId}
+          onValueChange={(projectId) => onChange({ ...value, projectId })}
+          options={projectOptions}
+        />
+      ) : null}
 
       <PeriodMonthRail
         value={value.range}
@@ -84,31 +91,33 @@ export function HistoryFilters({ projects, value, onChange }: HistoryFiltersProp
         eyebrowKey="compb.history.dateRange"
       />
 
-      <View style={[styles.controls, isWide && styles.controlsWide]}>
-        <View style={styles.field}>
-          <Txt variant="micro" mono uppercase tone="textMuted" style={styles.label}>
-            {t('common.status')}
-          </Txt>
-          <Segmented
-            options={STATUS_OPTIONS}
-            value={value.status}
-            onValueChange={(status) => onChange({ ...value, status: status as HistoryStatus })}
-          />
-        </View>
+      {showEntryFilters ? (
+        <View style={[styles.controls, isWide && styles.controlsWide]}>
+          <View style={styles.field}>
+            <Txt variant="micro" mono uppercase tone="textMuted" style={styles.label}>
+              {t('common.status')}
+            </Txt>
+            <Segmented
+              options={STATUS_OPTIONS}
+              value={value.status}
+              onValueChange={(status) => onChange({ ...value, status: status as HistoryStatus })}
+            />
+          </View>
 
-        <View style={styles.field}>
-          <Txt variant="micro" mono uppercase tone="textMuted" style={styles.label}>
-            {t('compb.history.billable')}
-          </Txt>
-          <Segmented
-            options={BILLABLE_OPTIONS}
-            value={value.billable}
-            onValueChange={(billable) =>
-              onChange({ ...value, billable: billable as HistoryBillable })
-            }
-          />
+          <View style={styles.field}>
+            <Txt variant="micro" mono uppercase tone="textMuted" style={styles.label}>
+              {t('compb.history.billable')}
+            </Txt>
+            <Segmented
+              options={BILLABLE_OPTIONS}
+              value={value.billable}
+              onValueChange={(billable) =>
+                onChange({ ...value, billable: billable as HistoryBillable })
+              }
+            />
+          </View>
         </View>
-      </View>
+      ) : null}
     </View>
   );
 }

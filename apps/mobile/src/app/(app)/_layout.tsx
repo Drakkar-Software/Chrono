@@ -58,6 +58,8 @@ export default function AppLayout() {
       <Stack.Screen name="project/[id]" />
       <Stack.Screen name="invoice/[id]" />
       <Stack.Screen name="time-entry/[id]" />
+      <Stack.Screen name="time-off/[id]" />
+      <Stack.Screen name="vacation/index" />
       <Stack.Screen name="paywall" options={{ presentation: 'modal', headerShown: false }} />
     </Stack>
   );
