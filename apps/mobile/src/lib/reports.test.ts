@@ -141,6 +141,7 @@ function member(userId: string, weeklyCapacityDays: number): CompanyMemberWithPr
     weekly_capacity_days: weeklyCapacityDays,
     working_weekdays: null,
     rem_partner: false,
+    rem_license_recipient: false,
     rem_max_percent: null,
     created_at: '',
     updated_at: '',

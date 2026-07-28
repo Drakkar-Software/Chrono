@@ -21,7 +21,7 @@ export const remCatalog: CatalogSlice = {
     'rem.policy.desc.external_tjm':
       'Days × TJM via classic invoices. When referrers are set, rem shows the referral carve-out; referrals are paid from the funding pool.',
     'rem.policy.desc.product_pool': 'Paid product revenue (after costs & company fee) shared by time, with max share caps.',
-    'rem.policy.desc.product_service': 'Service revenue: company fee, then license % to rem partners, rest by time.',
+    'rem.policy.desc.product_service': 'Service revenue: company fee, then license % to license recipients, rest by time.',
     'rem.policy.desc.jungle':
       'A day-rate credit is accrued each month and paid later, in order, when cash is available.',
     'rem.kind.label': 'Revenue kind (rem)',
@@ -80,7 +80,7 @@ export const remCatalog: CatalogSlice = {
     'rem.policy.desc.external_tjm':
       'Jours × TJM via factures classiques. Si des apporteurs sont définis, la rem affiche la part referral ; les apporteurs sont payés sur le pool de financement.',
     'rem.policy.desc.product_pool': 'Revenus produits payés (après coûts & frais société) partagés au temps, avec plafond de part.',
-    'rem.policy.desc.product_service': 'Prestation : frais société, puis % licence aux associés rem, reste au temps.',
+    'rem.policy.desc.product_service': 'Prestation : frais société, puis % licence aux bénéficiaires licence, reste au temps.',
     'rem.policy.desc.jungle':
       'Un crédit de TJM est accumulé chaque mois et payé plus tard, dans l’ordre, quand la trésorerie le permet.',
     'rem.kind.label': 'Type de revenu (rem)',

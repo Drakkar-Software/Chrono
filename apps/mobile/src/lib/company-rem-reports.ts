@@ -5,10 +5,13 @@ import { lastMonths } from '@/lib/reports';
 import { matchesPeriodMonth, type StatsPeriod } from '@/lib/period-month';
 import { todayISO } from '@/lib/date';
 
-/** Policies that accrue company fee % into the reserve (global fee). */
-const FEE_POLICIES: RemPolicy[] = ['product_pool', 'product_service', 'staffing', 'jungle'];
+/** Policies that accrue company fee % on gross paid revenue. */
+const GROSS_FEE_POLICIES: RemPolicy[] = ['product_service', 'staffing', 'jungle'];
 
-/** Policies that carve license % for rem partners. */
+/** Product pool fees apply after eligible costs. */
+const POOL_FEE_POLICIES: RemPolicy[] = ['product_pool'];
+
+/** Policies that carve license % for license recipients. */
 const LICENSE_POLICIES: RemPolicy[] = ['product_service'];
 
 export type ProjectRemRef = Pick<Project, 'id' | 'rem_policy' | 'name'>;
@@ -41,17 +44,22 @@ function scopedRevenue(
 
 /**
  * Estimated company fee for the period from fee-eligible project revenue
- * (paid), matching rem: fee = R × company_fee_pct across all rem policies.
+ * (paid). Product-pool fee is on (gross − costs); other policies fee on gross.
  */
 export function estimateCompanyFeeCents(
   entries: Rev[],
   projects: ProjectRemRef[],
   companyFeePct: number,
   period: StatsPeriod,
+  costs: Cost[] = [],
 ): number {
   const byProject = policyMap(projects);
-  const R = scopedRevenue(entries, period, new Set(FEE_POLICIES), byProject, true);
-  return companyFeeCents(R, companyFeePct);
+  const grossR = scopedRevenue(entries, period, new Set(GROSS_FEE_POLICIES), byProject, true);
+  const poolR = scopedRevenue(entries, period, new Set(POOL_FEE_POLICIES), byProject, true);
+  const poolCosts =
+    period === 'all' ? companyPoolCostsCents(costs, 'all') : totalCostForMonth(costs, period);
+  const poolBase = Math.max(0, poolR - poolCosts);
+  return companyFeeCents(grossR, companyFeePct) + companyFeeCents(poolBase, companyFeePct);
 }
 
 /**
@@ -111,7 +119,13 @@ export function feeVsCostsTrend(input: {
     const feeCents =
       fromLedger != null
         ? fromLedger
-        : estimateCompanyFeeCents(input.revenueEntries, input.projects, input.companyFeePct, month);
+        : estimateCompanyFeeCents(
+            input.revenueEntries,
+            input.projects,
+            input.companyFeePct,
+            month,
+            input.costs,
+          );
     return { month, feeCents, costsCents, netCents: feeCents - costsCents };
   });
 }

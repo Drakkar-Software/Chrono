@@ -102,8 +102,12 @@ select throws_ok(
   'duplicate working_weekdays rejected'
 );
 
--- Vacation allowance
+-- Vacation allowance (null max = unlimited; set explicit 15 for this test)
 reset role;
+update public.companies
+set max_vacation_days_per_year = 15
+where id = (select company from rem_sec);
+
 do $$
 declare
   v_company uuid;

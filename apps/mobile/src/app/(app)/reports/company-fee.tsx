@@ -48,8 +48,8 @@ export default function CompanyFeeReportScreen() {
   }, [reserve, period]);
 
   const estimatedFee = useMemo(
-    () => estimateCompanyFeeCents(revenue ?? [], projectRefs, feePct, period),
-    [revenue, projectRefs, feePct, period],
+    () => estimateCompanyFeeCents(revenue ?? [], projectRefs, feePct, period, costs ?? []),
+    [revenue, projectRefs, feePct, period, costs],
   );
   const feeCents = resolveCompanyFeeTotal({
     reserveCents: reserveForPeriod,
