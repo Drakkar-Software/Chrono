@@ -16,7 +16,7 @@ const projects = [
 ];
 
 describe('estimateCompanyFeeCents', () => {
-  it('fees only paid revenue on pool/service projects', () => {
+  it('fees paid revenue on pool/service/staffing/jungle projects', () => {
     const fee = estimateCompanyFeeCents(
       [
         { project_id: 'p1', period_month: '2026-07-01', amount_cents: 100_000, paid_at: '2026-07-10' },
@@ -28,8 +28,8 @@ describe('estimateCompanyFeeCents', () => {
       5,
       '2026-07',
     );
-    // 200_000 × 5% = 10_000 (staffing + unpaid excluded)
-    expect(fee).toBe(10_000);
+    // 300_000 × 5% = 15_000 (unpaid excluded; staffing included)
+    expect(fee).toBe(15_000);
   });
 });
 

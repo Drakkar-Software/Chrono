@@ -35,5 +35,5 @@ pnpm start          # supabase start
 pnpm reset          # db reset (migrations + seed)
 pnpm types          # regenerate ../../packages/sdk/src/schema.ts
 pnpm push           # db push to the linked project
-pnpm test           # pgTAP database tests (company invites security suite)
+pnpm test           # pgTAP database tests (invites + rem compute/security)
 ```

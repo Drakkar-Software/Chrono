@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Picker, Segmented, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
-import { companyCurrency, companyName } from '@chrono/sdk';
+import {
+  DEFAULT_COMPANY_FEE_PCT,
+  DEFAULT_HOURS_PER_DAY,
+  DEFAULT_LICENSE_PCT,
+  DEFAULT_REM_MAX_PERCENT,
+  companyCurrency,
+  companyName,
+} from '@chrono/sdk';
 import type { CompanyMembership, Json } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
@@ -46,10 +53,10 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
   const [vatRate, setVatRate] = useState('');
   const [vatError, setVatError] = useState<string | undefined>();
   const [numbering, setNumbering] = useState('on');
-  const [companyFeePct, setCompanyFeePct] = useState('0');
-  const [remMaxPercent, setRemMaxPercent] = useState('100');
-  const [defaultLicensePct, setDefaultLicensePct] = useState('0');
-  const [defaultHoursPerDay, setDefaultHoursPerDay] = useState('');
+  const [companyFeePct, setCompanyFeePct] = useState(String(DEFAULT_COMPANY_FEE_PCT));
+  const [remMaxPercent, setRemMaxPercent] = useState(String(DEFAULT_REM_MAX_PERCENT));
+  const [defaultLicensePct, setDefaultLicensePct] = useState(String(DEFAULT_LICENSE_PCT));
+  const [defaultHoursPerDay, setDefaultHoursPerDay] = useState(String(DEFAULT_HOURS_PER_DAY));
 
   // Seed the editable fields when the active company loads/changes. Legitimate
   // prop->state sync of async-loaded values (mirrors the profile-name pattern).
@@ -65,11 +72,11 @@ export function EditCompanyForm({ company, onSaved }: EditCompanyFormProps) {
     setRegistrationId(company.registration_id ?? '');
     setVatRate(company.vat_rate != null ? String(company.vat_rate) : '');
     setNumbering(company.invoice_numbering_enabled === false ? 'off' : 'on');
-    setCompanyFeePct(String(company.company_fee_pct ?? 0));
-    setRemMaxPercent(String(company.rem_max_percent ?? 100));
-    setDefaultLicensePct(String(company.default_license_pct ?? 0));
+    setCompanyFeePct(String(company.company_fee_pct ?? DEFAULT_COMPANY_FEE_PCT));
+    setRemMaxPercent(String(company.rem_max_percent ?? DEFAULT_REM_MAX_PERCENT));
+    setDefaultLicensePct(String(company.default_license_pct ?? DEFAULT_LICENSE_PCT));
     setDefaultHoursPerDay(
-      company.default_hours_per_day != null ? String(company.default_hours_per_day) : '',
+      String(company.default_hours_per_day ?? DEFAULT_HOURS_PER_DAY),
     );
   }, [company]);
 

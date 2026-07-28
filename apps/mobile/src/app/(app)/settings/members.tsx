@@ -44,6 +44,7 @@ export default function MembersSettingsScreen() {
     updateCapacity,
     updateWorkingWeekdays,
     updateRemPartner,
+    updateRemLicenseRecipient,
     updateRemMaxPercent,
     remove,
     isPending: removingMember,
@@ -89,6 +90,7 @@ export default function MembersSettingsScreen() {
                   companyDefaultWeekdays={company.working_weekdays ?? DEFAULT_WORKING_WEEKDAYS}
                   onWorkingWeekdaysChange={(weekdays) => updateWorkingWeekdays(member.id, weekdays)}
                   onRemPartnerChange={(next) => updateRemPartner(member.id, next)}
+                  onRemLicenseRecipientChange={(next) => updateRemLicenseRecipient(member.id, next)}
                   onRemMaxPercentChange={(next) => updateRemMaxPercent(member.id, next)}
                   onRemove={() => void remove(member.id)}
                   removing={removingMember}

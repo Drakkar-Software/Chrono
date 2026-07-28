@@ -32,6 +32,8 @@ export interface MemberRowProps {
   onWorkingWeekdaysChange?: (weekdays: number[] | null) => void;
   /** Rem partner flag for product-pool / license splits. */
   onRemPartnerChange?: (remPartner: boolean) => void;
+  /** License recipient flag (exactly two company-wide for 50/50 splits). */
+  onRemLicenseRecipientChange?: (remLicenseRecipient: boolean) => void;
   /** Optional per-member max share % (0–100). */
   onRemMaxPercentChange?: (maxPercent: number | null) => void;
   /** Soft-remove this member from the company (managers; admins for admins). */
@@ -51,6 +53,7 @@ export function MemberRow({
   companyDefaultWeekdays = DEFAULT_WORKING_WEEKDAYS,
   onWorkingWeekdaysChange,
   onRemPartnerChange,
+  onRemLicenseRecipientChange,
   onRemMaxPercentChange,
   onRemove,
   removing = false,
@@ -82,7 +85,7 @@ export function MemberRow({
 
   const hasOverride = member.working_weekdays != null;
   const showSchedule = canEdit && (!!onCapacityChange || !!onWorkingWeekdaysChange);
-  const showRem = canEdit && !!onRemPartnerChange;
+  const showRem = canEdit && (!!onRemPartnerChange || !!onRemLicenseRecipientChange);
 
   return (
     <View
@@ -180,17 +183,32 @@ export function MemberRow({
             {t('rem.settings.section')}
           </Txt>
           <View style={[styles.fields, isWide && styles.fieldsWide]}>
-            <View style={styles.fieldGrow}>
-              <Picker
-                label={t('rem.member.partner')}
-                value={member.rem_partner ? 'yes' : 'no'}
-                onValueChange={(v) => onRemPartnerChange?.(v === 'yes')}
-                options={[
-                  { label: t('rem.member.yes'), value: 'yes' },
-                  { label: t('rem.member.no'), value: 'no' },
-                ]}
-              />
-            </View>
+            {onRemPartnerChange ? (
+              <View style={styles.fieldGrow}>
+                <Picker
+                  label={t('rem.member.partner')}
+                  value={member.rem_partner ? 'yes' : 'no'}
+                  onValueChange={(v) => onRemPartnerChange(v === 'yes')}
+                  options={[
+                    { label: t('rem.member.yes'), value: 'yes' },
+                    { label: t('rem.member.no'), value: 'no' },
+                  ]}
+                />
+              </View>
+            ) : null}
+            {onRemLicenseRecipientChange ? (
+              <View style={styles.fieldGrow}>
+                <Picker
+                  label={t('rem.member.licenseRecipient')}
+                  value={member.rem_license_recipient ? 'yes' : 'no'}
+                  onValueChange={(v) => onRemLicenseRecipientChange(v === 'yes')}
+                  options={[
+                    { label: t('rem.member.yes'), value: 'yes' },
+                    { label: t('rem.member.no'), value: 'no' },
+                  ]}
+                />
+              </View>
+            ) : null}
             {onRemMaxPercentChange ? (
               <View style={styles.fieldGrow}>
                 <TextField

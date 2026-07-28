@@ -7,7 +7,7 @@ import {
 } from './rem-form.lib';
 
 describe('parseRemSettings', () => {
-  it('clamps percents and accepts hours', () => {
+  it('accepts valid percents and hours', () => {
     const r = parseRemSettings({
       companyFeePct: '5',
       remMaxPercent: '75',
@@ -19,6 +19,37 @@ describe('parseRemSettings', () => {
     expect(r.default_license_pct).toBe(30);
     expect(r.default_hours_per_day).toBe(8);
     expect(r.error).toBeUndefined();
+  });
+
+  it('uses canonical defaults for empty fields', () => {
+    const r = parseRemSettings({
+      companyFeePct: '',
+      remMaxPercent: '',
+      defaultLicensePct: '',
+      defaultHoursPerDay: '',
+    });
+    expect(r).toEqual({
+      company_fee_pct: 5,
+      rem_max_percent: 75,
+      default_license_pct: 30,
+      default_hours_per_day: 8,
+    });
+  });
+
+  it.each([
+    ['companyFeePct', '-1', 'company_fee_pct'],
+    ['companyFeePct', '101', 'company_fee_pct'],
+    ['remMaxPercent', 'nope', 'rem_max_percent'],
+    ['defaultLicensePct', '100.1', 'default_license_pct'],
+  ] as const)('rejects invalid %s instead of clamping', (field, value, error) => {
+    const input = {
+      companyFeePct: '5',
+      remMaxPercent: '75',
+      defaultLicensePct: '30',
+      defaultHoursPerDay: '8',
+      [field]: value,
+    };
+    expect(parseRemSettings(input).error).toBe(error);
   });
 
   it('rejects non-positive hours', () => {

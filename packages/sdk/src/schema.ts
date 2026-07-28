@@ -198,6 +198,7 @@ export type Database = {
           weekly_capacity_days: number;
           working_weekdays: number[] | null;
           rem_partner: boolean;
+          rem_license_recipient: boolean;
           rem_max_percent: number | null;
         } & Timestamps;
         Insert: {
@@ -209,6 +210,7 @@ export type Database = {
           weekly_capacity_days?: number;
           working_weekdays?: number[] | null;
           rem_partner?: boolean;
+          rem_license_recipient?: boolean;
           rem_max_percent?: number | null;
           created_at?: string;
           updated_at?: string;

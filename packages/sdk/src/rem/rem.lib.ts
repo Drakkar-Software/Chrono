@@ -5,6 +5,7 @@
  * Rounding matches Postgres: Math.round at each money step.
  */
 
+import { DEFAULT_COMPANY_FEE_PCT } from '../constants';
 import { computeEarnedCents } from '../time-entry/time-entry.lib';
 import type { PartnerShareInput, RemBucket, RemLinePreview } from './rem.entity';
 
@@ -14,6 +15,29 @@ const EPS = 1e-12;
 export function companyFeeCents(revenueCents: number, feePct: number): number {
   if (revenueCents <= 0 || feePct <= 0) return 0;
   return Math.round((revenueCents * feePct) / 100);
+}
+
+export type GlobalCompanyFeeResult = {
+  gross_cents: number;
+  company_fee_cents: number;
+  net_cents: number;
+};
+
+/**
+ * Apply the global company fee to any revenue policy, including staffing and
+ * jungle, while deriving the net as the exact remainder.
+ */
+export function applyGlobalCompanyFee(
+  revenueCents: number,
+  feePct = DEFAULT_COMPANY_FEE_PCT,
+): GlobalCompanyFeeResult {
+  const gross = Math.max(0, Math.round(revenueCents));
+  const fee = companyFeeCents(gross, clampPct(feePct));
+  return {
+    gross_cents: gross,
+    company_fee_cents: fee,
+    net_cents: gross - fee,
+  };
 }
 
 /**
@@ -82,37 +106,62 @@ export function cappedTimeShares(
   return shares.map((s) => ({ user_id: s.user_id, share: s.share }));
 }
 
-/** Split `totalCents` by shares with Math.round; largest-remainder fix so sum matches. */
+/**
+ * Split integer cents using normalized non-negative shares and the largest
+ * remainder method. Equal remainders are resolved by `user_id`, so allocation
+ * is deterministic regardless of input order.
+ */
 export function splitCentsByShares(
   totalCents: number,
   shares: Array<{ user_id: string; share: number }>,
 ): Array<{ user_id: string; amount_cents: number }> {
-  if (shares.length === 0 || totalCents === 0) {
+  if (shares.length === 0) return [];
+
+  const target = Number.isFinite(totalCents) ? Math.round(totalCents) : 0;
+  if (target === 0) {
     return shares.map((s) => ({ user_id: s.user_id, amount_cents: 0 }));
   }
-  const floored = shares.map((s) => {
-    const exact = totalCents * s.share;
-    const amount = Math.round(exact);
-    return { user_id: s.user_id, amount_cents: amount, frac: exact - Math.floor(exact) };
-  });
-  let sum = floored.reduce((a, x) => a + x.amount_cents, 0);
-  let diff = totalCents - sum;
-  if (diff === 0) {
-    return floored.map(({ user_id, amount_cents }) => ({ user_id, amount_cents }));
-  }
-  // Adjust by giving/taking 1 cent from partners with largest fractional parts
-  const order = [...floored].sort((a, b) =>
-    diff > 0 ? b.frac - a.frac : a.frac - b.frac,
+
+  const sign = target < 0 ? -1 : 1;
+  const absoluteTarget = Math.abs(target);
+  const weights = shares.map((s) =>
+    Number.isFinite(s.share) ? Math.max(0, s.share) : 0,
   );
-  let i = 0;
-  while (diff !== 0 && order.length > 0) {
-    const step = diff > 0 ? 1 : -1;
-    order[i % order.length].amount_cents += step;
-    diff -= step;
-    i += 1;
-    if (i > order.length * Math.abs(totalCents) + 10) break;
+  const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+  const normalizedWeights =
+    weightTotal > 0
+      ? weights.map((weight) => weight / weightTotal)
+      : weights.map(() => 1 / weights.length);
+
+  const allocations = shares.map((s, index) => {
+    const exact = absoluteTarget * normalizedWeights[index];
+    const amount = Math.floor(exact);
+    return {
+      index,
+      user_id: s.user_id,
+      amount_cents: amount,
+      remainder: exact - amount,
+    };
+  });
+
+  const allocated = allocations.reduce((sum, item) => sum + item.amount_cents, 0);
+  const remainderOrder = [...allocations].sort((a, b) => {
+    if (Math.abs(b.remainder - a.remainder) > EPS) {
+      return b.remainder - a.remainder;
+    }
+    if (a.user_id < b.user_id) return -1;
+    if (a.user_id > b.user_id) return 1;
+    return a.index - b.index;
+  });
+  const centsLeft = absoluteTarget - allocated;
+  for (let i = 0; i < centsLeft; i++) {
+    remainderOrder[i % remainderOrder.length].amount_cents += 1;
   }
-  return floored.map(({ user_id, amount_cents }) => ({ user_id, amount_cents }));
+
+  return allocations.map(({ user_id, amount_cents }) => ({
+    user_id,
+    amount_cents: amount_cents * sign,
+  }));
 }
 
 /** Equal 1/N split among partner ids (largest remainder). */
@@ -192,7 +241,10 @@ export type ProductServiceInput = {
   referrer_user_ids: string[];
   /** Time weights for service pool (all contributors). */
   time_partners: PartnerShareInput[];
-  /** Partners who receive license 1/N (rem_partner). */
+  /**
+   * License recipients are separate from time/rem partners. The authoritative
+   * DB policy requires exactly two recipients; the pure split remains N-way.
+   */
   license_partner_ids: string[];
   project_id?: string | null;
 };
@@ -208,7 +260,7 @@ export type ProductServiceResult = {
 /**
  * Product service rem:
  *   fee = R × fee%
- *   license = (R − fee) × license%  → equal among license partners
+ *   license = (R − fee) × license%  → equal among separate license recipients
  *   referral = R × referral%        → referrers
  *   pool = R − fee − license − referral → by TP
  */
@@ -329,17 +381,20 @@ export type ExternalMonthPartner = {
 };
 
 /**
- * Residual product-pool days for staffing partners with contract load:
- *   max(0, business_days - contract_days) + vacation_days + product_logged_days
+ * Residual product-pool days for staffing partners with contract load.
+ * The fixed capacity baseline already includes vacation and product days, so
+ * those informational inputs must not be added again:
+ *   max(0, min(capacity, capacity - contract_days))
  */
 export function productPoolDaysForExternal(
-  businessDays: number,
+  capacityDays: number,
   contractDays: number,
-  vacationDays: number,
-  productLoggedDays: number,
+  _vacationDays: number,
+  _productLoggedDays: number,
 ): number {
-  const residual = Math.max(0, businessDays - Math.max(0, contractDays));
-  return residual + Math.max(0, vacationDays) + Math.max(0, productLoggedDays);
+  const capacity = Number.isFinite(capacityDays) ? Math.max(0, capacityDays) : 0;
+  const contracts = Number.isFinite(contractDays) ? Math.max(0, contractDays) : 0;
+  return Math.max(0, Math.min(capacity, capacity - contracts));
 }
 
 export type ExternalMonthInput = {
@@ -440,50 +495,45 @@ export type JungleDequeueResult = {
 };
 
 /**
- * Dequeue FIFO **per user** on a project when `revenueCents` is available.
- * Entries must be pre-sorted by seq ascending within each user.
+ * Dequeue one global FIFO on a project when `revenueCents` is available.
+ * Lower `seq` wins globally; equal sequences are resolved by entry `id`.
+ * When `feePct` is set, only the post-fee net funds the queue.
  */
 export function dequeueJungleFifo(
   entries: JungleQueueSlice[],
   revenueCents: number,
+  feePct = 0,
 ): JungleDequeueResult {
-  let left = Math.max(0, revenueCents);
+  const { net_cents } = applyGlobalCompanyFee(revenueCents, feePct);
+  let left = Math.max(0, net_cents);
   const remaining_by_id: Record<string, number> = {};
   const lines: RemLinePreview[] = [];
 
-  // Group by user preserving seq order
-  const byUser = new Map<string, JungleQueueSlice[]>();
-  for (const e of [...entries].sort((a, b) => a.seq - b.seq)) {
-    remaining_by_id[e.id] = e.remaining_cents;
-    const list = byUser.get(e.user_id) ?? [];
-    list.push(e);
-    byUser.set(e.user_id, list);
+  const ordered = [...entries].sort((a, b) => {
+    if (a.seq !== b.seq) return a.seq - b.seq;
+    if (a.id < b.id) return -1;
+    if (a.id > b.id) return 1;
+    return 0;
+  });
+  for (const entry of ordered) {
+    remaining_by_id[entry.id] = Math.max(0, entry.remaining_cents);
   }
 
-  // Split available revenue across users proportional to their remaining queue
-  // v1: process users independently with equal claim on revenue in user-id order
-  // when multiple users — allocate revenue round-robin by remaining until exhausted.
-  // Simpler v1 from plan: independent FIFO per user sharing the same revenue pool
-  // in sequence of first-seen user order.
-  for (const [, userEntries] of byUser) {
-    for (const e of userEntries) {
-      if (left <= 0) break;
-      const rem = remaining_by_id[e.id] ?? 0;
-      if (rem <= 0) continue;
-      const take = Math.min(rem, left);
-      remaining_by_id[e.id] = rem - take;
-      left -= take;
-      if (take > 0) {
-        lines.push({
-          user_id: e.user_id,
-          project_id: e.project_id,
-          bucket: 'jungle_dequeue',
-          amount_cents: take,
-          meta: { queue_entry_id: e.id },
-        });
-      }
+  for (const entry of ordered) {
+    if (left <= 0) break;
+    const remaining = remaining_by_id[entry.id] ?? 0;
+    if (remaining <= 0) continue;
+    const take = Math.min(remaining, left);
+    remaining_by_id[entry.id] = remaining - take;
+    left -= take;
+    lines.push({
+      user_id: entry.user_id,
+      project_id: entry.project_id,
+      bucket: 'jungle_dequeue',
+      amount_cents: take,
+      meta: { queue_entry_id: entry.id },
+    });
     }
-  }
 
   return { remaining_by_id, lines, excess_revenue_cents: left };
 }

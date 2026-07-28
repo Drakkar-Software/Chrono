@@ -1,5 +1,8 @@
 import {
-  clampPct,
+  DEFAULT_COMPANY_FEE_PCT,
+  DEFAULT_HOURS_PER_DAY,
+  DEFAULT_LICENSE_PCT,
+  DEFAULT_REM_MAX_PERCENT,
   defaultRemPolicy,
   isValidJungleTjm,
   remKindRequired,
@@ -22,35 +25,38 @@ export type RemSettingsParsed = {
   company_fee_pct: number;
   rem_max_percent: number;
   default_license_pct: number;
-  default_hours_per_day: number | null;
-  error?: string;
+  default_hours_per_day: number;
+  error?: 'company_fee_pct' | 'rem_max_percent' | 'default_license_pct' | 'hours';
 };
 
-/** Parse company rem settings fields; clamps percents to 0–100. */
+function parsePercent(value: string, fallback: number): number | null {
+  if (value.trim() === '') return fallback;
+  const parsed = Number(value.replace(',', '.'));
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : null;
+}
+
+/** Parse company rem settings fields with canonical defaults and strict validation. */
 export function parseRemSettings(input: RemSettingsInput): RemSettingsParsed {
-  const fee = clampPct(Number(input.companyFeePct.replace(',', '.')) || 0);
-  const max = clampPct(Number(input.remMaxPercent.replace(',', '.')) || 100);
-  const lic = clampPct(Number(input.defaultLicensePct.replace(',', '.')) || 0);
-  let hours: number | null = null;
-  if (input.defaultHoursPerDay.trim() !== '') {
-    const h = Number(input.defaultHoursPerDay.replace(',', '.'));
-    if (!Number.isFinite(h) || h <= 0) {
-      return {
-        company_fee_pct: fee,
-        rem_max_percent: max,
-        default_license_pct: lic,
-        default_hours_per_day: null,
-        error: 'hours',
-      };
-    }
-    hours = h;
-  }
-  return {
-    company_fee_pct: fee,
-    rem_max_percent: max,
-    default_license_pct: lic,
-    default_hours_per_day: hours,
+  const fee = parsePercent(input.companyFeePct, DEFAULT_COMPANY_FEE_PCT);
+  const max = parsePercent(input.remMaxPercent, DEFAULT_REM_MAX_PERCENT);
+  const lic = parsePercent(input.defaultLicensePct, DEFAULT_LICENSE_PCT);
+  const rawHours = input.defaultHoursPerDay.trim();
+  const hours =
+    rawHours === '' ? DEFAULT_HOURS_PER_DAY : Number(input.defaultHoursPerDay.replace(',', '.'));
+
+  const values = {
+    company_fee_pct: fee ?? DEFAULT_COMPANY_FEE_PCT,
+    rem_max_percent: max ?? DEFAULT_REM_MAX_PERCENT,
+    default_license_pct: lic ?? DEFAULT_LICENSE_PCT,
+    default_hours_per_day: Number.isFinite(hours) && hours > 0 ? hours : DEFAULT_HOURS_PER_DAY,
   };
+  if (fee == null) return { ...values, error: 'company_fee_pct' };
+  if (max == null) return { ...values, error: 'rem_max_percent' };
+  if (lic == null) return { ...values, error: 'default_license_pct' };
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return { ...values, error: 'hours' };
+  }
+  return values;
 }
 
 export function parseRemPolicy(value: string | null | undefined): RemPolicy {

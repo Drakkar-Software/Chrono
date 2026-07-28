@@ -5,8 +5,8 @@ import { lastMonths } from '@/lib/reports';
 import { matchesPeriodMonth, type StatsPeriod } from '@/lib/period-month';
 import { todayISO } from '@/lib/date';
 
-/** Policies that accrue company fee % into the reserve. */
-const FEE_POLICIES: RemPolicy[] = ['product_pool', 'product_service'];
+/** Policies that accrue company fee % into the reserve (global fee). */
+const FEE_POLICIES: RemPolicy[] = ['product_pool', 'product_service', 'staffing', 'jungle'];
 
 /** Policies that carve license % for rem partners. */
 const LICENSE_POLICIES: RemPolicy[] = ['product_service'];
@@ -41,7 +41,7 @@ function scopedRevenue(
 
 /**
  * Estimated company fee for the period from fee-eligible project revenue
- * (paid), matching rem: fee = R × company_fee_pct.
+ * (paid), matching rem: fee = R × company_fee_pct across all rem policies.
  */
 export function estimateCompanyFeeCents(
   entries: Rev[],

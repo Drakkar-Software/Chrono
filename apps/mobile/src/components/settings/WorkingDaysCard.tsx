@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, DatePicker, IconButton, Segmented, TextField, Txt, spacing } from '@chrono/ui';
-import { DEFAULT_WORKING_WEEKDAYS, countHolidaysInYear, exceedsHolidayPolicy } from '@chrono/sdk';
+import {
+  DEFAULT_PAID_VACATION_DAYS,
+  DEFAULT_WORKING_WEEKDAYS,
+  countHolidaysInYear,
+  exceedsHolidayPolicy,
+} from '@chrono/sdk';
 import type { CompanyMembership } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
@@ -36,7 +41,7 @@ export function WorkingDaysCard({ company }: WorkingDaysCardProps) {
     company.max_holidays_per_year != null ? String(company.max_holidays_per_year) : '',
   );
   const [maxVacationDays, setMaxVacationDays] = useState(
-    company.max_vacation_days_per_year != null ? String(company.max_vacation_days_per_year) : '',
+    String(company.max_vacation_days_per_year ?? DEFAULT_PAID_VACATION_DAYS),
   );
 
   const onWorkingWeekdaysChange = (value: number[]) => {
@@ -52,8 +57,8 @@ export function WorkingDaysCard({ company }: WorkingDaysCardProps) {
 
   const saveMaxVacationDays = () => {
     const trimmed = maxVacationDays.trim();
-    const parsed = trimmed === '' ? null : parseInt(trimmed, 10);
-    if (parsed != null && (!Number.isFinite(parsed) || parsed < 0)) return;
+    const parsed = trimmed === '' ? DEFAULT_PAID_VACATION_DAYS : parseInt(trimmed, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return;
     void update(company.id, { max_vacation_days_per_year: parsed });
   };
 

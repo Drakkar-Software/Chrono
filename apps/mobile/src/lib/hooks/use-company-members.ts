@@ -66,6 +66,11 @@ export function useCompanyMemberMutations() {
     (id: string, remPartner: boolean) => update(id, { rem_partner: remPartner }),
     [update],
   );
+  const updateRemLicenseRecipient = useCallback(
+    (id: string, remLicenseRecipient: boolean) =>
+      update(id, { rem_license_recipient: remLicenseRecipient }),
+    [update],
+  );
   const updateRemMaxPercent = useCallback(
     (id: string, remMaxPercent: number | null) => update(id, { rem_max_percent: remMaxPercent }),
     [update],
@@ -79,6 +84,7 @@ export function useCompanyMemberMutations() {
     updateCapacity,
     updateWorkingWeekdays,
     updateRemPartner,
+    updateRemLicenseRecipient,
     updateRemMaxPercent,
     remove,
     isPending: isLoading,

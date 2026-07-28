@@ -8,6 +8,7 @@ import {
 } from './rem.fixtures';
 import {
   cappedTimeShares,
+  applyGlobalCompanyFee,
   companyFeeCents,
   computeExternalTjmMonth,
   computeProductPoolRem,
@@ -26,6 +27,13 @@ import {
   visibleRemLines,
 } from './rem.lib';
 import { computeEarnedCents } from '../time-entry/time-entry.lib';
+import {
+  DEFAULT_COMPANY_FEE_PCT,
+  DEFAULT_HOURS_PER_DAY,
+  DEFAULT_MONTHLY_CAPACITY_DAYS,
+  DEFAULT_PAID_VACATION_DAYS,
+} from '../constants';
+import { monthlyCapacityHours, monthlyCapacityMinutes } from '../capacity/capacity.lib';
 
 describe('companyFeeCents', () => {
   it('A1 fee 5% of (7000−500)€', () => {
@@ -565,7 +573,7 @@ describe('jungle queue', () => {
     expect(over.excess_revenue_cents).toBe(50_000);
   });
 
-  it('D5 multi-user independent FIFO sharing pool', () => {
+  it('D5 multi-user global FIFO resolves equal seq by id', () => {
     const entries = [
       {
         id: 'g1',
@@ -586,6 +594,9 @@ describe('jungle queue', () => {
     ];
     const r = dequeueJungleFifo(entries, 150_000);
     expect(r.lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(150_000);
+    // 'g1' < 'p1' → G fully paid first
+    expect(r.remaining_by_id['g1']).toBe(0);
+    expect(r.remaining_by_id['p1']).toBe(50_000);
   });
 
   it('D7 no revenue → empty dequeue', () => {
@@ -617,19 +628,39 @@ describe('leave', () => {
     expect(vacationDaysFromTimeOff('vacation', 240, 8)).toBe(0.5);
   });
 
-  it('E4 leave increases product pool weight', () => {
+  it('E4 residual capacity ignores leave args (already inside the 22-day baseline)', () => {
     const withLeave = productPoolDaysForExternal(22, 10, 2, 0);
     const without = productPoolDaysForExternal(22, 10, 0, 0);
-    expect(withLeave).toBe(without + 2);
+    expect(withLeave).toBe(without);
+    expect(withLeave).toBe(12);
   });
 });
 
 describe('company fee reserve G', () => {
-  it('G1–G2 staffing fee 0 → no fee line needed from product', () => {
-    expect(companyFeeCents(100_000, 0)).toBe(0);
+  it('G1 applyGlobalCompanyFee conserves cents', () => {
+    const r = applyGlobalCompanyFee(100_000, DEFAULT_COMPANY_FEE_PCT);
+    expect(r.company_fee_cents).toBe(5_000);
+    expect(r.net_cents).toBe(95_000);
+    expect(r.gross_cents).toBe(r.company_fee_cents + r.net_cents);
   });
 
-  it('G3 external TJM rem unchanged by fee pct', () => {
+  it('G2 jungle dequeue uses post-fee revenue', () => {
+    const entries = [
+      {
+        id: '1',
+        user_id: USER_G,
+        project_id: 'j',
+        queued_cents: 100_000,
+        remaining_cents: 100_000,
+        seq: 1,
+      },
+    ];
+    const r = dequeueJungleFifo(entries, 100_000, 5);
+    expect(r.lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(95_000);
+    expect(r.remaining_by_id['1']).toBe(5_000);
+  });
+
+  it('G3 staffing rem carve-out is independent of company fee (fee is on paid revenue)', () => {
     const a = externalContractRemCents({
       project_id: 'c',
       days: 1,
@@ -637,8 +668,18 @@ describe('company fee reserve G', () => {
       referral_pct: 10,
       user_id: USER_G,
     });
-    // fee does not enter externalContractRemCents
     expect(a.rem_cents).toBe(90_000);
+    expect(applyGlobalCompanyFee(100_000, 5).company_fee_cents).toBe(5_000);
+  });
+});
+
+describe('canonical capacity defaults', () => {
+  it('exposes 22×8 = 176h monthly capacity', () => {
+    expect(DEFAULT_MONTHLY_CAPACITY_DAYS).toBe(22);
+    expect(DEFAULT_HOURS_PER_DAY).toBe(8);
+    expect(DEFAULT_PAID_VACATION_DAYS).toBe(15);
+    expect(monthlyCapacityHours()).toBe(176);
+    expect(monthlyCapacityMinutes()).toBe(176 * 60);
   });
 });
 

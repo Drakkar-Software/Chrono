@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { capacityDaysInRange, utilization, utilizationStatus } from './capacity.lib';
+import {
+  capacityDaysInRange,
+  exceedsMonthlyCapacity,
+  monthlyCapacityHours,
+  monthlyCapacityMinutes,
+  utilization,
+  utilizationStatus,
+} from './capacity.lib';
 
 describe('capacityDaysInRange', () => {
   it('prorates a 7-day range at the weekly capacity', () => {
@@ -14,6 +21,19 @@ describe('capacityDaysInRange', () => {
   it('is 0 for an open-ended range', () => {
     expect(capacityDaysInRange(5, {})).toBe(0);
     expect(capacityDaysInRange(5, { from: '2026-07-06' })).toBe(0);
+  });
+});
+
+describe('fixed monthly rem capacity', () => {
+  it('is 22 × 8 hours = 176h / 10560 minutes', () => {
+    expect(monthlyCapacityHours()).toBe(176);
+    expect(monthlyCapacityMinutes()).toBe(10_560);
+  });
+
+  it('exceedsMonthlyCapacity rejects work past the baseline', () => {
+    expect(exceedsMonthlyCapacity(22, 0)).toBe(false);
+    expect(exceedsMonthlyCapacity(21.5, 0.5)).toBe(false);
+    expect(exceedsMonthlyCapacity(22, 0.1)).toBe(true);
   });
 });
 
