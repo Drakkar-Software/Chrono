@@ -6,8 +6,9 @@ import { useAppAuth } from '@/lib/supabase-stores';
 import { useProfileMutations } from '@/lib/hooks/use-profile';
 import { useCompanyMutations } from '@/lib/hooks/use-companies';
 import { useInviteMutations } from '@/lib/hooks/use-invites';
-import { classifyInviteError, tokenFromInput } from '@chrono/sdk';
+import { classifyInviteError, fetchMyCompanies, tokenFromInput } from '@chrono/sdk';
 import type { InviteErrorKind } from '@chrono/sdk';
+import { globalSupabaseClient } from '@/lib/supabase';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { AuthCard } from '@/components/common/AuthCard';
 import { useT } from '@/lib/i18n';
@@ -49,7 +50,7 @@ export default function RoleSetup() {
   const { completeOnboarding } = useProfileMutations();
   const { create } = useCompanyMutations();
   const { accept } = useInviteMutations();
-  const { refresh } = useActiveCompany();
+  const { refresh, setCompanyId } = useActiveCompany();
 
   const [mode, setMode] = useState<Mode>('create');
   const [fullName, setFullName] = useState('');
@@ -57,6 +58,12 @@ export default function RoleSetup() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+
+  const finish = async (activeCompanyId?: string) => {
+    await refresh();
+    if (activeCompanyId) setCompanyId(activeCompanyId);
+    router.replace('/(app)/(tabs)/home');
+  };
 
   const submit = async () => {
     if (!user?.id) return;
@@ -79,20 +86,33 @@ export default function RoleSetup() {
       if (mode === 'join') {
         // Join only by redeeming an invite token (accept_company_invite validates
         // the token server-side). Self-joining an arbitrary company is not allowed.
+        let companyId: string | undefined;
         try {
-          await accept(token);
+          companyId = await accept(token);
         } catch (e) {
-          setError(inviteJoinError(classifyInviteError(e), t));
-          setBusy(false);
-          return;
+          // Invite already consumed (e.g. PendingInviteRedeemer or a prior
+          // accept that bounced on the onboarded gate): if this user is already
+          // a member, finish onboarding instead of blocking on "used".
+          if (classifyInviteError(e) === 'used') {
+            const memberships = await fetchMyCompanies(globalSupabaseClient, user.id);
+            companyId = memberships[0]?.id;
+          }
+          if (!companyId) {
+            setError(inviteJoinError(classifyInviteError(e), t));
+            setBusy(false);
+            return;
+          }
         }
         await completeOnboarding(user.id, fullName.trim());
+        await finish(companyId);
       } else {
         await completeOnboarding(user.id, fullName.trim());
-        await create({ content: { name: companyName.trim() }, created_by: user.id });
+        await create({
+          content: { name: companyName.trim() },
+          created_by: user.id,
+        });
+        await finish();
       }
-      await refresh();
-      router.replace('/(app)/(tabs)/home');
     } catch (e) {
       setError(e instanceof Error ? e.message : t('onboarding.role.errGeneric'));
       setBusy(false);

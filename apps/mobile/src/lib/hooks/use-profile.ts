@@ -3,9 +3,8 @@ import { useMutation } from '@drakkar.software/anchor/hooks';
 import { linkedQuery } from './linked-query';
 import { stores, useAppAuth } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
-import { completeOnboarding as sdkCompleteOnboarding, fetchProfile, fetchProfileBilling } from '@chrono/sdk';
+import { fetchProfile, fetchProfileBilling } from '@chrono/sdk';
 import type { Profile, ProfileBilling, TablesUpdate } from '@chrono/sdk';
-import { useAsyncAction } from './use-async-action';
 
 /** The signed-in user's profile, or another user's when `userId` is passed. */
 export function useProfile(userId?: string) {
@@ -63,14 +62,19 @@ export function useProfileMutations() {
     [update],
   );
 
-  const complete = useAsyncAction((userId: string, fullName: string) =>
-    sdkCompleteOnboarding(globalSupabaseClient, userId, fullName),
+  // Go through the profiles store (not a bare SDK update) so linked queries —
+  // especially the app layout's onboarded gate — see the new value immediately.
+  // A cache miss here used to bounce successful joins straight back to onboarding.
+  const completeOnboarding = useCallback(
+    (userId: string, fullName: string) =>
+      update(userId, { full_name: fullName, onboarded: true }),
+    [update],
   );
 
   return {
     updateProfile,
-    completeOnboarding: complete.mutateAsync,
-    isPending: isLoading || complete.isPending,
-    error: error ?? complete.error,
+    completeOnboarding,
+    isPending: isLoading,
+    error,
   };
 }

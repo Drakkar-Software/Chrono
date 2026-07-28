@@ -57,7 +57,7 @@ select ok(
   'Invite still marked accepted on conflict'
 );
 
--- 50 soft-deleted member redeeming again — unique conflict keeps deleted row
+-- 50 soft-deleted member redeeming again — undeletes and applies invite role
 select tests.clear_auth();
 update public.company_members
 set deleted = true
@@ -78,11 +78,12 @@ select lives_ok(
   'Soft-deleted member redeem does not error'
 );
 select tests.clear_auth();
-select ok(
+select is(
   (select deleted from public.company_members
    where company_id = (select company_id from edge_ctx)
      and user_id = 'dddddddd-dddd-dddd-dddd-ddddddddddd2'),
-  'Soft-deleted member stays deleted on conflict (documented)'
+  false,
+  'Soft-deleted member is revived on accept'
 );
 
 -- 51 seat limit: accept fails and invite remains unaccepted
