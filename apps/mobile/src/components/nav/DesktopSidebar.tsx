@@ -3,18 +3,18 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  BrandMark,
   Txt,
   borders,
   radii,
   spacing,
   useTheme,
 } from '@chrono/ui';
-import { canManage, companyName } from '@chrono/sdk';
+import { canManage } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { useNotificationsFeed } from '@/lib/notifications-context';
+import { CompanySwitcher } from '@/components/nav/CompanySwitcher';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -70,7 +70,7 @@ export function DesktopSidebar() {
   const t = useT();
   const { colors } = useTheme();
   const pathname = usePathname();
-  const { company, role } = useActiveCompany();
+  const { role } = useActiveCompany();
   const { unread } = useNotificationsFeed();
 
   const primary: NavItem[] = [
@@ -99,19 +99,7 @@ export function DesktopSidebar() {
 
   return (
     <View style={[styles.sidebar, { backgroundColor: colors.surface, borderRightColor: colors.border }]}>
-      <View style={styles.brand}>
-        <BrandMark size={36} shadow={false} />
-        <View style={styles.brandText}>
-          <Txt variant="heading" weight="bold" numberOfLines={1}>
-            Chrono
-          </Txt>
-          {company ? (
-            <Txt variant="caption" tone="textMuted" numberOfLines={1}>
-              {companyName(company)}
-            </Txt>
-          ) : null}
-        </View>
-      </View>
+      <CompanySwitcher />
 
       <View style={styles.group}>
         {primary.map((item) => (
@@ -141,8 +129,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     gap: spacing.lg,
   },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm },
-  brandText: { flex: 1, gap: 0 },
   group: { gap: spacing.xs },
   bottomGroup: { marginTop: 'auto', gap: spacing.lg },
   link: {

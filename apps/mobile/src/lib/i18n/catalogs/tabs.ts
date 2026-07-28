@@ -9,6 +9,7 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.nav.invoices': 'Invoices',
     'tabs.nav.reports': 'Reports',
     'tabs.nav.settings': 'Settings',
+    'tabs.nav.switchCompany': 'Switch company',
 
     // Home
     'tabs.home.overview': 'Overview',
@@ -230,6 +231,7 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.nav.invoices': 'Factures',
     'tabs.nav.reports': 'Rapports',
     'tabs.nav.settings': 'Paramètres',
+    'tabs.nav.switchCompany': "Changer d'entreprise",
 
     // Home
     'tabs.home.overview': 'Aperçu',

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, TablesInsert, TablesUpdate } from '../schema';
 import type { Company, CompanyMembership } from './company.entity';
+import { sortCompaniesByName } from './company.lib';
 
 type Client = SupabaseClient<Database>;
 
@@ -22,13 +23,15 @@ export async function fetchMyCompanies(
     company: Company | null;
   }>;
 
-  return rows
-    .filter((row) => row.company != null)
-    .map((row) => ({
-      ...(row.company as Company),
-      role: row.role,
-      member_id: row.id,
-    }));
+  return sortCompaniesByName(
+    rows
+      .filter((row) => row.company != null)
+      .map((row) => ({
+        ...(row.company as Company),
+        role: row.role,
+        member_id: row.id,
+      })),
+  );
 }
 
 export async function fetchCompany(

@@ -15,6 +15,24 @@ export function companyName(
   return slug && slug.length > 0 ? slug : fallback;
 }
 
+/**
+ * Stable display order for a user's memberships. `fetchMyCompanies` reads
+ * `company_members` with no ORDER BY, so Postgres may return a different order
+ * on every load — which would reshuffle the sidebar's company switcher and the
+ * settings picker between refreshes, and make "fall back to the first company"
+ * pick an arbitrary one. Sort by display name, tie-broken by id so the order is
+ * total and deterministic.
+ */
+export function sortCompaniesByName<T extends Pick<Company, 'id' | 'content' | 'slug'>>(
+  companies: readonly T[],
+): T[] {
+  return [...companies].sort(
+    (a, b) =>
+      companyName(a).localeCompare(companyName(b), undefined, { sensitivity: 'base' }) ||
+      a.id.localeCompare(b.id),
+  );
+}
+
 /** The company's currency, defaulting when unset. */
 export function companyCurrency(
   company: Pick<Company, 'currency'> | null | undefined,
