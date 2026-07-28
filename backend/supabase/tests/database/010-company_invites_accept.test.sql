@@ -192,13 +192,12 @@ select throws_ok(
   'second user cannot reuse token'
 );
 
--- 19 same user cannot redeem twice
+-- 19 same acceptor can redeem again (idempotent; onboarding retry)
 select tests.authenticate_as('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2');
-select throws_ok(
-  format($f$select public.accept_company_invite('%s')$f$, (select tok_admin from inv_ctx)),
-  'P0001',
-  'This invite has already been used',
-  'same user cannot redeem twice'
+select is(
+  public.accept_company_invite((select tok_admin from inv_ctx)),
+  (select company_id from inv_ctx),
+  'same acceptor redeem is idempotent'
 );
 
 select * from finish();
