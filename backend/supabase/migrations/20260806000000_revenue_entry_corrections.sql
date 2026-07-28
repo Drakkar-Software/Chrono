@@ -3,6 +3,11 @@
 -- Recognition only upserts auto_generated rows; corrections are never rewritten.
 
 -- 1) Allow signed non-zero amounts
+-- Hosted DBs may already have zero-cent rows (invalid under corrections).
+-- Remove them before adding the check so db push is not blocked.
+delete from public.revenue_entries
+where amount_cents = 0;
+
 alter table public.revenue_entries
   drop constraint if exists revenue_entries_amount_cents_check;
 
