@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { Button, EmptyState, Txt, spacing } from '@chrono/ui';
 
 import { useT } from '@/lib/i18n';
+import { dbErrorMessage } from '@/lib/db-error';
 
 function extractMessage(error: unknown): string {
   if (!error) return '';
@@ -83,7 +84,7 @@ export function ErrorState({
     <EmptyState
       icon="alert-circle-outline"
       title={title ?? t('compb.error.title')}
-      subtitle={message ?? describeError(error, describe)}
+      subtitle={message ?? dbErrorMessage(error, t) ?? describeError(error, describe)}
       action={onRetry ? <Button title={t('common.retry')} variant="secondary" onPress={onRetry} /> : undefined}
       tone="danger"
     />
@@ -104,6 +105,7 @@ export interface InlineErrorProps {
  * validation string, or an `error` to have it described.
  */
 export function InlineError({ error, message, describe, center = false }: InlineErrorProps) {
+  const t = useT();
   // A non-empty `message` wins; otherwise describe an `error` if one was given.
   // An absent/empty `message` with no `error` renders nothing — it must NOT fall
   // through to describeError(undefined), which would show a generic fallback on
@@ -111,7 +113,7 @@ export function InlineError({ error, message, describe, center = false }: Inline
   const text = message != null && message !== ''
     ? message
     : error != null
-      ? describeError(error, describe)
+      ? dbErrorMessage(error, t) ?? describeError(error, describe)
       : '';
   if (!text) return null;
   return (

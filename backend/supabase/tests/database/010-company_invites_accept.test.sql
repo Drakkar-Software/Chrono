@@ -114,19 +114,19 @@ select tests.authenticate_as('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6');
 select throws_ok(
   $$select public.accept_company_invite('not-a-real-token')$$,
   'P0001',
-  'Invite not found',
+  'invite-not-found',
   'unknown token'
 );
 select throws_ok(
   $$select public.accept_company_invite('')$$,
   'P0001',
-  'Invite not found',
+  'invite-not-found',
   'empty token'
 );
 select throws_ok(
   $$select public.accept_company_invite('   ')$$,
   'P0001',
-  'Invite not found',
+  'invite-not-found',
   'whitespace-only token'
 );
 
@@ -140,25 +140,25 @@ select lives_ok(
 select throws_ok(
   format($f$select public.accept_company_invite('%s')$f$, (select tok_revoked from inv_ctx)),
   'P0001',
-  'This invite has been revoked',
+  'invite-revoked',
   'revoked invite'
 );
 select throws_ok(
   format($f$select public.accept_company_invite('%s')$f$, (select tok_used from inv_ctx)),
   'P0001',
-  'This invite has already been used',
+  'invite-used',
   'already used invite'
 );
 select throws_ok(
   format($f$select public.accept_company_invite('%s')$f$, (select tok_expired from inv_ctx)),
   'P0001',
-  'This invite has expired',
+  'invite-expired',
   'expired invite'
 );
 select throws_ok(
   format($f$select public.accept_company_invite('%s')$f$, (select tok_rev_exp from inv_ctx)),
   'P0001',
-  'This invite has been revoked',
+  'invite-revoked',
   'revoked+expired reports revoked first'
 );
 
@@ -173,7 +173,7 @@ select tests.clear_auth();
 select throws_ok(
   $$select public.accept_company_invite('anything')$$,
   'P0001',
-  'Must be signed in to accept an invite',
+  'invite-unsigned',
   'unsigned cannot accept'
 );
 
@@ -188,7 +188,7 @@ select tests.authenticate_as('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6');
 select throws_ok(
   format($f$select public.accept_company_invite('%s')$f$, (select tok_admin from inv_ctx)),
   'P0001',
-  'This invite has already been used',
+  'invite-used',
   'second user cannot reuse token'
 );
 

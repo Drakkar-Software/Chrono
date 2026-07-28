@@ -260,7 +260,7 @@ select tests.authenticate_as((select admin from rem_ctx));
 select throws_ok(
   $$select public.compute_rem_month((select company from rem_ctx), (select period from rem_ctx))$$,
   'P0001',
-  'License distribution requires exactly two rem_license_recipient members (found 1)',
+  'rem-license-recipients-invalid:1',
   'license requires exactly two recipients'
 );
 

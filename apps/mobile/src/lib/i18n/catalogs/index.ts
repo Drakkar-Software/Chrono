@@ -8,6 +8,7 @@ import { detailsCatalog } from './details';
 import { componentsACatalog } from './componentsA';
 import { componentsBCatalog } from './componentsB';
 import { remCatalog } from './rem';
+import { dbErrorsCatalog } from './dbErrors';
 
 const slices = [
   commonCatalog,
@@ -19,6 +20,7 @@ const slices = [
   componentsACatalog,
   componentsBCatalog,
   remCatalog,
+  dbErrorsCatalog,
 ];
 
 function merge(locale: Locale): Catalog {

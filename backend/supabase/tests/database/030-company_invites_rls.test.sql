@@ -203,7 +203,7 @@ select throws_like(
     $f$update public.company_invites set role = 'admin' where id = '%s'$f$,
     (select invite_id from rls_ctx)
   ),
-  '%admin%',
+  '%invite-role-forbidden%',
   'Manager cannot escalate invite role to admin'
 );
 
@@ -224,7 +224,7 @@ select throws_like(
     $f$update public.company_invites set token = 'forgedtoken' where id = '%s'$f$,
     (select invite_id from rls_ctx)
   ),
-  '%identity%',
+  '%invite-identity-immutable%',
   'Manager cannot mutate invite token'
 );
 
@@ -261,7 +261,7 @@ select tests.authenticate_as('cccccccc-cccc-cccc-cccc-ccccccccccc5');
 select throws_ok(
   format($f$select public.accept_company_invite('%s')$f$, (select invite_a from rls_ctx)),
   'P0001',
-  'This invite has been revoked',
+  'invite-revoked',
   'Revoked invite not redeemable'
 );
 

@@ -1,3 +1,4 @@
+import { parseDbError } from '../db-error/db-error.lib';
 import type { CompanyInvite } from './invite.entity';
 
 export type InviteState = 'pending' | 'accepted' | 'revoked' | 'expired';
@@ -87,12 +88,34 @@ export function tokenFromInput(value: string): string {
 }
 
 /**
+ * Slugs raised on the join path — by `accept_company_invite` itself and by the
+ * guards it trips (seat limit, role rules). DB functions raise stable slugs,
+ * not user-facing copy, so the message can be translated client-side.
+ */
+const INVITE_ERROR_SLUGS: Record<string, InviteErrorKind> = {
+  'invite-not-found': 'not_found',
+  'invite-revoked': 'revoked',
+  'invite-used': 'used',
+  'invite-expired': 'expired',
+  'invite-unsigned': 'unsigned',
+  'seat-limit-reached': 'seat_limit',
+  'role-admin-grant-forbidden': 'admin_role',
+  'invite-role-forbidden': 'admin_role',
+  'role-change-forbidden': 'permission',
+};
+
+/**
  * Map a thrown accept/join error to a stable kind. Returns null when unrecognized
  * so callers can fall back to a generic message.
  */
 export function classifyInviteError(error: unknown): InviteErrorKind | null {
+  const slug = parseDbError(error)?.slug;
+  if (slug && slug in INVITE_ERROR_SLUGS) return INVITE_ERROR_SLUGS[slug];
+
   const msg = extractErrorMessage(error).toLowerCase();
   if (!msg) return null;
+  // Prose messages from a DB still on an older migration, plus the Postgres
+  // built-ins (RLS / permission denied) that are not ours to slug.
   if (msg.includes('must be signed in')) return 'unsigned';
   if (msg.includes('invite not found')) return 'not_found';
   if (msg.includes('has been revoked')) return 'revoked';

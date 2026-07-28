@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { Button, Segmented, TextField, Txt } from '@chrono/ui';
 
 import { useAppAuth } from '@/lib/supabase-stores';
-import { useProfileMutations } from '@/lib/hooks/use-profile';
+import { useProfile, useProfileMutations } from '@/lib/hooks/use-profile';
 import { useCompanyMutations } from '@/lib/hooks/use-companies';
 import { useInviteMutations } from '@/lib/hooks/use-invites';
 import { classifyInviteError, fetchMyCompanies, tokenFromInput } from '@chrono/sdk';
@@ -11,6 +11,8 @@ import type { InviteErrorKind } from '@chrono/sdk';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { AuthCard } from '@/components/common/AuthCard';
+import { describeError } from '@/components/common/ErrorState';
+import { dbErrorMessage } from '@/lib/db-error';
 import { useT } from '@/lib/i18n';
 
 function inviteJoinError(kind: InviteErrorKind | null, t: ReturnType<typeof useT>): string {
@@ -48,6 +50,7 @@ export default function RoleSetup() {
   const router = useRouter();
   const { user } = useAppAuth();
   const { completeOnboarding } = useProfileMutations();
+  const { refetch: refetchProfile } = useProfile();
   const { create } = useCompanyMutations();
   const { accept } = useInviteMutations();
   const { refresh, setCompanyId } = useActiveCompany();
@@ -60,6 +63,14 @@ export default function RoleSetup() {
   const [error, setError] = useState<string | undefined>();
 
   const finish = async (activeCompanyId?: string) => {
+    // The app gate (app/(app)/_layout) reads the profile from the shared
+    // linked-query cache when it mounts, and that cache only moves on its own
+    // round trip — a store write is not enough. Navigating straight after
+    // `completeOnboarding` made the gate read the pre-write `onboarded: false`
+    // and redirect back here with the invite already consumed. Refresh the
+    // query (which writes the `profile:<id>` cache entry the gate will read)
+    // before leaving the screen.
+    await refetchProfile();
     await refresh();
     if (activeCompanyId) setCompanyId(activeCompanyId);
     router.replace('/(app)/(tabs)/home');
@@ -114,7 +125,7 @@ export default function RoleSetup() {
         await finish();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('onboarding.role.errGeneric'));
+      setError(dbErrorMessage(e, t) ?? describeError(e, { fallback: t('onboarding.role.errGeneric') }));
       setBusy(false);
     }
   };

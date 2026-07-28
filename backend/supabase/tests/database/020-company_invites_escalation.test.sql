@@ -28,7 +28,7 @@ select throws_like(
        values ('%s', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 'admin')$f$,
     (select company_id from esc_ctx)
   ),
-  '%admin%',
+  '%role-admin-grant-forbidden%',
   'Freelancer cannot INSERT outsider as admin'
 );
 
@@ -40,7 +40,7 @@ select throws_like(
        values ('%s', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 'admin')$f$,
     (select company_id from esc_ctx)
   ),
-  '%admin%',
+  '%role-admin-grant-forbidden%',
   'Manager cannot INSERT another user as admin'
 );
 
@@ -70,7 +70,7 @@ select throws_like(
        where company_id = '%s' and user_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3'$f$,
     (select company_id from esc_ctx)
   ),
-  '%admin%',
+  '%role-admin-grant-forbidden%',
   'Manager cannot promote freelancer to admin'
 );
 
@@ -81,7 +81,7 @@ select throws_like(
        where company_id = '%s' and user_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1'$f$,
     (select company_id from esc_ctx)
   ),
-  '%admin%',
+  '%role-admin-grant-forbidden%',
   'Manager cannot demote admin'
 );
 

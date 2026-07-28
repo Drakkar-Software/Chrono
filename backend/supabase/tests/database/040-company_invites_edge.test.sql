@@ -101,7 +101,7 @@ end $$;
 select tests.authenticate_as('dddddddd-dddd-dddd-dddd-ddddddddddd4');
 select throws_like(
   format($f$select public.accept_company_invite('%s')$f$, (select tok from edge_ctx)),
-  '%seat limit%',
+  '%seat-limit-reached%',
   'Accept fails at seat limit'
 );
 select tests.clear_auth();
@@ -156,7 +156,7 @@ select lives_ok(
 select tests.authenticate_as('dddddddd-dddd-dddd-dddd-ddddddddddd2');
 select throws_like(
   format($f$select public.accept_company_invite('%s')$f$, (select tok2 from edge_ctx)),
-  '%seat limit%',
+  '%seat-limit-reached%',
   'Second last-seat accept fails'
 );
 

@@ -52,7 +52,7 @@ select tests.authenticate_as((select freel from rem_sec));
 select throws_ok(
   $$select public.compute_rem_month((select company from rem_sec), (select period from rem_sec))$$,
   'P0001',
-  'Only a manager can compute rem month',
+  'rem-compute-forbidden',
   'freelancer cannot compute rem month'
 );
 
@@ -61,7 +61,7 @@ select tests.authenticate_as((select outsider from rem_sec));
 select throws_ok(
   $$select public.compute_rem_month((select company from rem_sec), (select period from rem_sec))$$,
   'P0001',
-  'Only a manager can compute rem month',
+  'rem-compute-forbidden',
   'outsider cannot compute rem month'
 );
 
@@ -91,14 +91,14 @@ reset role;
 select throws_ok(
   $$update public.companies set working_weekdays = '{}'::integer[] where id = (select company from rem_sec)$$,
   'P0001',
-  'working_weekdays must not be empty',
+  'working-weekdays-empty',
   'empty working_weekdays rejected'
 );
 
 select throws_ok(
   $$update public.companies set working_weekdays = array[1,1,2] where id = (select company from rem_sec)$$,
   'P0001',
-  'working_weekdays must not contain duplicates',
+  'working-weekdays-duplicate',
   'duplicate working_weekdays rejected'
 );
 
@@ -125,7 +125,7 @@ select throws_ok(
   $$insert into public.time_off (company_id, user_id, off_date, kind, duration_minutes)
     values ((select company from rem_sec), (select freel from rem_sec), '2026-02-01', 'vacation', null)$$,
   'P0001',
-  'Vacation allowance exceeded (15 days/year)',
+  'vacation-allowance-exceeded:15',
   '16th vacation day rejected'
 );
 
@@ -156,7 +156,7 @@ select throws_ok(
       '2026-08-28', 60, 'approved'
     )$$,
   'P0001',
-  'Monthly capacity exceeded (22 × 8h)',
+  'capacity-exceeded:8',
   'time beyond 22×8 rejected'
 );
 
@@ -169,7 +169,7 @@ select throws_ok(
     )
     where id = (select company from rem_sec)$$,
   'P0001',
-  'product_pool_project_id must reference an active product_pool project in this company',
+  'product-pool-project-invalid',
   'cross-company pool project rejected'
 );
 

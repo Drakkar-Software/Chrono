@@ -13,6 +13,7 @@ import { I18nProvider } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
 import { usePushRegistration } from '@/lib/hooks/use-push';
 import { useInviteMutations } from '@/lib/hooks/use-invites';
+import { classifyInviteError } from '@chrono/sdk';
 import { clearPendingInvite, getPendingInvite } from '@/lib/pending-invite';
 import { companyAppUserId } from '@/lib/revenuecat-constants';
 import { configureRevenueCat, subscribeCustomerInfo } from '@/lib/revenuecat';
@@ -121,8 +122,7 @@ function PendingInviteRedeemer() {
         // on next launch instead of discarding an otherwise-valid invite.
         // Any other failure (used/expired/invalid) is not recoverable, so
         // clear it — a bad token must not retry every launch.
-        const message = e instanceof Error ? e.message : '';
-        if (!message.includes('seat limit')) {
+        if (classifyInviteError(e) !== 'seat_limit') {
           await clearPendingInvite();
         }
       }

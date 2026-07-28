@@ -15,7 +15,8 @@ import {
   useRemMutations,
 } from '@/lib/hooks/use-rem';
 import { RemBreakdown } from '@/components/reports/RemBreakdown';
-import { InlineError } from '@/components/common/ErrorState';
+import { InlineError, describeError } from '@/components/common/ErrorState';
+import { dbErrorMessage } from '@/lib/db-error';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
 
 export default function RemMonthScreen() {
@@ -54,7 +55,7 @@ export default function RemMonthScreen() {
       await refetchMonth();
       await refetchLines();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('rem.computeFail'));
+      setError(dbErrorMessage(e, t) ?? describeError(e, { fallback: t('rem.computeFail') }));
     } finally {
       setBusy(false);
     }
@@ -68,7 +69,7 @@ export default function RemMonthScreen() {
       await lock(companyId, month);
       await refetchMonth();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('rem.lockFail'));
+      setError(dbErrorMessage(e, t) ?? describeError(e, { fallback: t('rem.lockFail') }));
     } finally {
       setBusy(false);
     }

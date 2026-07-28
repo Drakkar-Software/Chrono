@@ -99,6 +99,9 @@ export * from './notification/notification.lib';
 export * from './device-token/device-token.entity';
 export * from './device-token/device-token.queries';
 
+// Errors raised by DB functions (slug + params, translated client-side)
+export * from './db-error/db-error.lib';
+
 // Company invites
 export * from './invite/invite.entity';
 export * from './invite/invite.queries';

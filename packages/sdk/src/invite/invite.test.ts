@@ -79,7 +79,23 @@ describe('sortCompanyInvites', () => {
 });
 
 describe('classifyInviteError', () => {
-  it('maps known RPC messages', () => {
+  it('maps the slugs raised by accept_company_invite', () => {
+    expect(classifyInviteError('invite-not-found')).toBe('not_found');
+    expect(classifyInviteError('invite-revoked')).toBe('revoked');
+    expect(classifyInviteError('invite-used')).toBe('used');
+    expect(classifyInviteError('invite-expired')).toBe('expired');
+    expect(classifyInviteError('invite-unsigned')).toBe('unsigned');
+    expect(classifyInviteError(new Error('invite-used'))).toBe('used');
+  });
+
+  it('maps the guards the join path trips', () => {
+    expect(classifyInviteError('seat-limit-reached:3')).toBe('seat_limit');
+    expect(classifyInviteError('role-admin-grant-forbidden')).toBe('admin_role');
+    expect(classifyInviteError('invite-role-forbidden')).toBe('admin_role');
+    expect(classifyInviteError('role-change-forbidden')).toBe('permission');
+  });
+
+  it('still maps prose messages from functions not yet on slugs', () => {
     expect(classifyInviteError('Invite not found')).toBe('not_found');
     expect(classifyInviteError('This invite has been revoked')).toBe('revoked');
     expect(classifyInviteError('This invite has already been used')).toBe('used');
