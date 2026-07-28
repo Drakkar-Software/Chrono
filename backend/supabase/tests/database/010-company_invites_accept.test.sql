@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(24);
 
 -- Happy path + lifecycle for accept_company_invite
 select tests.create_auth_user('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'admin1@test.local');
@@ -8,6 +8,13 @@ select tests.create_auth_user('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'invitee-m
 select tests.create_auth_user('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4', 'invitee-free@test.local');
 select tests.create_auth_user('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5', 'other-co-admin@test.local');
 select tests.create_auth_user('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6', 'second-redeemer@test.local');
+-- aaa6 must never join the company: it is the "outsider" probe for the
+-- used-invite guards. Redeeming an invite as aaa6 would make it a member, and
+-- accept_company_invite treats an active member re-redeeming a used invite as
+-- success (20260812000000), so the guard would stop being exercised. The
+-- happy-path redemptions below therefore get their own throwaway users.
+select tests.create_auth_user('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7', 'pad-redeemer@test.local');
+select tests.create_auth_user('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa8', 'boundary-redeemer@test.local');
 
 select tests.clear_auth();
 
@@ -131,12 +138,14 @@ select throws_ok(
 );
 
 -- 9 padded token is accepted after server trim
+select tests.authenticate_as('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7');
 select lives_ok(
   format($f$select public.accept_company_invite('  %s  ')$f$, (select tok_pad from inv_ctx)),
   'padded token accepted via server trim'
 );
 
--- 10–15 lifecycle guards
+-- 10–15 lifecycle guards, run as the outsider so `invite-used` is reachable
+select tests.authenticate_as('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6');
 select throws_ok(
   format($f$select public.accept_company_invite('%s')$f$, (select tok_revoked from inv_ctx)),
   'P0001',
@@ -163,6 +172,7 @@ select throws_ok(
 );
 
 -- 13 boundary: expires_at = now() is still valid (< now() required to expire)
+select tests.authenticate_as('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa8');
 select lives_ok(
   format($f$select public.accept_company_invite('%s')$f$, (select tok_boundary from inv_ctx)),
   'expires_at = now() still redeemable'
@@ -198,6 +208,23 @@ select is(
   public.accept_company_invite((select tok_admin from inv_ctx)),
   (select company_id from inv_ctx),
   'same acceptor redeem is idempotent'
+);
+
+-- 20–21 a different active member may re-redeem a used invite (the branch added
+-- in 20260812000000), but it must not inherit that invite's role. aaa7 joined as
+-- a freelancer via tok_pad; tok_admin is a used ADMIN invite.
+select tests.authenticate_as('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7');
+select is(
+  public.accept_company_invite((select tok_admin from inv_ctx)),
+  (select company_id from inv_ctx),
+  'active member re-redeeming a used invite succeeds'
+);
+select is(
+  (select role::text from public.company_members
+   where company_id = (select company_id from inv_ctx)
+     and user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7'),
+  'freelancer',
+  'a used admin invite cannot escalate an existing member'
 );
 
 select * from finish();

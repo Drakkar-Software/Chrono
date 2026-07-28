@@ -31,9 +31,38 @@ on:
         default: false
 
 jobs:
+  # Gate: replay every migration into an empty database and run the pgTAP suite.
+  # `db push` only applies what production is missing, so it never re-checks the
+  # schema as a whole — a migration that is invalid from scratch (a foreign key
+  # referencing a table created later, a constraint no existing row satisfies)
+  # would otherwise be discovered in production. Runs on pull requests too, where
+  # the deploy job is skipped, so a branch gets validated before it lands.
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Boots the full local stack (the auth container creates the auth schema
+      # that migrations and tests reference). Runners already have Docker.
+      - name: Start local stack
+        run: supabase --workdir backend start
+
+      - name: Replay migrations from scratch
+        run: supabase --workdir backend db reset
+
+      # Same command as `pnpm test` in backend/supabase/package.json.
+      - name: pgTAP
+        run: supabase --workdir backend test db
+
   deploy:
     # Run only on push / manual dispatch; on PRs the workflow reports a check but skips the deploy.
     if: github.event_name != 'pull_request'
+    needs: test
     runs-on: ubuntu-latest
     environment:
       name: Production - Supabase
