@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Platform, Share, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Badge, Button, Picker, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
-import { inviteState } from '@chrono/sdk';
+import { inviteState, sortCompanyInvites } from '@chrono/sdk';
 import type { AppRole, CompanyInvite } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
@@ -90,7 +90,7 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
     await Share.share({ message: t('compb.invites.shareMessage', { link }) });
   };
 
-  const list = invites ?? [];
+  const list = sortCompanyInvites(invites ?? [], now);
 
   return (
     <View style={styles.wrap}>

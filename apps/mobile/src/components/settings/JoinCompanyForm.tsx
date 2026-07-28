@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
+import { classifyInviteError, tokenFromInput } from '@chrono/sdk';
+import type { InviteErrorKind } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useInviteMutations } from '@/lib/hooks/use-invites';
-import { describeError } from '@/components/common/ErrorState';
 
 export interface JoinCompanyFormProps {
   userId: string | undefined;
@@ -12,11 +13,28 @@ export interface JoinCompanyFormProps {
   onJoined: (companyId: string) => void | Promise<void>;
 }
 
-/** Extract the token from a pasted invite link, or use the raw value as-is. */
-export function tokenFromInput(value: string): string {
-  const trimmed = value.trim();
-  const match = trimmed.match(/[?&]token=([^&\s]+)/);
-  return (match?.[1] ?? trimmed).trim();
+export { tokenFromInput };
+
+function inviteErrorMessage(kind: InviteErrorKind, t: ReturnType<typeof useT>): string {
+  switch (kind) {
+    case 'not_found':
+      return t('compb.join.errNotFound');
+    case 'revoked':
+      return t('compb.join.errRevoked');
+    case 'used':
+      return t('compb.join.errUsed');
+    case 'expired':
+      return t('compb.join.errExpired');
+    case 'unsigned':
+      return t('compb.join.errUnsigned');
+    case 'seat_limit':
+      return t('compb.join.errSeatLimit');
+    case 'admin_role':
+    case 'permission':
+      return t('compb.join.errPermission');
+    default:
+      return t('compb.join.fallback');
+  }
 }
 
 /** Join a company by redeeming an invite token (or a pasted invite link). */
@@ -36,11 +54,8 @@ export function JoinCompanyForm({ userId, onJoined }: JoinCompanyFormProps) {
       setValue('');
       await onJoined(companyId);
     } catch (e) {
-      setMessage(
-        describeError(e, {
-          fallback: t('compb.join.fallback'),
-        }),
-      );
+      const kind = classifyInviteError(e);
+      setMessage(kind ? inviteErrorMessage(kind, t) : t('compb.join.fallback'));
     }
   };
 

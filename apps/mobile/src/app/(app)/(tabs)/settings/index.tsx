@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import {
   Button,
   Card,
-  EmptyState,
   ListItem,
   Picker,
   StackScreen,
@@ -16,8 +15,7 @@ import {
   useResponsive,
   useTheme,
 } from '@chrono/ui';
-import { DEFAULT_WORKING_WEEKDAYS, canManage, companyName } from '@chrono/sdk';
-import type { AppRole } from '@chrono/sdk';
+import { canManage, companyName } from '@chrono/sdk';
 
 import { useT } from '@/lib/i18n';
 import { useAppAuth } from '@/lib/supabase-stores';
@@ -28,15 +26,10 @@ import {
   useProfileBilling,
   useProfileBillingMutations,
 } from '@/lib/hooks/use-profile';
-import { useCompanyMembers, useCompanyMemberMutations } from '@/lib/hooks/use-company-members';
-import { MemberRow } from '@/components/settings/MemberRow';
 import { AvatarUpload } from '@/components/settings/AvatarUpload';
 import { ThemeToggle } from '@/components/settings/ThemeToggle';
 import { LanguageToggle } from '@/components/settings/LanguageToggle';
 import { JoinCompanyForm } from '@/components/settings/JoinCompanyForm';
-import { InvitesCard } from '@/components/settings/InvitesCard';
-import { ScreenLoader } from '@/components/common/ScreenLoader';
-import { InlineError } from '@/components/common/ErrorState';
 
 export default function SettingsScreen() {
   const t = useT();
@@ -52,8 +45,6 @@ export default function SettingsScreen() {
   const { updateProfile, isPending: savingProfile } = useProfileMutations();
   const { data: billing } = useProfileBilling();
   const { saveBilling, isPending: savingBilling } = useProfileBillingMutations();
-  const { data: members, isLoading: loadingMembers } = useCompanyMembers(companyId ?? undefined);
-  const { updateRole, updateCapacity, updateWorkingWeekdays, updateRemPartner, updateRemMaxPercent, error: roleError } = useCompanyMemberMutations();
 
   // Seed the editable name field once the profile loads asynchronously, while
   // still letting the user type over it. This intentional prop->state sync is a
@@ -174,6 +165,12 @@ export default function SettingsScreen() {
                   title={t('tabs.settings.company')}
                   subtitle={t('tabs.settings.companyNavHint')}
                   onPress={() => router.push('/settings/enterprise')}
+                  divider
+                />
+                <ListItem
+                  title={t('tabs.settings.members')}
+                  subtitle={t('tabs.settings.membersNavHint')}
+                  onPress={() => router.push('/settings/members')}
                   divider={manager}
                 />
                 {manager ? (
@@ -197,46 +194,11 @@ export default function SettingsScreen() {
           </Card>
         ) : null}
 
-        {manager && company && user?.id ? (
-          <TitledCard title={t('tabs.settings.inviteTeammates')}>
-            <InvitesCard companyId={company.id} invitedBy={user.id} canGrantElevated={isAdmin} />
-          </TitledCard>
-        ) : null}
-
         <TitledCard title={t('tabs.settings.joinCompany')}>
           <JoinCompanyForm userId={user?.id} onJoined={onJoined} />
           <Txt variant="caption" tone="textMuted">
             {t('tabs.settings.joinCompanyHint')}
           </Txt>
-        </TitledCard>
-
-        <TitledCard title={t('tabs.settings.members')}>
-          {loadingMembers && members == null ? (
-            <ScreenLoader fill={false} />
-          ) : (members ?? []).length === 0 ? (
-            <EmptyState icon="people-outline" title={t('tabs.settings.noMembers')} subtitle={t('tabs.settings.noMembersSubtitle')} />
-          ) : (
-            (members ?? []).map((member) => (
-              <MemberRow
-                key={member.id}
-                member={member}
-                // Managers can edit others' non-admin roles; only admins may
-                // change an admin's role. Nobody edits their own role here —
-                // all three are enforced by triggers, so gate the UI to match.
-                canEdit={
-                  manager && member.user_id !== user?.id && (member.role !== 'admin' || isAdmin)
-                }
-                canGrantAdmin={isAdmin}
-                onRoleChange={(next: AppRole) => updateRole(member.id, next)}
-                onCapacityChange={(days) => updateCapacity(member.id, days)}
-                companyDefaultWeekdays={company?.working_weekdays ?? DEFAULT_WORKING_WEEKDAYS}
-                onWorkingWeekdaysChange={(weekdays) => updateWorkingWeekdays(member.id, weekdays)}
-                onRemPartnerChange={(next) => updateRemPartner(member.id, next)}
-                onRemMaxPercentChange={(next) => updateRemMaxPercent(member.id, next)}
-              />
-            ))
-          )}
-          {roleError ? <InlineError error={roleError} describe={{ fallback: t('tabs.settings.roleChangeFailed') }} /> : null}
         </TitledCard>
 
         <Button title={t('common.signOut')} variant="danger" onPress={() => signOut()} fullWidth={!isWide} />

@@ -6,10 +6,33 @@ import { useAppAuth } from '@/lib/supabase-stores';
 import { useProfileMutations } from '@/lib/hooks/use-profile';
 import { useCompanyMutations } from '@/lib/hooks/use-companies';
 import { useInviteMutations } from '@/lib/hooks/use-invites';
-import { tokenFromInput } from '@/components/settings/JoinCompanyForm';
+import { classifyInviteError, tokenFromInput } from '@chrono/sdk';
+import type { InviteErrorKind } from '@chrono/sdk';
 import { useActiveCompany } from '@/lib/active-company-context';
 import { AuthCard } from '@/components/common/AuthCard';
 import { useT } from '@/lib/i18n';
+
+function inviteJoinError(kind: InviteErrorKind | null, t: ReturnType<typeof useT>): string {
+  switch (kind) {
+    case 'not_found':
+      return t('compb.join.errNotFound');
+    case 'revoked':
+      return t('compb.join.errRevoked');
+    case 'used':
+      return t('compb.join.errUsed');
+    case 'expired':
+      return t('compb.join.errExpired');
+    case 'unsigned':
+      return t('compb.join.errUnsigned');
+    case 'seat_limit':
+      return t('compb.join.errSeatLimit');
+    case 'admin_role':
+    case 'permission':
+      return t('compb.join.errPermission');
+    default:
+      return t('onboarding.role.errJoin');
+  }
+}
 
 type Mode = 'create' | 'join';
 
@@ -58,8 +81,8 @@ export default function RoleSetup() {
         // the token server-side). Self-joining an arbitrary company is not allowed.
         try {
           await accept(token);
-        } catch {
-          setError(t('onboarding.role.errJoin'));
+        } catch (e) {
+          setError(inviteJoinError(classifyInviteError(e), t));
           setBusy(false);
           return;
         }
