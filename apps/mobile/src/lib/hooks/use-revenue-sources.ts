@@ -3,8 +3,9 @@ import { useMutation } from '@drakkar.software/anchor/hooks';
 import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
-import { fetchRevenueSources } from '@chrono/sdk';
+import { correctRevenueSource, fetchRevenueSources } from '@chrono/sdk';
 import type { RevenueSource, TablesInsert, TablesUpdate } from '@chrono/sdk';
+import { useAsyncAction } from './use-async-action';
 
 export function useRevenueSources(projectId: string | undefined) {
   return linkedQuery<RevenueSource[]>(
@@ -30,10 +31,18 @@ export function useRevenueSourceMutations() {
     (id: string, updates: TablesUpdate<'revenue_sources'>) => update(id, updates),
     [update],
   );
-  const deactivate = useCallback(
-    (id: string) => update(id, { deleted: true }),
-    [update],
-  );
 
-  return { create, update: patch, deactivate, isPending: isLoading, error };
+  return { create, update: patch, isPending: isLoading, error };
+}
+
+/**
+ * Deactivate a source and insert offsetting negative revenue entries (RPC).
+ * Bumps both revenue stores so lists re-fetch.
+ */
+export function useCorrectRevenueSource() {
+  return useAsyncAction(async (sourceId: string) => {
+    await correctRevenueSource(globalSupabaseClient, sourceId);
+    stores.revenue_sources.getState().mergeRecords([]);
+    stores.revenue_entries.getState().mergeRecords([]);
+  });
 }

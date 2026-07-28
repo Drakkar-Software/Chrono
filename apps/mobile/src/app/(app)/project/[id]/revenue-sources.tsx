@@ -16,7 +16,11 @@ import { useActiveCompany } from '@/lib/active-company-context';
 import { todayISO } from '@/lib/date';
 import { globalSupabaseClient } from '@/lib/supabase';
 import { useProject } from '@/lib/hooks/use-projects';
-import { useRevenueSources, useRevenueSourceMutations } from '@/lib/hooks/use-revenue-sources';
+import {
+  useCorrectRevenueSource,
+  useRevenueSourceMutations,
+  useRevenueSources,
+} from '@/lib/hooks/use-revenue-sources';
 import { useMarkRevenueEntriesPaid, useRecognizeRevenue, useRevenueEntries } from '@/lib/hooks/use-revenue-entries';
 import { RevenueSourceRow } from '@/components/projects/RevenueSourceRow';
 import { AddRevenueSourceForm, type AddRevenueSourceValues } from '@/components/projects/AddRevenueSourceForm';
@@ -33,9 +37,10 @@ export default function ProjectRevenueSourcesScreen() {
 
   const { data: project } = useProject(id);
   const { data: sources, isLoading, error, refetch } = useRevenueSources(id);
-  const { data: revenueEntries } = useRevenueEntries(id);
+  const { data: revenueEntries, refetch: refetchEntries } = useRevenueEntries(id);
   const sourceMut = useRevenueSourceMutations();
   const { mutateAsync: recognizeRevenue, isPending: recognizing } = useRecognizeRevenue();
+  const { mutateAsync: correctSource, isPending: correcting } = useCorrectRevenueSource();
   const { mutateAsync: markPaid, isPending: markingPaid } = useMarkRevenueEntriesPaid();
   const [adding, setAdding] = useState(false);
 
@@ -71,12 +76,10 @@ export default function ProjectRevenueSourcesScreen() {
     }
     setAdding(false);
   };
-  const removeSource = async (sourceId: string) => {
-    if (!project) return;
-    await sourceMut.deactivate(sourceId);
-    // A deactivated/removed source's revenue must be retired from the pool
-    // right away too — recognize_project_revenue does that retirement.
-    await recognizeRevenue(project.id, todayISO());
+
+  const onCorrectSource = async (sourceId: string) => {
+    await correctSource(sourceId);
+    await Promise.all([refetch(), refetchEntries()]);
   };
 
   if (!manager) {
@@ -136,13 +139,17 @@ export default function ProjectRevenueSourcesScreen() {
           <EmptyState icon="cash-outline" title={t('details.noRevenueSources')} tone="accent" />
         ) : (
           <View>
+            <Txt variant="caption" tone="textMuted" style={{ marginBottom: spacing.sm }}>
+              {t('comp.revsource.correctionHint')}
+            </Txt>
             {(sources ?? []).map((source) => (
               <RevenueSourceRow
                 key={source.id}
                 source={source}
                 currency={currency}
-                onRemove={() => void removeSource(source.id)}
-                removing={sourceMut.isPending || recognizing}
+                revenueEntries={revenueEntries ?? []}
+                onCorrect={source.active ? () => void onCorrectSource(source.id) : undefined}
+                correcting={correcting || recognizing}
               />
             ))}
           </View>

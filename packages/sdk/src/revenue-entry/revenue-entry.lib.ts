@@ -104,3 +104,38 @@ export function netAvailableFunding(
 ): number {
   return fundingCents - pendingPayableCents;
 }
+
+/** True when the entry is an explicit correction (negative offset), not auto recognition. */
+export function isRevenueCorrection(
+  entry: Pick<RevenueEntry, 'amount_cents' | 'auto_generated'>,
+): boolean {
+  return entry.auto_generated === false && (entry.amount_cents ?? 0) < 0;
+}
+
+/** Net cents across entries (signed; corrections reduce the total). */
+export function netRevenueCents(
+  revenueEntries: Array<Pick<RevenueEntry, 'amount_cents'>>,
+): number {
+  return revenueEntries.reduce((acc, r) => acc + (r.amount_cents ?? 0), 0);
+}
+
+/**
+ * Net cents for one revenue source across the given entries (caller filters
+ * by source / period). Used for list cards after corrections.
+ */
+export function netRevenueForSource(
+  revenueEntries: Array<Pick<RevenueEntry, 'revenue_source_id' | 'amount_cents'>>,
+  sourceId: string,
+): number {
+  return netRevenueCents(revenueEntries.filter((r) => r.revenue_source_id === sourceId));
+}
+
+/**
+ * Offsetting correction amount for a source×period net (mirrors
+ * `correct_revenue_source`): when net is positive, return `-net`; otherwise
+ * no correction is needed (`null`).
+ */
+export function offsettingCorrectionCents(netCents: number): number | null {
+  if (netCents <= 0) return null;
+  return -netCents;
+}

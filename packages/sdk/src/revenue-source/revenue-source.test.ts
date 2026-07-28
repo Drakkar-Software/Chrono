@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { RevenueSource } from './revenue-source.entity';
 import {
   monthlyRecurringAmount,
+  revenueSourceInactive,
   revenueSourceLabel,
   sourceClientTjm,
+  sourceHeadlineAmount,
   sourceManualAmount,
   sourceManualDays,
 } from './revenue-source.lib';
@@ -108,5 +110,30 @@ describe('sourceManualDays', () => {
     expect(
       sourceManualDays(src('recurring', { monthly_amount_cents: 300000 })),
     ).toBeUndefined();
+  });
+});
+
+describe('sourceHeadlineAmount', () => {
+  it('uses monthly amount for recurring', () => {
+    expect(sourceHeadlineAmount(src('recurring', { monthly_amount_cents: 300000 }))).toBe(300000);
+  });
+
+  it('prefers manual override over client TJM for time_based', () => {
+    expect(
+      sourceHeadlineAmount(
+        src('time_based', { client_tjm_cents: 50000, manual_amount_cents: 400000 }),
+      ),
+    ).toBe(400000);
+  });
+
+  it('falls back to client TJM when there is no manual override', () => {
+    expect(sourceHeadlineAmount(src('time_based', { client_tjm_cents: 60000 }))).toBe(60000);
+  });
+});
+
+describe('revenueSourceInactive', () => {
+  it('is true only when active is false', () => {
+    expect(revenueSourceInactive({ active: false })).toBe(true);
+    expect(revenueSourceInactive({ active: true })).toBe(false);
   });
 });

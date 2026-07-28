@@ -46,6 +46,10 @@ export async function updateRevenueSource(
   return data as RevenueSource;
 }
 
+/**
+ * Soft-delete a revenue source. Prefer {@link correctRevenueSource} so history
+ * is kept and recognized amounts are offset with negative entries.
+ */
 export async function deactivateRevenueSource(
   client: Client,
   id: string,
@@ -58,4 +62,18 @@ export async function deactivateRevenueSource(
     .single();
   if (error) throw error;
   return data as RevenueSource;
+}
+
+/**
+ * Deactivate a revenue source and insert offsetting negative revenue_entries
+ * for each period with positive net — keeps history (does not soft-delete).
+ */
+export async function correctRevenueSource(
+  client: Client,
+  sourceId: string,
+): Promise<void> {
+  const { error } = await client.rpc('correct_revenue_source', {
+    p_source_id: sourceId,
+  });
+  if (error) throw error;
 }

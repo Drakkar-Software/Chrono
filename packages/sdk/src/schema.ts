@@ -1016,6 +1016,10 @@ export type Database = {
         Args: { p_project_id: string; p_period: string };
         Returns: undefined;
       };
+      correct_revenue_source: {
+        Args: { p_source_id: string };
+        Returns: undefined;
+      };
       settle_project_month: {
         Args: { p_project_id: string; p_period: string };
         Returns: undefined;

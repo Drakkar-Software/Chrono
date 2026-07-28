@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   availableFunding,
   dueRevenue,
+  isRevenueCorrection,
   netAvailableFunding,
+  netRevenueCents,
+  netRevenueForSource,
+  offsettingCorrectionCents,
   projectMargin,
   recurringRevenue,
   revenueEntryPaid,
@@ -73,6 +77,24 @@ describe('dueRevenue', () => {
   it('is 0 once everything is paid', () => {
     expect(dueRevenue([{ amount_cents: 500000, paid_at: PAID }])).toBe(0);
   });
+
+  it('shrinks when an unpaid correction offsets unpaid recognition', () => {
+    expect(
+      dueRevenue([
+        { amount_cents: 500000, paid_at: null },
+        { amount_cents: -200000, paid_at: null },
+      ]),
+    ).toBe(300000);
+  });
+
+  it('ignores paid corrections when computing unpaid due', () => {
+    expect(
+      dueRevenue([
+        { amount_cents: 500000, paid_at: null },
+        { amount_cents: -100000, paid_at: PAID },
+      ]),
+    ).toBe(500000);
+  });
 });
 
 describe('availableFunding', () => {
@@ -130,6 +152,68 @@ describe('availableFunding', () => {
 
   it('defaults fixed costs to 0 when omitted', () => {
     expect(availableFunding([{ amount_cents: 100000, paid_at: PAID }], [], [])).toBe(100000);
+  });
+
+  it('reduces the pool when a paid correction offsets paid recognition', () => {
+    const funding = availableFunding(
+      [
+        { amount_cents: 500000, paid_at: PAID },
+        { amount_cents: -200000, paid_at: PAID },
+      ],
+      [],
+      [],
+    );
+    expect(funding).toBe(300000);
+  });
+
+  it('floors at zero when paid corrections wipe the paid pool', () => {
+    expect(
+      availableFunding(
+        [
+          { amount_cents: 100000, paid_at: PAID },
+          { amount_cents: -100000, paid_at: PAID },
+        ],
+        [],
+        [],
+      ),
+    ).toBe(0);
+  });
+});
+
+describe('isRevenueCorrection / net helpers', () => {
+  it('flags only non-auto negative entries as corrections', () => {
+    expect(isRevenueCorrection({ amount_cents: -50000, auto_generated: false })).toBe(true);
+    expect(isRevenueCorrection({ amount_cents: 50000, auto_generated: false })).toBe(false);
+    expect(isRevenueCorrection({ amount_cents: -50000, auto_generated: true })).toBe(false);
+  });
+
+  it('nets signed amounts across entries', () => {
+    expect(
+      netRevenueCents([
+        { amount_cents: 500000 },
+        { amount_cents: -200000 },
+        { amount_cents: 100000 },
+      ]),
+    ).toBe(400000);
+  });
+
+  it('nets per source id', () => {
+    expect(
+      netRevenueForSource(
+        [
+          { revenue_source_id: 'a', amount_cents: 500000 },
+          { revenue_source_id: 'a', amount_cents: -500000 },
+          { revenue_source_id: 'b', amount_cents: 100000 },
+        ],
+        'a',
+      ),
+    ).toBe(0);
+  });
+
+  it('mirrors correct_revenue_source offset math', () => {
+    expect(offsettingCorrectionCents(500000)).toBe(-500000);
+    expect(offsettingCorrectionCents(0)).toBeNull();
+    expect(offsettingCorrectionCents(-100)).toBeNull();
   });
 });
 

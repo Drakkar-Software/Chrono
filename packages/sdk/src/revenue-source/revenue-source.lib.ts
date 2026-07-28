@@ -57,3 +57,20 @@ export function sourceManualDays(
   const content = (source.content ?? {}) as TimeBasedContent;
   return content.manual_days;
 }
+
+/** Headline configured amount for a source (content), before entry corrections. */
+export function sourceHeadlineAmount(
+  source: Pick<RevenueSource, 'type' | 'content'>,
+): number {
+  if (source.type === 'recurring') return monthlyRecurringAmount(source);
+  const manual = sourceManualAmount(source);
+  if (manual != null) return manual;
+  return sourceClientTjm(source);
+}
+
+/** True when the source is kept for history but no longer generates revenue. */
+export function revenueSourceInactive(
+  source: Pick<RevenueSource, 'active'>,
+): boolean {
+  return source.active === false;
+}

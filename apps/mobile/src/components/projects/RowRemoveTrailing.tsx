@@ -10,6 +10,11 @@ export interface RowRemoveTrailingProps {
   removing?: boolean;
   /** Name of the row's subject, for the accessibility label. */
   label?: string;
+  /**
+   * Override the default "Remove" a11y verb (e.g. "Correct" for revenue sources
+   * that keep history and insert offsetting entries).
+   */
+  actionLabel?: string;
 }
 
 /**
@@ -17,9 +22,17 @@ export interface RowRemoveTrailingProps {
  * two-tap inline confirm — first tap arms (swaps to confirm ✓ / cancel ✕), second
  * confirms — so a mis-tap can't silently delete without needing a global dialog.
  */
-export function RowRemoveTrailing({ children, onRemove, removing = false, label }: RowRemoveTrailingProps) {
+export function RowRemoveTrailing({
+  children,
+  onRemove,
+  removing = false,
+  label,
+  actionLabel,
+}: RowRemoveTrailingProps) {
   const t = useT();
   const [armed, setArmed] = useState(false);
+  const verb = actionLabel ?? t('common.remove');
+  const a11y = verb + (label ? ` — ${label}` : '');
 
   return (
     <View style={styles.wrap}>
@@ -34,7 +47,7 @@ export function RowRemoveTrailing({ children, onRemove, removing = false, label 
               setArmed(false);
               onRemove();
             }}
-            accessibilityLabel={t('common.remove') + (label ? ` — ${label}` : '')}
+            accessibilityLabel={a11y}
           />
           <IconButton
             name="close"
@@ -50,7 +63,7 @@ export function RowRemoveTrailing({ children, onRemove, removing = false, label 
           tone="textMuted"
           disabled={removing}
           onPress={() => setArmed(true)}
-          accessibilityLabel={t('common.remove') + (label ? ` — ${label}` : '')}
+          accessibilityLabel={a11y}
         />
       )}
     </View>

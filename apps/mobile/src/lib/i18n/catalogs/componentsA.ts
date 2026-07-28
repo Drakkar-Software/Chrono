@@ -196,6 +196,10 @@ export const componentsACatalog: CatalogSlice = {
     'comp.revsource.errTjmRequired': 'Enter a client day rate to invoice a number of days',
     'comp.revsource.externalInvoiceId': 'External invoice # (optional)',
     'comp.revsource.externalInvoiceIdPlaceholder': 'e.g. INV-2026-014',
+    'comp.revsource.correct': 'Correct',
+    'comp.revsource.correctedBadge': 'Corrected',
+    'comp.revsource.correctionHint':
+      'Correcting a source keeps it in history and adds an offsetting entry so net revenue stays accurate.',
 
     // Referrers
     'comp.referrer.title': 'Add referrer',
@@ -397,6 +401,10 @@ export const componentsACatalog: CatalogSlice = {
     'comp.revsource.errTjmRequired': 'Saisissez un TJM client pour facturer un nombre de jours',
     'comp.revsource.externalInvoiceId': 'N° de facture externe (optionnel)',
     'comp.revsource.externalInvoiceIdPlaceholder': 'ex. FAC-2026-014',
+    'comp.revsource.correct': 'Corriger',
+    'comp.revsource.correctedBadge': 'Corrigé',
+    'comp.revsource.correctionHint':
+      'Corriger une source la conserve dans l’historique et ajoute une écriture de compensation pour garder le net exact.',
 
     'comp.referrer.title': 'Ajouter un apporteur',
     'comp.referrer.percent': 'Pourcentage',
