@@ -149,6 +149,11 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.settings.joinCompanyHint': 'Have a company code? Paste it here to join another team.',
     'tabs.settings.members': 'Members',
     'tabs.settings.membersNavHint': 'Teammates, roles and invitations.',
+    'tabs.settings.memberSchedule': 'Schedule',
+    'tabs.settings.memberCount': '{n} people',
+    'tabs.settings.inviteTeammatesHint': 'Pending links stay on top; revoked ones sink to the bottom.',
+    'tabs.settings.revokeMember': 'Revoke access',
+    'tabs.settings.memberActionFailed': 'Could not update this member.',
     'tabs.settings.roleChangeFailed': 'Could not change this member’s role.',
     'tabs.settings.noMembers': 'No members yet',
     'tabs.settings.noMembersSubtitle': 'Invite teammates to this company to see them here.',
@@ -170,7 +175,7 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.settings.recurringYearly': 'Repeats every year',
     'tabs.settings.noHolidays': 'No holidays declared yet.',
     'tabs.settings.memberWorkingDaysOverride': 'Working days (override)',
-    'tabs.settings.inheritCompanyDefault': 'Working days (inherits company default)',
+    'tabs.settings.inheritCompanyDefault': 'Working days (company default)',
     'tabs.settings.resetToDefault': 'Reset to default',
 
     // Billing (Chrono Pro)
@@ -365,6 +370,11 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.settings.joinCompanyHint': 'Vous avez un code d’entreprise ? Collez-le ici pour rejoindre une autre équipe.',
     'tabs.settings.members': 'Membres',
     'tabs.settings.membersNavHint': 'Collègues, rôles et invitations.',
+    'tabs.settings.memberSchedule': 'Planning',
+    'tabs.settings.memberCount': '{n} personnes',
+    'tabs.settings.inviteTeammatesHint': 'Les liens en attente restent en haut ; les révoqués descendent en bas.',
+    'tabs.settings.revokeMember': 'Révoquer l’accès',
+    'tabs.settings.memberActionFailed': 'Impossible de mettre à jour ce membre.',
     'tabs.settings.roleChangeFailed': 'Impossible de changer le rôle de ce membre.',
     'tabs.settings.noMembers': 'Aucun membre',
     'tabs.settings.noMembersSubtitle': 'Invitez des collègues dans cette entreprise pour les voir ici.',
@@ -386,7 +396,7 @@ export const tabsCatalog: CatalogSlice = {
     'tabs.settings.recurringYearly': 'Se répète chaque année',
     'tabs.settings.noHolidays': 'Aucun jour férié déclaré pour l’instant.',
     'tabs.settings.memberWorkingDaysOverride': 'Jours ouvrés (personnalisés)',
-    'tabs.settings.inheritCompanyDefault': 'Jours ouvrés (par défaut de l’entreprise)',
+    'tabs.settings.inheritCompanyDefault': 'Jours ouvrés (défaut entreprise)',
     'tabs.settings.resetToDefault': 'Réinitialiser',
 
     // Billing (Chrono Pro)

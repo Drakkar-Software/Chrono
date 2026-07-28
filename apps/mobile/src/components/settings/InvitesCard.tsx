@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Platform, Share, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Badge, Button, Picker, TextField, Txt, spacing, useResponsive } from '@chrono/ui';
+import { Badge, Button, Picker, TextField, Txt, borders, spacing, useResponsive, useTheme } from '@chrono/ui';
 import { inviteState, sortCompanyInvites } from '@chrono/sdk';
 import type { AppRole, CompanyInvite } from '@chrono/sdk';
 
@@ -47,6 +47,7 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
   const t = useT();
   const router = useRouter();
   const { isWide } = useResponsive();
+  const { colors } = useTheme();
   const { data: invites } = useCompanyInvites(companyId);
   const { create, revoke, isPending, error } = useInviteMutations();
   const { seatLimit, seatCount } = useChronoPro(companyId);
@@ -138,7 +139,14 @@ export function InvitesCard({ companyId, invitedBy, canGrantElevated }: InvitesC
           const state = inviteState(invite, now);
           const redeemable = state === 'pending';
           return (
-            <View key={invite.id} style={[styles.invite, isWide && styles.inviteWide]}>
+            <View
+              key={invite.id}
+              style={[
+                styles.invite,
+                isWide && styles.inviteWide,
+                { borderBottomColor: colors.ledgerRule, borderBottomWidth: borders.hairline },
+              ]}
+            >
               <View style={styles.inviteInfo}>
                 <Txt variant="bodyMedium" numberOfLines={1}>
                   {invite.email}
@@ -184,9 +192,9 @@ const styles = StyleSheet.create({
   formWide: { flexDirection: 'row', alignItems: 'flex-end' },
   emailField: { flex: 1 },
   roleField: { minWidth: 140 },
-  invite: { gap: spacing.sm, paddingTop: spacing.sm },
+  invite: { gap: spacing.sm, paddingVertical: spacing.md },
   inviteWide: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  inviteInfo: { gap: spacing.xs, flex: 1 },
-  inviteMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  inviteActions: { flexDirection: 'row', gap: spacing.sm },
+  inviteInfo: { gap: spacing.xs, flex: 1, minWidth: 0 },
+  inviteMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  inviteActions: { flexDirection: 'row', gap: spacing.sm, flexShrink: 0 },
 });
