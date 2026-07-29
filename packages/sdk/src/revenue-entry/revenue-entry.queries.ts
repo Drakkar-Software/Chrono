@@ -55,6 +55,26 @@ export async function recognizeRevenue(
 }
 
 /**
+ * Recognize every month from `from` to `to` inclusive in one round-trip.
+ * `recognizeRevenue` only ever handles the single month it is given, so a
+ * source backdated to a past start date needs this to fill in the months it
+ * missed.
+ */
+export async function recognizeRevenueRange(
+  client: Client,
+  projectId: string,
+  from: string,
+  to: string,
+): Promise<void> {
+  const { error } = await client.rpc('recognize_project_revenue_range', {
+    p_project_id: projectId,
+    p_from: monthKey(from),
+    p_to: monthKey(to),
+  });
+  if (error) throw error;
+}
+
+/**
  * Mark one or more revenue entries paid (or back to due). Manager-only,
  * scoped server-side to the entries' own company. Pass every due entry's id
  * to bulk-mark a project's history paid at once.

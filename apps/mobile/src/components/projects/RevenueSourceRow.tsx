@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { Badge, ListItem, Money, spacing } from '@chrono/ui';
 import {
   netRevenueForSource,
+  recurringSchedule,
   revenueSourceInactive,
   revenueSourceLabel,
   sourceHeadlineAmount,
@@ -39,8 +40,10 @@ export function RevenueSourceRow({
   const isRecurring = source.type === 'recurring';
   const manualAmount = sourceManualAmount(source);
   const manualDays = sourceManualDays(source);
+  // Legacy sources have no frequency stored; they were monthly by definition.
+  const frequency = recurringSchedule(source).frequency ?? 'monthly';
   const subtitle = isRecurring
-    ? `${revenueSourceLabel(source.type)} · ${t('comp.revsource.monthly')}`
+    ? `${revenueSourceLabel(source.type)} · ${t(`comp.revsource.freq.${frequency}`)}`
     : manualAmount != null
       ? `${revenueSourceLabel(source.type)} · ${t('comp.revsource.daysInvoicedSubtitle', { days: manualDays ?? 0 })}`
       : `${revenueSourceLabel(source.type)} · ${t('comp.revsource.clientTjm')}`;

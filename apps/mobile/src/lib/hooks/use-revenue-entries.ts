@@ -1,7 +1,12 @@
 import { linkedQuery } from './linked-query';
 import { stores } from '@/lib/supabase-stores';
 import { globalSupabaseClient } from '@/lib/supabase';
-import { fetchRevenueEntries, markRevenueEntriesPaid, recognizeRevenue } from '@chrono/sdk';
+import {
+  fetchRevenueEntries,
+  markRevenueEntriesPaid,
+  recognizeRevenue,
+  recognizeRevenueRange,
+} from '@chrono/sdk';
 import type { RevenueEntry, RevenueEntryFilters } from '@chrono/sdk';
 import { useAsyncAction } from './use-async-action';
 
@@ -49,6 +54,13 @@ export function useCompanyRevenueEntries(companyId: string | undefined) {
 export function useRecognizeRevenue() {
   return useAsyncAction((projectId: string, month: string) =>
     recognizeRevenue(globalSupabaseClient, projectId, month),
+  );
+}
+
+/** Recognize a project's revenue across a month range, inclusive (RPC). */
+export function useRecognizeRevenueRange() {
+  return useAsyncAction((projectId: string, from: string, to: string) =>
+    recognizeRevenueRange(globalSupabaseClient, projectId, from, to),
   );
 }
 

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { RevenueSource } from './revenue-source.entity';
 import {
-  monthlyRecurringAmount,
+  occurrencesInMonth,
+  recurringSchedule,
   revenueSourceInactive,
   revenueSourceLabel,
   sourceClientTjm,
@@ -52,26 +53,93 @@ describe('sourceClientTjm', () => {
   });
 });
 
-describe('monthlyRecurringAmount', () => {
-  it('reads monthly_amount_cents for recurring sources', () => {
+describe('recurringSchedule', () => {
+  it('reads frequency + per-occurrence amount from a scheduled source', () => {
     expect(
-      monthlyRecurringAmount(src('recurring', { monthly_amount_cents: 300000 })),
-    ).toBe(300000);
+      recurringSchedule(src('recurring', { frequency: 'weekly', amount_cents: 50000 })),
+    ).toEqual({ frequency: 'weekly', amountCents: 50000 });
   });
 
-  it('is 0 for non-recurring sources', () => {
+  it('falls back to the flat monthly figure for a legacy source', () => {
     expect(
-      monthlyRecurringAmount(src('time_based', { client_tjm_cents: 60000 })),
-    ).toBe(0);
-    expect(
-      monthlyRecurringAmount(src('self_billing', { client_tjm_cents: 60000 })),
-    ).toBe(0);
+      recurringSchedule(src('recurring', { monthly_amount_cents: 300000 })),
+    ).toEqual({ frequency: null, amountCents: 300000 });
+  });
+
+  it('is empty for non-recurring sources', () => {
+    expect(recurringSchedule(src('time_based', { client_tjm_cents: 60000 }))).toEqual({
+      frequency: null,
+      amountCents: 0,
+    });
+    expect(recurringSchedule(src('self_billing', { client_tjm_cents: 60000 }))).toEqual({
+      frequency: null,
+      amountCents: 0,
+    });
   });
 
   it('is 0 when content is null / empty / missing the key', () => {
-    expect(monthlyRecurringAmount(src('recurring', null))).toBe(0);
-    expect(monthlyRecurringAmount(src('recurring', {}))).toBe(0);
-    expect(monthlyRecurringAmount(src('recurring', { other: 1 }))).toBe(0);
+    expect(recurringSchedule(src('recurring', null)).amountCents).toBe(0);
+    expect(recurringSchedule(src('recurring', {})).amountCents).toBe(0);
+    expect(recurringSchedule(src('recurring', { other: 1 })).amountCents).toBe(0);
+  });
+});
+
+describe('occurrencesInMonth', () => {
+  // 2026-03-11 is a Wednesday; March 2026 has 31 days, April 30, and 2026 is
+  // not a leap year.
+  it('counts weekly occurrences from the anchor', () => {
+    // Mar 11, 18, 25
+    expect(occurrencesInMonth('weekly', '2026-03-11', null, '2026-03-01')).toBe(3);
+    // Apr 1, 8, 15, 22, 29
+    expect(occurrencesInMonth('weekly', '2026-03-11', null, '2026-04-01')).toBe(5);
+  });
+
+  it('counts biweekly occurrences from the anchor', () => {
+    // Mar 11, 25
+    expect(occurrencesInMonth('biweekly', '2026-03-11', null, '2026-03-01')).toBe(2);
+    // Apr 8, 22
+    expect(occurrencesInMonth('biweekly', '2026-03-11', null, '2026-04-01')).toBe(2);
+  });
+
+  it('counts calendar days for daily, weekends included', () => {
+    // Mar 11..31 inclusive
+    expect(occurrencesInMonth('daily', '2026-03-11', null, '2026-03-01')).toBe(21);
+    // A whole month once the schedule has started
+    expect(occurrencesInMonth('daily', '2026-03-11', null, '2026-04-01')).toBe(30);
+  });
+
+  it('gives a monthly schedule one occurrence per month from the start', () => {
+    expect(occurrencesInMonth('monthly', '2026-03-15', null, '2026-03-01')).toBe(1);
+    expect(occurrencesInMonth('monthly', '2026-03-15', null, '2026-04-01')).toBe(1);
+  });
+
+  it('clamps a month-end anchor to shorter months', () => {
+    // A 31st anchor lands on Feb 28 in a non-leap year, not nowhere.
+    expect(occurrencesInMonth('monthly', '2026-01-31', null, '2026-02-01')).toBe(1);
+    // ...and on Feb 29 in a leap year.
+    expect(occurrencesInMonth('monthly', '2028-01-31', null, '2028-02-01')).toBe(1);
+  });
+
+  it('skips off-cycle months for quarterly and yearly', () => {
+    expect(occurrencesInMonth('quarterly', '2026-03-15', null, '2026-03-01')).toBe(1);
+    expect(occurrencesInMonth('quarterly', '2026-03-15', null, '2026-04-01')).toBe(0);
+    expect(occurrencesInMonth('quarterly', '2026-03-15', null, '2026-06-01')).toBe(1);
+    expect(occurrencesInMonth('yearly', '2026-03-15', null, '2026-03-01')).toBe(1);
+    expect(occurrencesInMonth('yearly', '2026-03-15', null, '2026-04-01')).toBe(0);
+    expect(occurrencesInMonth('yearly', '2026-03-15', null, '2027-03-01')).toBe(1);
+  });
+
+  it('is 0 before the schedule starts', () => {
+    expect(occurrencesInMonth('monthly', '2026-05-01', null, '2026-04-01')).toBe(0);
+    expect(occurrencesInMonth('weekly', '2026-05-01', null, '2026-04-01')).toBe(0);
+    expect(occurrencesInMonth('daily', '2026-05-01', null, '2026-04-01')).toBe(0);
+  });
+
+  it('truncates at the end date', () => {
+    // Mar 11, 18 — the 25th is past the end.
+    expect(occurrencesInMonth('weekly', '2026-03-11', '2026-03-20', '2026-03-01')).toBe(2);
+    expect(occurrencesInMonth('daily', '2026-03-01', '2026-03-10', '2026-03-01')).toBe(10);
+    expect(occurrencesInMonth('monthly', '2026-03-15', '2026-03-31', '2026-04-01')).toBe(0);
   });
 });
 
@@ -114,7 +182,13 @@ describe('sourceManualDays', () => {
 });
 
 describe('sourceHeadlineAmount', () => {
-  it('uses monthly amount for recurring', () => {
+  it('uses the per-occurrence amount for recurring', () => {
+    expect(
+      sourceHeadlineAmount(src('recurring', { frequency: 'weekly', amount_cents: 50000 })),
+    ).toBe(50000);
+  });
+
+  it('uses the flat monthly amount for a legacy recurring source', () => {
     expect(sourceHeadlineAmount(src('recurring', { monthly_amount_cents: 300000 }))).toBe(300000);
   });
 
