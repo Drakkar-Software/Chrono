@@ -18,9 +18,34 @@ export type TimeBasedContent = {
   manual_days?: number;
 };
 
-/** `type = 'recurring'` */
+export const RECURRENCE_FREQUENCIES = [
+  'daily',
+  'weekly',
+  'biweekly',
+  'monthly',
+  'quarterly',
+  'yearly',
+] as const;
+
+export type RecurrenceFrequency = (typeof RECURRENCE_FREQUENCIES)[number];
+
+/**
+ * `type = 'recurring'`
+ *
+ * The schedule is per-occurrence: `amount_cents` is what ONE occurrence is
+ * worth, and recognition counts the occurrences landing inside each month
+ * (see `occurrencesInMonth`) to produce that month's single revenue entry.
+ * The source's `starts_on` / `ends_on` columns bound the schedule.
+ */
 export type RecurringContent = {
-  monthly_amount_cents: number;
+  /** Amount of one occurrence. Written by every new source. */
+  amount_cents?: number;
+  frequency?: RecurrenceFrequency;
+  /**
+   * Legacy (pre-frequency) sources only: a flat per-month figure with no
+   * schedule. Read when `frequency` is absent; never written by new code.
+   */
+  monthly_amount_cents?: number;
 };
 
 /** `type = 'self_billing'` */

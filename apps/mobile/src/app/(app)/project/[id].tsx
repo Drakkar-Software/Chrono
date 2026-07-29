@@ -5,7 +5,7 @@ import {
   canManage,
   companyCurrency,
   costCumulative,
-  monthlyRecurringAmount,
+  recurringRevenue,
   sourceClientTjm,
   sourceManualAmount,
   totalCostForMonth,
@@ -174,7 +174,9 @@ export default function ProjectDetail() {
   const revenueSourcesTotalCents = (sources ?? []).reduce((acc, source) => {
     const amount =
       source.type === 'recurring'
-        ? monthlyRecurringAmount(source)
+        ? // A recurring source's configured amount is per occurrence, so it is
+          // only comparable once expanded — take what it recognizes this month.
+          recurringRevenue(source, todayISO())
         : (sourceManualAmount(source) ?? sourceClientTjm(source));
     return acc + amount;
   }, 0);

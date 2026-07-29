@@ -6,7 +6,7 @@ import {
   canManage,
   companyCurrency,
   dueRevenue,
-  fetchRevenueForMonth,
+  fetchRevenueEntries,
   markRevenueEntriesPaid,
   revenueEntryPaid,
 } from '@chrono/sdk';
@@ -21,7 +21,11 @@ import {
   useRevenueSourceMutations,
   useRevenueSources,
 } from '@/lib/hooks/use-revenue-sources';
-import { useMarkRevenueEntriesPaid, useRecognizeRevenue, useRevenueEntries } from '@/lib/hooks/use-revenue-entries';
+import {
+  useMarkRevenueEntriesPaid,
+  useRecognizeRevenueRange,
+  useRevenueEntries,
+} from '@/lib/hooks/use-revenue-entries';
 import { RevenueSourceRow } from '@/components/projects/RevenueSourceRow';
 import { AddRevenueSourceForm, type AddRevenueSourceValues } from '@/components/projects/AddRevenueSourceForm';
 import { ScreenLoader } from '@/components/common/ScreenLoader';
@@ -39,7 +43,7 @@ export default function ProjectRevenueSourcesScreen() {
   const { data: sources, isLoading, error, refetch } = useRevenueSources(id);
   const { data: revenueEntries, refetch: refetchEntries } = useRevenueEntries(id);
   const sourceMut = useRevenueSourceMutations();
-  const { mutateAsync: recognizeRevenue, isPending: recognizing } = useRecognizeRevenue();
+  const { mutateAsync: recognizeRevenueRange, isPending: recognizing } = useRecognizeRevenueRange();
   const { mutateAsync: correctSource, isPending: correcting } = useCorrectRevenueSource();
   const { mutateAsync: markPaid, isPending: markingPaid } = useMarkRevenueEntriesPaid();
   const [adding, setAdding] = useState(false);
@@ -59,19 +63,24 @@ export default function ProjectRevenueSourcesScreen() {
       content: values.content,
       external_invoice_id: values.externalInvoiceId ?? null,
       rem_kind: values.remKind,
+      starts_on: values.startsOn ?? null,
+      ends_on: values.endsOn ?? null,
     });
     const today = todayISO();
-    // Recognize the current month immediately so the funding pool (available
-    // balance) reflects the new source right away, instead of only at the
-    // next invoice settle.
-    await recognizeRevenue(project.id, today);
+    // Recognize immediately so the funding pool (available balance) reflects
+    // the new source right away, instead of only at the next invoice settle.
+    // A backdated start date has months to catch up on, so recognize the whole
+    // range rather than just this month.
+    const from = values.startsOn && values.startsOn < today ? values.startsOn : today;
+    await recognizeRevenueRange(project.id, from, today);
     if (values.markPaid) {
-      // Find the entry recognition just created for this source and flag it
-      // paid right away (the manager is logging money already received).
-      const entries = await fetchRevenueForMonth(globalSupabaseClient, project.id, today);
-      const entry = entries.find((e) => e.revenue_source_id === created.id);
-      if (entry) {
-        await markRevenueEntriesPaid(globalSupabaseClient, [entry.id], true);
+      // Flag everything recognition just created for this source paid (the
+      // manager is logging money already received) — with a backdated start
+      // that is every back-filled month, not only the current one.
+      const entries = await fetchRevenueEntries(globalSupabaseClient, project.id);
+      const ids = entries.filter((e) => e.revenue_source_id === created.id).map((e) => e.id);
+      if (ids.length > 0) {
+        await markRevenueEntriesPaid(globalSupabaseClient, ids, true);
       }
     }
     setAdding(false);

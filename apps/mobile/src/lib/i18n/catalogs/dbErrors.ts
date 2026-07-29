@@ -39,6 +39,9 @@ export const dbErrorsCatalog: CatalogSlice = {
     'db.company-not-found': 'Company not found.',
     'db.revenue-source-not-found': 'Revenue source not found.',
     'db.revenue-recognize-forbidden': 'Only a manager can recognize revenue.',
+    'db.revenue-range-invalid': 'That revenue period range runs backwards.',
+    'db.revenue-range-too-wide':
+      'That start date is {0} months back. Pick a date within the last 10 years.',
     'db.revenue-correct-forbidden': 'Only a manager can correct revenue.',
     'db.revenue-paid-forbidden': 'Only a manager can mark revenue as paid.',
     'db.revenue-entries-not-found': 'No matching revenue entries.',
@@ -106,6 +109,9 @@ export const dbErrorsCatalog: CatalogSlice = {
     'db.company-not-found': 'Entreprise introuvable.',
     'db.revenue-source-not-found': 'Source de revenu introuvable.',
     'db.revenue-recognize-forbidden': 'Seul un manager peut constater du revenu.',
+    'db.revenue-range-invalid': 'Cette plage de périodes est inversée.',
+    'db.revenue-range-too-wide':
+      'Cette date de début remonte à {0} mois. Choisissez une date dans les 10 dernières années.',
     'db.revenue-correct-forbidden': 'Seul un manager peut corriger un revenu.',
     'db.revenue-paid-forbidden': 'Seul un manager peut marquer un revenu comme payé.',
     'db.revenue-entries-not-found': 'Aucune écriture de revenu correspondante.',
