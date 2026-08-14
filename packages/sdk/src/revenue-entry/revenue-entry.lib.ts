@@ -1,15 +1,34 @@
 import type { RevenueSource } from '../revenue-source/revenue-source.entity';
-import { monthlyRecurringAmount } from '../revenue-source/revenue-source.lib';
+import {
+  occurrencesInMonth,
+  recurringSchedule,
+} from '../revenue-source/revenue-source.lib';
 import type { RevenueEntry } from './revenue-entry.entity';
 
 // `minutesToDays` lives in ../time-entry/time-entry.lib (single source of the
 // hours->days->cents math); import it from there when you need it here.
 
-/** Recognized amount (cents) for a recurring source in one month. */
+/**
+ * Recognized amount (cents) for a recurring source in one month: the
+ * per-occurrence amount times the occurrences the schedule puts in that
+ * month. Matches the recurring branch of the `recognize_project_revenue` RPC.
+ */
 export function recurringRevenue(
-  source: Pick<RevenueSource, 'type' | 'content'>,
+  source: Pick<RevenueSource, 'type' | 'content' | 'starts_on' | 'ends_on'>,
+  periodMonthISO: string,
 ): number {
-  return monthlyRecurringAmount(source);
+  if (source.type !== 'recurring') return 0;
+  const { frequency, amountCents } = recurringSchedule(source);
+  // Legacy source: a flat monthly figure, recognized once every month.
+  if (frequency === null) return amountCents;
+  // A frequency with no anchor cannot be expanded. The form always writes
+  // `starts_on` alongside a frequency, so this only guards hand-edited rows;
+  // fall back to the flat monthly reading rather than silently paying zero.
+  if (!source.starts_on) return amountCents;
+  return (
+    amountCents *
+    occurrencesInMonth(frequency, source.starts_on, source.ends_on, periodMonthISO)
+  );
 }
 
 /** time_based: round(billableDays * clientTjmCents). Matches the DB RPC. */

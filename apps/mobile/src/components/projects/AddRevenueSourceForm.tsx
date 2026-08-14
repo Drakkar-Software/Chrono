@@ -1,9 +1,18 @@
 import { useState } from 'react';
-import { Picker, Segmented, TextField, TitledCard } from '@chrono/ui';
-import { REM_KINDS, revenueSourceLabel, type Json, type RemKind, type RevenueSourceType } from '@chrono/sdk';
+import { DatePicker, Picker, Segmented, TextField, TitledCard } from '@chrono/ui';
+import {
+  RECURRENCE_FREQUENCIES,
+  REM_KINDS,
+  revenueSourceLabel,
+  type Json,
+  type RecurrenceFrequency,
+  type RemKind,
+  type RevenueSourceType,
+} from '@chrono/sdk';
 import { FormActions } from '@/components/common/FormActions';
 import { InlineError } from '@/components/common/ErrorState';
 import { useT } from '@/lib/i18n';
+import { toISODate } from '@/lib/date';
 import { resolveDayRateCents, toCents, toNumber } from './AddRevenueSourceForm.lib';
 import { remKindRequired } from '@/lib/rem-form.lib';
 
@@ -16,6 +25,10 @@ export interface AddRevenueSourceValues {
   /** Mark the recognized amount for this source paid immediately (default: due by client). */
   markPaid: boolean;
   remKind: RemKind | null;
+  /** Recurring only: when the schedule starts applying (ISO date). */
+  startsOn?: string;
+  /** Recurring only: when it stops (ISO date). Absent = ongoing. */
+  endsOn?: string;
 }
 
 const TYPE_OPTIONS = (['time_based', 'recurring', 'self_billing'] as RevenueSourceType[]).map((t) => ({
@@ -54,7 +67,15 @@ export function AddRevenueSourceForm({
   const [externalInvoiceId, setExternalInvoiceId] = useState('');
   const [paidStatus, setPaidStatus] = useState<'due' | 'paid'>('due');
   const [remKind, setRemKind] = useState<string>('');
+  const [frequency, setFrequency] = useState<RecurrenceFrequency>('monthly');
+  const [startsOn, setStartsOn] = useState(new Date());
+  // DatePicker has no empty state, so "ongoing" is modelled as a separate
+  // choice rather than a null date.
+  const [bounded, setBounded] = useState(false);
+  const [endsOn, setEndsOn] = useState(new Date());
   const [error, setError] = useState<string | undefined>();
+
+  const isRecurring = type === 'recurring';
 
   const paidOptions = [
     { label: t('details.dueByClient'), value: 'due' },
@@ -66,11 +87,25 @@ export function AddRevenueSourceForm({
     ...REM_KINDS.map((k) => ({ label: t(`rem.kind.${k}`), value: k })),
   ];
 
-  const amountLabel = type === 'recurring' ? t('comp.revsource.monthlyAmount') : t('comp.revsource.clientDayRate');
-  // Recurring's "amount" is a literal monthly figure, no day-rate fallback.
-  const tjmCents = type === 'recurring' ? toCents(amount) : resolveDayRateCents(amount, defaultTjmCents);
+  const frequencyOptions = RECURRENCE_FREQUENCIES.map((f) => ({
+    label: t(`comp.revsource.freq.${f}`),
+    value: f,
+  }));
+
+  const endOptions = [
+    { label: t('comp.revsource.ongoing'), value: 'ongoing' },
+    { label: t('comp.revsource.untilDate'), value: 'until' },
+  ];
+
+  // Recurring's amount is what ONE occurrence is worth; recognition multiplies
+  // it by the occurrences the schedule puts in each month.
+  const amountLabel = isRecurring
+    ? t('comp.revsource.amountPer', { unit: t(`comp.revsource.freqUnit.${frequency}`) })
+    : t('comp.revsource.clientDayRate');
+  // Recurring's "amount" is used literally, no day-rate fallback.
+  const tjmCents = isRecurring ? toCents(amount) : resolveDayRateCents(amount, defaultTjmCents);
   const amountPlaceholder =
-    type !== 'recurring' && defaultTjmCents ? String(Math.round(defaultTjmCents / 100)) : '500';
+    !isRecurring && defaultTjmCents ? String(Math.round(defaultTjmCents / 100)) : '500';
 
   const onDaysChange = (value: string) => {
     setDays(value);
@@ -105,9 +140,13 @@ export function AddRevenueSourceForm({
       setError(t('comp.revsource.errNegative', { label: amountLabel }));
       return;
     }
+    if (isRecurring && bounded && toISODate(endsOn) < toISODate(startsOn)) {
+      setError(t('comp.revsource.errEndsBeforeStarts'));
+      return;
+    }
     let content: Json;
     if (type === 'recurring') {
-      content = { monthly_amount_cents: cents };
+      content = { frequency, amount_cents: cents };
     } else if (type === 'self_billing') {
       const markupPct = Number.isFinite(parseFloat(markup.replace(',', '.')))
         ? parseFloat(markup.replace(',', '.'))
@@ -155,6 +194,8 @@ export function AddRevenueSourceForm({
       externalInvoiceId: externalInvoiceId.trim() || undefined,
       markPaid: paidStatus === 'paid',
       remKind: remKind ? (remKind as RemKind) : null,
+      startsOn: isRecurring ? toISODate(startsOn) : undefined,
+      endsOn: isRecurring && bounded ? toISODate(endsOn) : undefined,
     });
   };
 
@@ -167,6 +208,14 @@ export function AddRevenueSourceForm({
         onValueChange={(v) => setType(v as RevenueSourceType)}
         options={TYPE_OPTIONS}
       />
+      {isRecurring ? (
+        <Picker
+          label={t('comp.revsource.frequency')}
+          value={frequency}
+          onValueChange={(v) => setFrequency(v as RecurrenceFrequency)}
+          options={frequencyOptions}
+        />
+      ) : null}
       <Picker
         label={t('rem.kind.label')}
         value={remKind}
@@ -180,6 +229,24 @@ export function AddRevenueSourceForm({
         placeholder={amountPlaceholder}
         keyboardType="decimal-pad"
       />
+      {isRecurring ? (
+        <>
+          <DatePicker label={t('comp.revsource.startsOn')} value={startsOn} onChange={setStartsOn} />
+          <Segmented
+            options={endOptions}
+            value={bounded ? 'until' : 'ongoing'}
+            onValueChange={(v) => setBounded(v === 'until')}
+          />
+          {bounded ? (
+            <DatePicker
+              label={t('comp.revsource.endsOn')}
+              value={endsOn}
+              onChange={setEndsOn}
+              minimumDate={startsOn}
+            />
+          ) : null}
+        </>
+      ) : null}
       {type === 'self_billing' ? (
         <TextField
           label={t('comp.revsource.markup')}

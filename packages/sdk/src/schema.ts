@@ -1018,6 +1018,19 @@ export type Database = {
         Args: { p_project_id: string; p_period: string };
         Returns: undefined;
       };
+      recognize_project_revenue_range: {
+        Args: { p_project_id: string; p_from: string; p_to: string };
+        Returns: undefined;
+      };
+      recurring_occurrences_in_month: {
+        Args: {
+          p_frequency: string;
+          p_starts_on: string;
+          p_ends_on: string | null;
+          p_period: string;
+        };
+        Returns: number;
+      };
       correct_revenue_source: {
         Args: { p_source_id: string };
         Returns: undefined;

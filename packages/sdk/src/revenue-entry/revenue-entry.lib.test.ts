@@ -17,21 +17,89 @@ import {
 const PAID = '2026-07-01T00:00:00Z';
 
 describe('recurringRevenue', () => {
-  it('reads monthly_amount_cents for recurring sources', () => {
-    expect(
-      recurringRevenue({
-        type: 'recurring',
-        content: { monthly_amount_cents: 300000 },
-      }),
-    ).toBe(300000);
+  it('multiplies the per-occurrence amount by the occurrences in the month', () => {
+    const weekly = {
+      type: 'recurring' as const,
+      content: { frequency: 'weekly' as const, amount_cents: 50000 },
+      starts_on: '2026-03-11',
+      ends_on: null,
+    };
+    // Mar 11, 18, 25 -> 3 x 500€
+    expect(recurringRevenue(weekly, '2026-03-01')).toBe(150000);
+    // Apr 1, 8, 15, 22, 29 -> 5 x 500€
+    expect(recurringRevenue(weekly, '2026-04-01')).toBe(250000);
+  });
+
+  it('recognizes nothing in an off-cycle month', () => {
+    const quarterly = {
+      type: 'recurring' as const,
+      content: { frequency: 'quarterly' as const, amount_cents: 300000 },
+      starts_on: '2026-03-15',
+      ends_on: null,
+    };
+    expect(recurringRevenue(quarterly, '2026-03-01')).toBe(300000);
+    expect(recurringRevenue(quarterly, '2026-04-01')).toBe(0);
+    expect(recurringRevenue(quarterly, '2026-06-01')).toBe(300000);
+  });
+
+  it('pays one occurrence a month when a frequency has no anchor', () => {
+    // Hand-edited / imported row. Paying zero here would drop the revenue
+    // silently; the RPC has the same guard.
+    const anchorless = {
+      type: 'recurring' as const,
+      content: { frequency: 'weekly' as const, amount_cents: 70000 },
+      starts_on: null,
+      ends_on: null,
+    };
+    expect(recurringRevenue(anchorless, '2026-03-01')).toBe(70000);
+    expect(recurringRevenue(anchorless, '2026-04-01')).toBe(70000);
+  });
+
+  it('stops at the end date', () => {
+    const bounded = {
+      type: 'recurring' as const,
+      content: { frequency: 'weekly' as const, amount_cents: 20000 },
+      starts_on: '2026-03-01',
+      ends_on: '2026-03-31',
+    };
+    // Mar 1, 8, 15, 22, 29
+    expect(recurringRevenue(bounded, '2026-03-01')).toBe(100000);
+    expect(recurringRevenue(bounded, '2026-04-01')).toBe(0);
+  });
+
+  it('bills every calendar day for a daily schedule', () => {
+    const daily = {
+      type: 'recurring' as const,
+      content: { frequency: 'daily' as const, amount_cents: 1000 },
+      starts_on: '2026-03-11',
+      ends_on: null,
+    };
+    // Mar 11..31 inclusive, weekends included
+    expect(recurringRevenue(daily, '2026-03-01')).toBe(21000);
+  });
+
+  it('reads the flat monthly figure for a legacy source, whatever the month', () => {
+    const legacy = {
+      type: 'recurring' as const,
+      content: { monthly_amount_cents: 300000 },
+      starts_on: null,
+      ends_on: null,
+    };
+    expect(recurringRevenue(legacy, '2026-03-01')).toBe(300000);
+    expect(recurringRevenue(legacy, '2026-04-01')).toBe(300000);
   });
 
   it('is 0 for non-recurring sources', () => {
     expect(
-      recurringRevenue({
-        type: 'time_based',
-        content: { client_tjm_cents: 60000 },
-      }),
+      recurringRevenue(
+        {
+          type: 'time_based',
+          content: { client_tjm_cents: 60000 },
+          starts_on: null,
+          ends_on: null,
+        },
+        '2026-03-01',
+      ),
     ).toBe(0);
   });
 });
