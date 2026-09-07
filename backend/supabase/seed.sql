@@ -18,14 +18,22 @@ begin
       instance_id, id, aud, role, email,
       encrypted_password, email_confirmed_at,
       raw_app_meta_data, raw_user_meta_data,
-      created_at, updated_at
+      created_at, updated_at,
+      -- GoTrue scans these token columns into non-nullable strings; seeding
+      -- them as '' (not NULL) keeps password sign-in working across versions.
+      confirmation_token, recovery_token, email_change,
+      email_change_token_new, email_change_token_current,
+      phone_change, phone_change_token, reauthentication_token
     ) values (
       '00000000-0000-0000-0000-000000000000', v_user_id, 'authenticated', 'authenticated',
       'demo@chrono.dev',
       crypt('password123', gen_salt('bf')), now(),
       '{"provider":"email","providers":["email"]}',
       '{"full_name":"Demo Admin"}',
-      now(), now()
+      now(), now(),
+      '', '', '',
+      '', '',
+      '', '', ''
     );
 
     insert into auth.identities (
